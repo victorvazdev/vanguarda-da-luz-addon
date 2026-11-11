@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1.5"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Instalar busted e luacheck
+        run: |
+          luarocks install busted
+          luarocks install luacheck
+
+      - name: luacheck
+        run: luacheck VanguardaDaLuz tests
+
+      - name: busted
+        run: busted --lua=lua
+
+      - name: Pacote
+        run: scripts/package.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VanguardaDaLuz
+          path: dist/*.zip

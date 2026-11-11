@@ -1,0 +1,11 @@
+# Ferramentas locais (scripts/setup-dev.sh)
+.venv/
+.lua/
+
+# Pacotes gerados (scripts/package.sh)
+dist/
+
+# Sistema
+.DS_Store
+*.swp
+luacov.*

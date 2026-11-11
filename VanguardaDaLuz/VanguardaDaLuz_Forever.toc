@@ -1,0 +1,42 @@
+## Interface: 16001
+## Title: |cfff2c94cVanguarda da Luz|r
+## Notes: Calendário de eventos da guilda Vanguarda da Luz, importado do site.
+## Author: Vanguarda da Luz
+## Version: 0.1.0
+## Category: Guilda
+## IconTexture: Interface\AddOns\VanguardaDaLuz\assets\logo-64
+## SavedVariables: VanguardaDaLuzDB
+## AddonCompartmentFunc: VanguardaDaLuz_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: VanguardaDaLuz_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: VanguardaDaLuz_OnAddonCompartmentLeave
+
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\AceComm-3.0\AceComm-3.0.xml
+libs\LibDeflate\LibDeflate.lua
+
+core\Init.lua
+core\Config.lua
+core\Flavor_Forever.lua
+
+logic\Text.lua
+logic\Codec.lua
+logic\Snapshot.lua
+logic\Import.lua
+logic\GamePlan.lua
+logic\Time.lua
+logic\Protocol.lua
+logic\Trust.lua
+
+game\Store.lua
+game\Guild.lua
+game\Calendar.lua
+game\Comm.lua
+
+ui\Theme.lua
+ui\MainFrame.lua
+ui\ImportDialog.lua
+ui\PendingFrame.lua
+ui\MinimapButton.lua
+
+core\Main.lua
