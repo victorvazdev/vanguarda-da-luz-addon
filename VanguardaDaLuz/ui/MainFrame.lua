@@ -42,7 +42,7 @@ end
 local function InfoLine()
   local export = ns.db.export
   if not export then
-    return "Nenhuma exportação recebida ainda. Os eventos chegam de um oficial da guilda."
+    return "Nenhuma exportação recebida ainda. Os eventos chegam do Grão Lorde ou de um Lorde da guilda."
   end
   local generated = Time.FormatDateTime(export.exportNumber, Brasilia())
   local received = Time.FormatDateTime(export.receivedAt, Brasilia())

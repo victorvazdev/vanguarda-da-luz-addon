@@ -10,11 +10,13 @@ ns.Config = {
   FORMAT_VERSION = 1,
   MAX_STRING_LENGTH = 30000,
 
-  -- Cargos aceitos como fonte de dados. O índice do cargo começa em 0
-  -- (Mestre da Guilda). Com 1, são aceitos o Mestre e o cargo logo abaixo.
-  TRUSTED_MAX_RANK_INDEX = 1,
-  -- Nomes de cargo aceitos além dos índices acima, por exemplo { "Oficial" }.
-  TRUSTED_RANK_NAMES = {},
+  -- Cargos aceitos como fonte de dados. O índice do cargo começa em 0, que é
+  -- sempre o Mestre da Guilda ("Grão Lorde" na Vanguarda da Luz), mesmo se o
+  -- cargo for renomeado.
+  TRUSTED_MAX_RANK_INDEX = 0,
+  -- Nomes de cargo aceitos além dos índices acima. O nome precisa ser igual ao
+  -- do jogo, com acentos e maiúsculas.
+  TRUSTED_RANK_NAMES = { "Lorde" },
 
   -- Horário de Brasília: UTC-3, sem horário de verão desde 2019.
   BRASILIA_OFFSET = -3 * 3600,

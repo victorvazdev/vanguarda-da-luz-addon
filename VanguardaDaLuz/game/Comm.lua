@@ -81,7 +81,7 @@ function Comm.RequestLatest()
   Send("query", ns.Protocol.Query(ns.Store.ExportNumber()), "NORMAL")
 end
 
--- Envia a exportação atual para a guilda (oficiais).
+-- Envia a exportação atual para a guilda (cargos aceitos).
 function Comm.Broadcast()
   local export = ns.db.export
   if not export or not export.raw or not ns.Guild.IsPlayerTrusted() then return end

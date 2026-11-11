@@ -59,7 +59,7 @@ events:RegisterEvent("ADDON_LOADED")
 
 local HELP = {
   "/vdl  abre e fecha o calendário",
-  "/vdl importar  importa a string do site (oficiais)",
+  "/vdl importar  importa a string do site (Grão Lorde e Lordes)",
   "/vdl pendencias  alterações pendentes no calendário do jogo",
   "/vdl sincronizar  pede à guilda a exportação mais recente",
   "/vdl minimapa  mostra ou esconde o botão no minimapa",

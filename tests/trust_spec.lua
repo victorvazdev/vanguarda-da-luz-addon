@@ -32,3 +32,21 @@ describe("Trust", function()
     assert.is_nil(Trust.IsTrustedSender("Tavia", roster, config))
   end)
 end)
+
+describe("Trust com a configuração da guilda", function()
+  local ns
+
+  before_each(function()
+    ns = addon.Load()
+  end)
+
+  it("aceita o Grão Lorde (índice 0) e o Lorde, e recusa os demais", function()
+    local Trust, Config = ns.Trust, ns.Config
+    assert.is_true(Trust.IsTrustedRank(0, "Grão Lorde", Config))
+    assert.is_true(Trust.IsTrustedRank(0, "Outro nome do Mestre", Config))
+    assert.is_true(Trust.IsTrustedRank(1, "Lorde", Config))
+    assert.is_true(Trust.IsTrustedRank(3, "Lorde", Config))
+    assert.is_false(Trust.IsTrustedRank(1, "Cavaleiro", Config))
+    assert.is_false(Trust.IsTrustedRank(2, "lorde", Config))
+  end)
+end)

@@ -36,7 +36,7 @@ O botão no minimapa e a entrada no compartimento de addons também abrem o cale
 | --- | --- |
 | Ver o calendário do addon | Qualquer pessoa com o addon |
 | Importar uma string | Qualquer pessoa. A importação só atualiza o próprio calendário do addon. |
-| Enviar a exportação à guilda | Cargos aceitos (`TRUSTED_MAX_RANK_INDEX` e `TRUSTED_RANK_NAMES` em [`core/Config.lua`](VanguardaDaLuz/core/Config.lua)). O padrão é o Mestre da Guilda (índice 0) e o cargo logo abaixo (índice 1). |
+| Enviar a exportação à guilda | Cargos aceitos (`TRUSTED_MAX_RANK_INDEX` e `TRUSTED_RANK_NAMES` em [`core/Config.lua`](VanguardaDaLuz/core/Config.lua)). Hoje são o **Grão Lorde** (Mestre da Guilda, aceito pelo índice 0, mesmo que o cargo seja renomeado) e o **Lorde** (aceito pelo nome, que precisa ser idêntico ao do jogo). |
 | Receber dados da guilda | Os membros só aceitam dados de remetentes com cargo aceito, conferido no roster da guilda |
 | Alterar o calendário do jogo | Quem importou a string e tem a permissão **Criar evento da guilda** no cargo |
 
@@ -95,7 +95,7 @@ As mensagens usam o canal `GUILD` com o prefixo `VanguardaDaLuz`. A AceComm divi
 | `D\|<n>\|<string>` | A string original da exportação, para cada membro conferir o Adler-32 do site |
 
 - Só responde quem tem cargo aceito e dados mais novos. A resposta sai depois de uma espera aleatória de 1 a 6 s e é cancelada se outro remetente avisar (`H`) ou enviar (`D`) a mesma exportação ou uma mais nova.
-- Ao confirmar uma importação, um oficial envia a exportação à guilda na hora.
+- Ao confirmar uma importação, um Grão Lorde ou Lorde envia a exportação à guilda na hora.
 - Os membros aplicam as mesmas validações e regras, ignoram dados antigos e só atualizam o calendário do addon.
 - Durante encontros de chefe, M+ e partidas JxJ, a comunicação de addons fica bloqueada. Nesse caso, os envios esperam o fim do bloqueio. Um envio interrompido é refeito por inteiro.
 - **Tempo de envio:** o servidor permite cerca de 1 mensagem de 255 bytes por segundo por prefixo. Uma exportação típica de 60 dias leva alguns segundos. O máximo de 30.000 caracteres leva cerca de 2 minutos.
@@ -176,7 +176,7 @@ Os testes usam os arquivos de [`docs/exemplos-addon/`](docs/exemplos-addon/). El
 
 ## Roteiro de teste no jogo
 
-Use dois personagens na guilda: um oficial com a permissão **Criar evento da guilda** e um membro comum. Os dois precisam do addon.
+Use dois personagens na guilda: um Lorde (ou o Grão Lorde) com a permissão **Criar evento da guilda** e um membro comum. Os dois precisam do addon.
 
 ### Confirmações pendentes
 
@@ -204,10 +204,10 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 
 ### Membro
 
-1. Com o oficial online e com dados, entre no jogo com o membro. Em até cerca de 20 s, o calendário do addon do membro recebe os eventos. O cabeçalho diz "Recebido … de <oficial>".
-2. Com os dois online, o oficial importa uma string nova. O membro recebe sem fazer nada.
+1. Com o Lorde online e com dados, entre no jogo com o membro. Em até cerca de 20 s, o calendário do addon do membro recebe os eventos. O cabeçalho diz "Recebido … de <Lorde>".
+2. Com os dois online, o Lorde importa uma string nova. O membro recebe sem fazer nada.
 3. `/vdl sincronizar` no membro, sem dados novos: nada muda.
 4. No membro, `/vdl importar` com uma string mais antiga: deve aparecer o aviso de exportação antiga.
-5. Com dois oficiais online, entre com o membro: só um deles deve responder. Para conferir, ative o log de mensagens de addon com `/etrace` ou um addon de debug.
-6. Rebaixe temporariamente um personagem para um cargo não aceito e importe com ele uma string mais nova: os membros não devem aceitá-la.
+5. Com dois Lordes online, entre com o membro: só um deles deve responder. Para conferir, ative o log de mensagens de addon com `/etrace` ou um addon de debug.
+6. Mova temporariamente um personagem para um cargo diferente de Grão Lorde e Lorde e importe com ele uma string mais nova: os membros não devem aceitá-la.
 7. Saia e entre no jogo: os eventos continuam no calendário (SavedVariables).
