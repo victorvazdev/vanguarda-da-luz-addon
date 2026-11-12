@@ -62,8 +62,9 @@ function Flavor.PlayRaidWarningSound()
   PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959)
 end
 
--- Índices de C_GuildInfo.GuildControlGetRankFlags.
-Flavor.RANK_FLAG_CREATE_EVENT = 14
+-- Índices de C_GuildInfo.GuildControlGetRankFlags. O 14 também se chama
+-- "Criar evento da guilda", mas a interface da Blizzard o trata como obsoleto.
+Flavor.RANK_FLAG_CREATE_EVENT = 17
 Flavor.RANK_FLAG_REMOVE_EVENT = 20
 
 ns.Flavor = Flavor

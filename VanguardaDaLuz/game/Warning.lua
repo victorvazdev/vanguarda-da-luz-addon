@@ -30,8 +30,11 @@ function Warning.Send(text)
   end
   lastSentAt = GetTime()
   ns.Flavor.SendGuildChat(Alert.ChatLine(clean, config))
-  -- A própria mensagem de addon não volta para quem enviou: mostra aqui.
-  ns.AlertBanner.Show(clean, UnitName("player"))
+  -- Mostra aqui e marca o ID como visto: se a mensagem voltar para quem
+  -- enviou, é descartada como repetida.
+  local me = ns.Guild.PlayerName()
+  Alert.Accept(received, me, tonumber(id), GetTime(), 0)
+  ns.AlertBanner.Show(clean, Ambiguate(me, "short"))
   return true
 end
 

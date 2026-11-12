@@ -19,6 +19,24 @@ function Guild.Roster()
   return roster
 end
 
+-- Nome do jogador como aparece no roster e nas mensagens de addon, que pode
+-- ser diferente de UnitName("player"). Procura pelo GUID.
+function Guild.PlayerName()
+  local guid = UnitGUID and UnitGUID("player")
+  if guid and IsInGuild() then
+    for i = 1, GetNumGuildMembers() do
+      local name = GetGuildRosterInfo(i)
+      if name and select(17, GetGuildRosterInfo(i)) == guid then return name end
+    end
+  end
+  return UnitName("player")
+end
+
+-- `sender` é o próprio jogador?
+function Guild.IsPlayer(sender)
+  return ns.Trust.SameName(sender, UnitName("player")) or ns.Trust.SameName(sender, Guild.PlayerName())
+end
+
 -- O próprio jogador tem cargo aceito?
 function Guild.IsPlayerTrusted()
   if not IsInGuild() then return false end

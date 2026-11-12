@@ -136,7 +136,7 @@ end
 
 function Comm.OnCommReceived(_, prefix, text, distribution, sender)
   if prefix ~= ns.Config.COMM_PREFIX or distribution ~= "GUILD" then return end
-  if ns.Trust.SameName(sender, UnitName("player")) then return end
+  if ns.Guild.IsPlayer(sender) then return end
   local message = ns.Protocol.Parse(text)
   if not message then return end
   if message.kind == "query" then

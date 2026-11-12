@@ -47,16 +47,28 @@ _G.GetTime = function() return 0 end
 _G.IsInGuild = function() return true end
 _G.InCombatLockdown = function() return false end
 _G.GetGuildInfo = function() return "Vanguarda da Luz", "Lorde", 1 end
-_G.GetNumGuildMembers = function() return 1 end
-_G.GetGuildRosterInfo = function() return "Maren-Forever", "Lorde", 1 end
+-- O nome do jogador no roster é diferente de UnitName("player").
+local roster = {
+  { "Maren-Forever", "Lorde", 1 },
+  { "Tester Vaz", "Lorde", 1, [17] = "Player-1" },
+}
+_G.GetNumGuildMembers = function() return #roster end
+_G.GetGuildRosterInfo = function(i)
+  local m = roster[i]
+  return m[1], m[2], m[3], nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, m[17]
+end
 _G.UnitName = function() return "Tester" end
+_G.UnitGUID = function() return "Player-1" end
 _G.Ambiguate = function(n) return n end
 _G.GetCursorPosition = function() return 0, 0 end
 _G.Enum = {}
 local timers = {}
 _G.C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end, NewTicker = function() end }
 _G.C_AddOns = { GetAddOnMetadata = function() return "0.1.0" end }
-_G.C_GuildInfo = { GuildRoster = function() end, GuildControlGetRankFlags = function() return { [14] = true } end }
+_G.C_GuildInfo = {
+  GuildRoster = function() end,
+  GuildControlGetRankFlags = function() return { [14] = false, [17] = true } end,
+}
 local sent, chat = {}, {}
 local lockdown = false
 _G.C_ChatInfo = {
@@ -168,6 +180,9 @@ lockdown = true
 SlashCmdList.VANGUARDADALUZ("alerta x")
 lockdown = false
 print("alertas enviados:", #comms - before, comms[#comms])
+-- a mensagem volta para quem enviou, com o nome do roster
+local ownId = comms[#comms]:match("A|(%d+)|")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(ownId, "Raide / Núcleo às 20h"), "GUILD", "Tester Vaz")
 local alertId = 1794410000123
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(alertId, "Entrem já"), "GUILD", "Maren-Forever")
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(alertId, "Entrem já"), "GUILD", "Maren-Forever")

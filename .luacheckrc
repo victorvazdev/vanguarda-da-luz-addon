@@ -23,7 +23,7 @@ read_globals = {
   "GetGuildRosterInfo", "GetNumGuildMembers", "GetServerTime", "InChatMessagingLockdown",
   "InCombatLockdown", "IsInGuild", "LibStub", "Minimap", "Mixin", "UIParent", "UnitName",
   "geterrorhandler", "GetTime", "PlaySound", "RaidNotice_AddMessage", "RaidWarningFrame",
-  "SendChatMessage", "SOUNDKIT",
+  "SendChatMessage", "SOUNDKIT", "UnitGUID",
 }
 
 files["tests/"] = { std = "+busted" }

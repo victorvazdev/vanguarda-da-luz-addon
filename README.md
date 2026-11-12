@@ -40,7 +40,7 @@ O botão no minimapa e a entrada no compartimento de addons também abrem o cale
 | Enviar a exportação à guilda | Cargos aceitos (`TRUSTED_MAX_RANK_INDEX` e `TRUSTED_RANK_NAMES` em [`core/Config.lua`](VanguardaDaLuz/core/Config.lua)). Hoje são o **Grão Lorde** (Mestre da Guilda, aceito pelo índice 0, mesmo que o cargo seja renomeado) e o **Lorde** (aceito pelo nome, que precisa ser idêntico ao do jogo). |
 | Receber dados da guilda | Os membros só aceitam dados de remetentes com cargo aceito, conferido no roster da guilda |
 | Enviar alerta de raide | Cargos aceitos (Grão Lorde e Lorde). Os membros só mostram alertas de remetentes com cargo aceito |
-| Alterar o calendário do jogo | Quem importou a string e tem a permissão **Criar evento da guilda** no cargo |
+| Alterar o calendário do jogo | Quem importou a string e tem a permissão **Criar evento da guilda** no cargo (índice 17 de `C_GuildInfo.GuildControlGetRankFlags`; o 14 é obsoleto) |
 
 Contas trial e veteranas do WoW Forever não podem enviar mensagens de addon nem criar eventos no calendário.
 
