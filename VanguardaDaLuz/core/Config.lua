@@ -32,6 +32,10 @@ ns.Config = {
   RESPONSE_DELAY_MIN = 1,
   RESPONSE_DELAY_MAX = 6,
 
+  -- Profissões: espera depois de uma mudança de nível antes de anunciar, em
+  -- segundos (vários pontos seguidos viram um anúncio só).
+  PROFESSIONS_ANNOUNCE_DELAY = 10,
+
   -- Alerta de raide.
   ALERT_MAX_CHARS = 200,          -- tamanho máximo do texto, em caracteres
   ALERT_CHAT_PREFIX = "[Alerta] ", -- prefixo da mensagem no chat da guilda

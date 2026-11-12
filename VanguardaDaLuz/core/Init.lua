@@ -9,6 +9,9 @@ ns.version = (C_AddOns and C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")) or 
 -- Avisos entre módulos: ns.On("DATA_UPDATED", fn) e ns.Fire("DATA_UPDATED").
 --   DATA_UPDATED     eventos do addon mudaram
 --   SYNC_STATUS      estado da sincronização mudou
+--   ATTENDANCE_UPDATED  lista de presença mudou
+--   PROFESSIONS_UPDATED níveis de profissão ou lista da guilda mudaram
+--   GUILD_UPDATED       mensagem do dia, informações ou membros online mudaram
 local listeners = {}
 
 function ns.On(name, fn)

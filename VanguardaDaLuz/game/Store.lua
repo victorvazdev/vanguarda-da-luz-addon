@@ -5,6 +5,8 @@
 --   export = { raw, exportNumber, windowStart, windowEnd, count,
 --              receivedAt, source = "import"|"guild", sender },
 --   events = { [siteId] = { id, title, startsAt, description, organizer, status, updatedAt } },
+--   attendance = { [siteId] = { [personagem] = { s, t } } },     -- logic/Attendance.lua
+--   professions = { [personagem] = { t, p = { { n, l, m } } } }, -- logic/Professions.lua
 --   settings = { minimap = { angle, hide } },
 -- }
 local _, ns = ...
@@ -57,6 +59,19 @@ function Store.EventsOn(year, month, day)
     return a.id < b.id
   end)
   return list
+end
+
+-- Próximo evento ativo que ainda não começou (ou nil).
+function Store.NextEvent(now)
+  local best
+  for _, event in pairs(ns.db.events) do
+    if event.status == "ativo" and event.startsAt > now
+      and (not best or event.startsAt < best.startsAt
+        or (event.startsAt == best.startsAt and event.id < best.id)) then
+      best = event
+    end
+  end
+  return best
 end
 
 ns.Store = Store

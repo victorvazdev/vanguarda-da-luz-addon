@@ -1,0 +1,237 @@
+-- Profissões dos membros da guilda. Lógica pura.
+--
+-- A lista da guilda do jogo informa quais profissões primárias cada membro tem,
+-- mas não o nível (vem sempre 1 no WoW Forever). O nível vem do addon de cada
+-- membro, que lê as próprias profissões e anuncia para a guilda.
+--
+-- `store` = { [personagem] = { t = horário, p = { { n = nome, l = nível, m = máximo }, ... } } }
+--   personagem: nome completo como no roster ("Nome Sobrenome")
+--   t: horário da leitura (segundos Unix); vale o registro mais recente
+local _, ns = ...
+
+local Professions = {}
+
+local MAX_PROFESSIONS = 2
+
+local function Field(value)
+  value = tostring(value)
+  return #value .. ":" .. value
+end
+
+local function Int(value)
+  if not value or not string.find(value, "^%d+$") then return nil end
+  return tonumber(value)
+end
+
+local function ValidName(name)
+  return type(name) == "string" and name ~= "" and not string.find(name, "[|%c]")
+end
+
+-- Lista de profissões válida? { { n, l, m }, ... }, no máximo 2.
+function Professions.IsValidList(list)
+  if type(list) ~= "table" or #list > MAX_PROFESSIONS then return false end
+  for _, p in ipairs(list) do
+    if not ValidName(p.n) or type(p.l) ~= "number" or type(p.m) ~= "number" then return false end
+    if p.l < 0 or p.m < 0 then return false end
+  end
+  return true
+end
+
+local function CopyList(list)
+  local copy = {}
+  for i, p in ipairs(list) do copy[i] = { n = p.n, l = p.l, m = p.m } end
+  return copy
+end
+
+-- Registra as profissões de um personagem. Retorna true se mudou o estado.
+function Professions.Set(store, who, list, at)
+  if not ValidName(who) or type(at) ~= "number" or not Professions.IsValidList(list) then return false end
+  local current = store[who]
+  if current and current.t >= at then return false end
+  store[who] = { t = at, p = CopyList(list) }
+  return true
+end
+
+-- As duas listas têm as mesmas profissões e níveis?
+function Professions.SameList(a, b)
+  if not a or not b or #a ~= #b then return false end
+  for i = 1, #a do
+    if a[i].n ~= b[i].n or a[i].l ~= b[i].l or a[i].m ~= b[i].m then return false end
+  end
+  return true
+end
+
+-- Mescla outro `store`. Retorna quantos personagens mudaram.
+function Professions.Merge(store, other)
+  local changed = 0
+  for who, record in pairs(other) do
+    if Professions.Set(store, who, record.p, record.t) then changed = changed + 1 end
+  end
+  return changed
+end
+
+-- Apaga quem não está mais na guilda. `members` = { [nome] = true }.
+function Professions.Prune(store, members)
+  for who in pairs(store) do
+    if not members[who] then store[who] = nil end
+  end
+end
+
+---------------------------------------------------------------------------
+-- Mensagens
+---------------------------------------------------------------------------
+
+local function ListFields(parts, list)
+  parts[#parts + 1] = Field(#list)
+  for _, p in ipairs(list) do
+    parts[#parts + 1] = Field(p.n) .. Field(p.l) .. Field(p.m)
+  end
+end
+
+-- Lê uma lista a partir de f[i]. Retorna a lista e o próximo índice, ou nil.
+local function ReadList(f, i)
+  local count = Int(f[i])
+  if not count or count > MAX_PROFESSIONS then return nil end
+  local list = {}
+  i = i + 1
+  for k = 1, count do
+    local name, level, max = f[i], Int(f[i + 1]), Int(f[i + 2])
+    if not ValidName(name) or not level or not max then return nil end
+    list[k] = { n = name, l = level, m = max }
+    i = i + 3
+  end
+  return list, i
+end
+
+-- Profissões do próprio remetente: "<quantidade><nome><nível><máximo>...".
+function Professions.EncodeOwn(list)
+  local parts = {}
+  ListFields(parts, list)
+  return table.concat(parts)
+end
+
+function Professions.DecodeOwn(payload)
+  local f = type(payload) == "string" and ns.Codec.ReadFields(payload)
+  if not f then return nil end
+  local list, i = ReadList(f, 1)
+  if not list or i ~= #f + 1 then return nil end
+  return list
+end
+
+-- Todos os níveis conhecidos: "<personagens>" e, por personagem,
+-- "<nome><horário><lista>", em ordem alfabética.
+function Professions.EncodeStore(store)
+  local names = {}
+  for who in pairs(store) do names[#names + 1] = who end
+  table.sort(names)
+  local parts = { Field(#names) }
+  for _, who in ipairs(names) do
+    parts[#parts + 1] = Field(who) .. Field(store[who].t)
+    ListFields(parts, store[who].p)
+  end
+  return table.concat(parts)
+end
+
+function Professions.DecodeStore(payload)
+  local f = type(payload) == "string" and ns.Codec.ReadFields(payload)
+  if not f then return nil end
+  local count = Int(f[1])
+  if not count then return nil end
+  local store, i = {}, 2
+  for _ = 1, count do
+    local who, at = f[i], Int(f[i + 1])
+    if not ValidName(who) or not at or store[who] then return nil end
+    local list
+    list, i = ReadList(f, i + 2)
+    if not list then return nil end
+    store[who] = { t = at, p = list }
+  end
+  if i ~= #f + 1 then return nil end
+  return store
+end
+
+---------------------------------------------------------------------------
+-- Lista exibida
+---------------------------------------------------------------------------
+
+local function Find(list, name)
+  for _, p in ipairs(list or {}) do
+    if p.n == name then return p end
+  end
+  return nil
+end
+
+-- Junta os membros da guilda com os níveis conhecidos.
+-- `members` = { { name, online, professions = { "Ferraria", ... } }, ... }
+-- Retorna { { name, online, professions = { { name, level, max }, ... } }, ... }.
+-- As profissões vêm da guilda; sem elas, das que o addon do membro anunciou.
+-- O nível é nil quando o addon do membro ainda não informou.
+function Professions.BuildRows(members, store)
+  local rows = {}
+  for _, member in ipairs(members) do
+    local known = store[member.name] and store[member.name].p
+    local names = member.professions or {}
+    if #names == 0 and known then
+      names = {}
+      for i, p in ipairs(known) do names[i] = p.n end
+    end
+    local professions = {}
+    for i, name in ipairs(names) do
+      local p = Find(known, name)
+      professions[i] = { name = name, level = p and p.l, max = p and p.m }
+    end
+    rows[#rows + 1] = { name = member.name, online = member.online and true or false,
+      professions = professions }
+  end
+  return rows
+end
+
+-- Nível do membro numa profissão (nil se não tem ou não se sabe).
+local function LevelIn(row, profession)
+  for _, p in ipairs(row.professions) do
+    if p.name == profession then return p.level or -1 end
+  end
+  return nil
+end
+
+-- Filtra e ordena. `options` = { profession, onlineOnly }.
+-- Sem profissão: ordem alfabética. Com profissão: maior nível primeiro, e quem
+-- não informou o nível no fim.
+function Professions.Filter(rows, options)
+  options = options or {}
+  local result = {}
+  for _, row in ipairs(rows) do
+    local keep = not options.onlineOnly or row.online
+    if keep and options.profession then keep = LevelIn(row, options.profession) ~= nil end
+    if keep then result[#result + 1] = row end
+  end
+  local profession = options.profession
+  table.sort(result, function(a, b)
+    if profession then
+      local la, lb = LevelIn(a, profession), LevelIn(b, profession)
+      if la ~= lb then return la > lb end
+    end
+    local na, nb = string.lower(a.name), string.lower(b.name)
+    if na ~= nb then return na < nb end
+    return a.name < b.name
+  end)
+  return result
+end
+
+-- Profissões que aparecem na lista, em ordem alfabética (para o filtro).
+function Professions.Names(rows)
+  local seen, names = {}, {}
+  for _, row in ipairs(rows) do
+    for _, p in ipairs(row.professions) do
+      if not seen[p.name] then
+        seen[p.name] = true
+        names[#names + 1] = p.name
+      end
+    end
+  end
+  table.sort(names)
+  return names
+end
+
+ns.Professions = Professions
+return Professions

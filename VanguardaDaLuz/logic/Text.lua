@@ -48,5 +48,44 @@ function Text.Length(s)
   return count
 end
 
+-- Links num texto: { { url, first, last }, ... } em ordem, com as posições em
+-- bytes. Aceita http://, https:// e www.; pontuação no fim ("site.app.") não
+-- faz parte do link.
+local LINK_PATTERNS = { "[Hh][Tt][Tt][Pp][Ss]?://[^%s|<>\"]+", "[Ww][Ww][Ww]%.[^%s|<>\"]+" }
+
+function Text.FindLinks(s)
+  local links, pos = {}, 1
+  while true do
+    local first, last
+    for _, pattern in ipairs(LINK_PATTERNS) do
+      local a, b = string.find(s, pattern, pos)
+      if a and (not first or a < first) then first, last = a, b end
+    end
+    if not first then break end
+    local url = string.sub(s, first, last)
+    local trimmed = string.gsub(url, "[%.,;:!%?%)%]}'\"]+$", "")
+    last = first + #trimmed - 1
+    -- "www." sozinho não é link.
+    if #trimmed > 4 and not string.find(trimmed, "^[Ww][Ww][Ww]%.$") then
+      links[#links + 1] = { url = trimmed, first = first, last = last }
+    end
+    pos = math.max(last, first) + 1
+  end
+  return links
+end
+
+-- Texto para exibir com os links clicáveis: cada link vira um hyperlink
+-- "|H<tipo>:<url>|h<url>|h" na cor `color` ("|cffRRGGBB"). O resto é escapado.
+function Text.Linkify(s, linkType, color)
+  local parts, pos = {}, 1
+  for _, link in ipairs(Text.FindLinks(s)) do
+    parts[#parts + 1] = Text.Escape(string.sub(s, pos, link.first - 1))
+    parts[#parts + 1] = color .. "|H" .. linkType .. ":" .. link.url .. "|h" .. link.url .. "|h|r"
+    pos = link.last + 1
+  end
+  parts[#parts + 1] = Text.Escape(string.sub(s, pos))
+  return table.concat(parts)
+end
+
 ns.Text = Text
 return Text

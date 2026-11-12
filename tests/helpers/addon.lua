@@ -16,6 +16,9 @@ local FILES = {
   "logic/Protocol.lua",
   "logic/Trust.lua",
   "logic/Alert.lua",
+  "logic/Attendance.lua",
+  "logic/PresenceCodec.lua",
+  "logic/Professions.lua",
 }
 
 local LibDeflate

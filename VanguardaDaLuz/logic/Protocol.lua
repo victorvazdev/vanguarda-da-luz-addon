@@ -4,6 +4,12 @@
 --   H|<n>       Aviso: "vou enviar a exportação <n>" (cancela outras respostas)
 --   D|<n>|<raw> Dados: a string original da exportação <n>
 --   A|<id>|<txt> Alerta de raide (logic/Alert.lua)
+--   P|<evento>|<1 ou 0>|<t>  Presença do próprio remetente num evento
+--   R           Pedido: "alguém me manda as presenças que conhece?"
+--   L|<VDLP1>   Presenças conhecidas, numa string VDLP1 (logic/PresenceCodec.lua)
+--   F|<t>|<lista>  Profissões e níveis do próprio remetente (logic/Professions.lua)
+--   G           Pedido: "alguém me manda os níveis de profissão que conhece?"
+--   K|<lista>   Níveis de profissão conhecidos (logic/Professions.lua)
 --
 -- A AceComm divide e junta as mensagens grandes.
 local _, ns = ...
@@ -26,10 +32,48 @@ function Protocol.Alert(id, text)
   return "A|" .. id .. "|" .. text
 end
 
+function Protocol.Presence(eventId, status, at)
+  return "P|" .. eventId .. "|" .. status .. "|" .. at
+end
+
+function Protocol.PresenceRequest()
+  return "R"
+end
+
+function Protocol.PresenceList(encoded)
+  return "L|" .. encoded
+end
+
+function Protocol.Professions(at, payload)
+  return "F|" .. at .. "|" .. payload
+end
+
+function Protocol.ProfessionsRequest()
+  return "G"
+end
+
+function Protocol.ProfessionsList(payload)
+  return "K|" .. payload
+end
+
 -- Retorna { kind = "query"|"have"|"data", number, raw }, { kind = "alert", id,
--- text } ou nil.
+-- text }, { kind = "presence", eventId, status, at }, { kind = "presenceRequest" },
+-- { kind = "presenceList", encoded }, { kind = "professions", at, payload },
+-- { kind = "professionsRequest" }, { kind = "professionsList", payload } ou nil.
 function Protocol.Parse(message)
   if type(message) ~= "string" then return nil end
+  if message == "R" then return { kind = "presenceRequest" } end
+  if message == "G" then return { kind = "professionsRequest" } end
+  local ownAt, own = string.match(message, "^F|(%d+)|(%d.*)$")
+  if ownAt then return { kind = "professions", at = tonumber(ownAt), payload = own } end
+  local known = string.match(message, "^K|(%d.*)$")
+  if known then return { kind = "professionsList", payload = known } end
+  local eventId, status, at = string.match(message, "^P|(%w+)|([01])|(%d+)$")
+  if eventId then
+    return { kind = "presence", eventId = eventId, status = tonumber(status), at = tonumber(at) }
+  end
+  local encoded = string.match(message, "^L|(VDLP.+)$")
+  if encoded then return { kind = "presenceList", encoded = encoded } end
   local kind, number, rest = string.match(message, "^([QHDA])|(%d+)(.*)$")
   if not kind then return nil end
   number = tonumber(number)

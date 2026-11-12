@@ -58,7 +58,10 @@ function Comm.Flush()
   queue = {}
   for _, kind in ipairs({ "query", "have", "data" }) do
     if pending[kind] then Send(kind, pending[kind].message, pending[kind].prio) end
+    pending[kind] = nil
   end
+  -- Presenças (uma por evento) e outros tipos.
+  for kind, item in pairs(pending) do Send(kind, item.message, item.prio) end
 end
 
 function Comm.OnRestrictionChanged()
@@ -79,6 +82,27 @@ function Comm.RequestLatest()
   if not ns.Guild.IsMember() then return end
   SetStatus("Perguntando à guilda pela exportação mais recente…")
   Send("query", ns.Protocol.Query(ns.Store.ExportNumber()), "NORMAL")
+  Send("presenceRequest", ns.Protocol.PresenceRequest(), "NORMAL")
+  Send("professionsRequest", ns.Protocol.ProfessionsRequest(), "NORMAL")
+end
+
+-- Presença do próprio jogador num evento (só a última de cada evento fica na
+-- fila durante a restrição).
+function Comm.SendPresence(message, eventId)
+  Send("presence:" .. eventId, message, "NORMAL")
+end
+
+function Comm.SendPresenceList(message)
+  Send("presenceList", message, "BULK")
+end
+
+-- Profissões do próprio jogador e níveis conhecidos repassados.
+function Comm.SendProfessions(message)
+  Send("professions", message, "NORMAL")
+end
+
+function Comm.SendProfessionsList(message)
+  Send("professionsList", message, "BULK")
 end
 
 -- Envia a exportação atual para a guilda (cargos aceitos).
@@ -152,6 +176,18 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
     OnData(message, sender)
   elseif message.kind == "alert" then
     ns.Warning.OnReceived(message, sender)
+  elseif message.kind == "presence" then
+    ns.Presence.OnPresence(message, sender)
+  elseif message.kind == "presenceRequest" then
+    ns.Presence.OnRequest()
+  elseif message.kind == "presenceList" then
+    ns.Presence.OnList(message)
+  elseif message.kind == "professions" then
+    ns.GuildProfessions.OnOwn(message, sender)
+  elseif message.kind == "professionsRequest" then
+    ns.GuildProfessions.OnRequest()
+  elseif message.kind == "professionsList" then
+    ns.GuildProfessions.OnList(message)
   end
 end
 

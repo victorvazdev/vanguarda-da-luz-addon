@@ -15,6 +15,21 @@ function Guild.RequestRoster()
   if C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() end
 end
 
+-- Mensagem do dia e informações da guilda ("" se não houver).
+function Guild.Motd()
+  return GetGuildRosterMOTD and GetGuildRosterMOTD() or ""
+end
+
+function Guild.InfoText()
+  return GetGuildInfoText and GetGuildInfoText() or ""
+end
+
+-- Total de membros e quantos estão online.
+function Guild.Counts()
+  local total, online = GetNumGuildMembers()
+  return total or 0, online or 0
+end
+
 -- Lista de { name, rankName, rankIndex } do roster atual.
 function Guild.Roster()
   local roster = {}
@@ -35,7 +50,10 @@ function Guild.PlayerName()
       if name and select(17, GetGuildRosterInfo(i)) == guid then return name end
     end
   end
-  return UnitName("player")
+  -- Sem roster: no WoW Forever, o segundo valor de UnitName é o sobrenome.
+  local name, surname = UnitName("player")
+  if surname and surname ~= "" then return name .. " " .. surname end
+  return name
 end
 
 -- `sender` é o próprio jogador?

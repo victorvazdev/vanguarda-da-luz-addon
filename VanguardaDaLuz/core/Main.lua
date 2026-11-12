@@ -12,6 +12,7 @@ local function RequestWhenMember()
   if requestPending and ns.Guild.IsMember() then
     requestPending = false
     ns.Comm.RequestLatest()
+    ns.GuildProfessions.Announce()
   end
 end
 
@@ -38,13 +39,20 @@ end
 local function Start()
   ns.Store.Init()
   ns.Comm.Init()
+  ns.Presence.Init()
+  ns.GuildProfessions.Init()
   ns.MinimapButton.Init()
+  ns.GuildTabs.Init()
 
   Register("PLAYER_ENTERING_WORLD", OnLogin)
   Register("GUILD_ROSTER_UPDATE", function(...)
     ns.Guild.OnRosterUpdate(...)
     RequestWhenMember()
+    ns.Fire("PROFESSIONS_UPDATED")
+    ns.Fire("GUILD_UPDATED")
   end)
+  Register("GUILD_MOTD", function() ns.Fire("GUILD_UPDATED") end)
+  Register("SKILL_LINES_CHANGED", ns.GuildProfessions.OnSkillChanged)
   Register("PLAYER_GUILD_UPDATE", RequestWhenMember)
   Register("ADDON_RESTRICTION_STATE_CHANGED", ns.Comm.OnRestrictionChanged)
 end
@@ -70,6 +78,8 @@ local HELP = {
   "/vdl  abre e fecha o calendário",
   "/vdl importar  importa a string do site (Grão Lorde e Lordes)",
   "/vdl sincronizar  pede à guilda a exportação mais recente",
+  "/vdl presencas  gera a string de presenças para o site (Grão Lorde e Lordes)",
+  "/vdl profissoes  mostra as profissões dos membros da guilda",
   "/vdl alerta [texto]  envia um alerta de raide à guilda (Grão Lorde e Lordes)",
   "/vdl minimapa  mostra ou esconde o botão no minimapa",
 }
@@ -91,6 +101,10 @@ SlashCmdList.VANGUARDADALUZ = function(input)
     ns.ImportDialog.Show()
   elseif command == "sincronizar" then
     ns.Comm.RequestLatest()
+  elseif command == "presencas" or command == "presenças" then
+    ns.PresenceExport.Show()
+  elseif command == "profissoes" or command == "profissões" then
+    ns.ProfessionsFrame.Toggle()
   elseif command == "alerta" then
     if rest == "" then
       ns.AlertDialog.Show()

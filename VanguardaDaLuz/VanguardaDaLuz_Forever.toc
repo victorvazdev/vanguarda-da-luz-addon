@@ -27,18 +27,30 @@ logic\Time.lua
 logic\Protocol.lua
 logic\Trust.lua
 logic\Alert.lua
+logic\Attendance.lua
+logic\PresenceCodec.lua
+logic\Professions.lua
 
 game\Store.lua
 game\Guild.lua
 game\Comm.lua
 game\Warning.lua
+game\Presence.lua
+game\GuildProfessions.lua
 
 ui\Theme.lua
+ui\CalendarPanel.lua
+ui\ProfessionsPanel.lua
+ui\AdminPanel.lua
+ui\HomePanel.lua
 ui\MainFrame.lua
 ui\ImportDialog.lua
 ui\AlertBanner.lua
 ui\AlertDialog.lua
 ui\WelcomeFrame.lua
+ui\PresenceExport.lua
+ui\ProfessionsFrame.lua
+ui\GuildTabs.lua
 ui\MinimapButton.lua
 
 core\Main.lua

@@ -47,13 +47,13 @@ local fonts = {}
 -- Fontes: Cinzel nos títulos e Source Sans 3 no texto.
 local FONT_SPECS = {
   title = { "Cinzel-Bold.ttf", 20, "heading" },
-  heading = { "Cinzel-SemiBold.ttf", 14, "heading" },
-  body = { "SourceSans3-Regular.ttf", 13, "text" },
-  bodyStrong = { "SourceSans3-SemiBold.ttf", 13, "text" },
-  small = { "SourceSans3-Regular.ttf", 11, "textMuted" },
-  smallStrong = { "SourceSans3-SemiBold.ttf", 11, "text" },
+  heading = { "Cinzel-SemiBold.ttf", 15, "heading" },
+  body = { "SourceSans3-Regular.ttf", 14, "text" },
+  bodyStrong = { "SourceSans3-SemiBold.ttf", 14, "text" },
+  small = { "SourceSans3-Regular.ttf", 12, "textMuted" },
+  smallStrong = { "SourceSans3-SemiBold.ttf", 12, "text" },
   button = { "SourceSans3-Bold.ttf", 13, "text" },
-  day = { "SourceSans3-SemiBold.ttf", 12, "text" },
+  day = { "SourceSans3-SemiBold.ttf", 13, "text" },
 }
 
 function Theme.Font(name)
@@ -116,10 +116,10 @@ function Theme.Button(parent, label, kind, width)
 
   local function Paint(self, hover)
     local enabled = self:IsEnabled()
-    if kind == "primary" then
+    if self.kind == "primary" then
       Theme.Backdrop(self, hover and "goldLight" or "gold", "goldDeep")
       text:SetTextColor(unpack(Theme.colors.onGold))
-    elseif kind == "ghost" then
+    elseif self.kind == "ghost" then
       Theme.Backdrop(self, hover and "surfaceRaised" or "surface", hover and "border" or "surface")
       text:SetTextColor(unpack(Theme.colors[hover and "goldLight" or "gold"]))
     else
@@ -133,6 +133,11 @@ function Theme.Button(parent, label, kind, width)
   button:SetScript("OnLeave", function(self) Paint(self, false) end)
   button:SetScript("OnEnable", function(self) Paint(self, false) end)
   button:SetScript("OnDisable", function(self) Paint(self, false) end)
+  -- Troca o estilo depois de criado (abas: a ativa fica "primary").
+  function button.SetKind(self, newKind)
+    self.kind = newKind
+    Paint(self, false)
+  end
   button:SetText(label)
   Paint(button, false)
   return button

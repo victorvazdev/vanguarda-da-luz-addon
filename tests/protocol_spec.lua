@@ -14,6 +14,15 @@ describe("Protocol", function()
     assert.are.same({ kind = "data", number = 42, raw = raw }, Protocol.Parse(Protocol.Data(42, raw)))
   end)
 
+  it("monta e lê as mensagens de profissões", function()
+    assert.are.same({ kind = "professions", at = 100, payload = "1:0" },
+      Protocol.Parse(Protocol.Professions(100, "1:0")))
+    assert.are.same({ kind = "professionsRequest" }, Protocol.Parse(Protocol.ProfessionsRequest()))
+    assert.are.same({ kind = "professionsList", payload = "1:0" }, Protocol.Parse(Protocol.ProfessionsList("1:0")))
+    assert.is_nil(Protocol.Parse("F|x|1:0"))
+    assert.is_nil(Protocol.Parse("K|"))
+  end)
+
   it("ignora mensagens inválidas", function()
     assert.is_nil(Protocol.Parse("X|1"))
     assert.is_nil(Protocol.Parse("Q|abc"))
