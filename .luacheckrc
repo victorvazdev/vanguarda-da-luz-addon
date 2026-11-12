@@ -22,7 +22,8 @@ read_globals = {
   "CreateFrame", "Enum", "GameTooltip", "GetCursorPosition", "GetGuildInfo",
   "GetGuildRosterInfo", "GetNumGuildMembers", "GetServerTime", "InChatMessagingLockdown",
   "InCombatLockdown", "IsInGuild", "LibStub", "Minimap", "Mixin", "UIParent", "UnitName",
-  "geterrorhandler", "GetTime",
+  "geterrorhandler", "GetTime", "PlaySound", "RaidNotice_AddMessage", "RaidWarningFrame",
+  "SendChatMessage", "SOUNDKIT",
 }
 
 files["tests/"] = { std = "+busted" }

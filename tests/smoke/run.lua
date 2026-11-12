@@ -57,12 +57,18 @@ local timers = {}
 _G.C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end, NewTicker = function() end }
 _G.C_AddOns = { GetAddOnMetadata = function() return "0.1.0" end }
 _G.C_GuildInfo = { GuildRoster = function() end, GuildControlGetRankFlags = function() return { [14] = true } end }
-local sent = {}
+local sent, chat = {}, {}
+local lockdown = false
 _G.C_ChatInfo = {
   RegisterAddonMessagePrefix = function() return 0 end,
   SendAddonMessage = function(_, m) sent[#sent + 1] = m; return 0 end,
-  InChatMessagingLockdown = function() return false end,
+  InChatMessagingLockdown = function() return lockdown end,
+  SendChatMessage = function(m, chatType) chat[#chat + 1] = chatType .. " " .. m end,
 }
+local warnings, sounds = {}, 0
+_G.RaidWarningFrame = Mock()
+_G.RaidNotice_AddMessage = function(_, text) warnings[#warnings + 1] = text end
+_G.PlaySound = function() sounds = sounds + 1 end
 _G.C_DateAndTime = { GetCurrentCalendarTime = function()
   return { year = 2026, month = 11, monthDay = 12, hour = 20, minute = 33 } end }
 local calls = {}
@@ -150,5 +156,20 @@ print("recebido da guilda:", ns.db.export and ns.db.export.source, ns.db.export 
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Query(0), "GUILD", "Dorvan")
 RunTimers()
 print("respondeu ao pedido; mensagens enviadas:", #sent)
+-- alerta de raide
+local before = #comms
+SlashCmdList.VANGUARDADALUZ("alerta   ")             -- sem texto: abre o modal
+_G.VanguardaDaLuzAlertDialog.edit:SetText("Raide | Núcleo às 20h")
+_G.VanguardaDaLuzAlertDialog.edit._scripts.OnTextChanged(_G.VanguardaDaLuzAlertDialog.edit)
+print("prévia:", _G.VanguardaDaLuzAlertDialog.preview._text)
+Click("Enviar alerta")
+SlashCmdList.VANGUARDADALUZ("alerta De novo")         -- antes do intervalo
+lockdown = true
+SlashCmdList.VANGUARDADALUZ("alerta x")
+lockdown = false
+print("alertas enviados:", #comms - before, comms[#comms])
+local alertId = 1794410000123
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(alertId, "Entrem já"), "GUILD", "Maren-Forever")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(alertId, "Entrem já"), "GUILD", "Maren-Forever")
 for _, c in ipairs(comms) do print("comm:", c) end
-return output, ns, comms
+return output, ns, comms, { chat = chat, warnings = warnings, sounds = sounds }

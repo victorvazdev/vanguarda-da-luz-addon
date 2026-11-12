@@ -3,6 +3,7 @@
 --   Q|<n>       Pedido: "alguém tem exportação mais nova que <n>?" (0 = nenhuma)
 --   H|<n>       Aviso: "vou enviar a exportação <n>" (cancela outras respostas)
 --   D|<n>|<raw> Dados: a string original da exportação <n>
+--   A|<id>|<txt> Alerta de raide (logic/Alert.lua)
 --
 -- A AceComm divide e junta as mensagens grandes.
 local _, ns = ...
@@ -21,14 +22,24 @@ function Protocol.Data(exportNumber, raw)
   return "D|" .. exportNumber .. "|" .. raw
 end
 
--- Retorna { kind = "query"|"have"|"data", number, raw } ou nil.
+function Protocol.Alert(id, text)
+  return "A|" .. id .. "|" .. text
+end
+
+-- Retorna { kind = "query"|"have"|"data", number, raw }, { kind = "alert", id,
+-- text } ou nil.
 function Protocol.Parse(message)
   if type(message) ~= "string" then return nil end
-  local kind, number, rest = string.match(message, "^([QHD])|(%d+)(.*)$")
+  local kind, number, rest = string.match(message, "^([QHDA])|(%d+)(.*)$")
   if not kind then return nil end
   number = tonumber(number)
   if kind == "Q" and rest == "" then return { kind = "query", number = number } end
   if kind == "H" and rest == "" then return { kind = "have", number = number } end
+  if kind == "A" then
+    local text = string.match(rest, "^|(.+)$")
+    if text then return { kind = "alert", id = number, text = text } end
+    return nil
+  end
   if kind == "D" then
     local raw = string.match(rest, "^|(VDL.+)$")
     if raw then return { kind = "data", number = number, raw = raw } end

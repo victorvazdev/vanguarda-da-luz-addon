@@ -90,6 +90,14 @@ function Comm.Broadcast()
   Send("data", ns.Protocol.Data(export.exportNumber, export.raw), "BULK")
 end
 
+-- Envia um alerta de raide na hora, sem fila: um alerta atrasado perde o
+-- sentido. Retorna false durante a restrição de comunicação.
+function Comm.SendAlert(message)
+  if not IsInGuild() or Locked() then return false end
+  RawSend(message, "ALERT")
+  return true
+end
+
 local function CancelResponseIfCovered(number)
   if response and ns.Protocol.ShouldCancel(response.number, number) then
     response = nil
@@ -141,6 +149,8 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
   elseif message.kind == "data" then
     CancelResponseIfCovered(message.number)
     OnData(message, sender)
+  elseif message.kind == "alert" then
+    ns.Warning.OnReceived(message, sender)
   end
 end
 

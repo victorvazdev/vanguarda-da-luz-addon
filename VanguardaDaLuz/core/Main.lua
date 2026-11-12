@@ -62,12 +62,15 @@ local HELP = {
   "/vdl importar  importa a string do site (Grão Lorde e Lordes)",
   "/vdl pendencias  alterações pendentes no calendário do jogo",
   "/vdl sincronizar  pede à guilda a exportação mais recente",
+  "/vdl alerta [texto]  envia um alerta de raide à guilda (Grão Lorde e Lordes)",
   "/vdl minimapa  mostra ou esconde o botão no minimapa",
 }
 
 SLASH_VANGUARDADALUZ1 = "/vdl"
 SlashCmdList.VANGUARDADALUZ = function(input)
-  local command = string.lower(ns.Text.Trim(input or ""))
+  input = ns.Text.Trim(input or "")
+  local word, rest = string.match(input, "^(%S+)%s*(.-)$")
+  local command = string.lower(word or "")
   if command == "" then
     ns.MainFrame.Toggle()
   elseif command == "importar" then
@@ -76,6 +79,13 @@ SlashCmdList.VANGUARDADALUZ = function(input)
     ns.PendingFrame.Show()
   elseif command == "sincronizar" then
     ns.Comm.RequestLatest()
+  elseif command == "alerta" then
+    if rest == "" then
+      ns.AlertDialog.Show()
+    else
+      local ok, err = ns.Warning.Send(rest)
+      if not ok then ns.Print(err) end
+    end
   elseif command == "minimapa" then
     ns.MinimapButton.Toggle()
   else

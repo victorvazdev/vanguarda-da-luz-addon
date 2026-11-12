@@ -25,6 +25,7 @@ Os eventos são criados no [site da guilda](https://vanguarda-da-luz.web.app/). 
 | `/vdl importar` | Abre o modal para colar a string do site |
 | `/vdl pendencias` | Mostra as alterações pendentes no calendário do jogo |
 | `/vdl sincronizar` | Pergunta à guilda qual é a exportação mais recente |
+| `/vdl alerta [texto]` | Envia um alerta de raide à guilda. Sem texto, abre o modal do alerta (Grão Lorde e Lordes) |
 | `/vdl minimapa` | Mostra ou esconde o botão no minimapa |
 | `/vdl ajuda` | Lista os comandos |
 
@@ -38,6 +39,7 @@ O botão no minimapa e a entrada no compartimento de addons também abrem o cale
 | Importar uma string | Qualquer pessoa. A importação só atualiza o próprio calendário do addon. |
 | Enviar a exportação à guilda | Cargos aceitos (`TRUSTED_MAX_RANK_INDEX` e `TRUSTED_RANK_NAMES` em [`core/Config.lua`](VanguardaDaLuz/core/Config.lua)). Hoje são o **Grão Lorde** (Mestre da Guilda, aceito pelo índice 0, mesmo que o cargo seja renomeado) e o **Lorde** (aceito pelo nome, que precisa ser idêntico ao do jogo). |
 | Receber dados da guilda | Os membros só aceitam dados de remetentes com cargo aceito, conferido no roster da guilda |
+| Enviar alerta de raide | Cargos aceitos (Grão Lorde e Lorde). Os membros só mostram alertas de remetentes com cargo aceito |
 | Alterar o calendário do jogo | Quem importou a string e tem a permissão **Criar evento da guilda** no cargo |
 
 Contas trial e veteranas do WoW Forever não podem enviar mensagens de addon nem criar eventos no calendário.
@@ -93,12 +95,24 @@ As mensagens usam o canal `GUILD` com o prefixo `VanguardaDaLuz`. A AceComm divi
 | `Q\|<n>` | Pedido enviado ao entrar no jogo (após 5 a 15 s): "alguém tem uma exportação mais nova que `<n>`?" |
 | `H\|<n>` | Aviso de que a exportação `<n>` vai ser enviada |
 | `D\|<n>\|<string>` | A string original da exportação, para cada membro conferir o Adler-32 do site |
+| `A\|<id>\|<texto>` | Alerta de raide (ver abaixo) |
 
 - Só responde quem tem cargo aceito e dados mais novos. A resposta sai depois de uma espera aleatória de 1 a 6 s e é cancelada se outro remetente avisar (`H`) ou enviar (`D`) a mesma exportação ou uma mais nova.
 - Ao confirmar uma importação, um Grão Lorde ou Lorde envia a exportação à guilda na hora.
 - Os membros aplicam as mesmas validações e regras, ignoram dados antigos e só atualizam o calendário do addon.
 - Durante encontros de chefe, M+ e partidas JxJ, a comunicação de addons fica bloqueada. Nesse caso, os envios esperam o fim do bloqueio. Um envio interrompido é refeito por inteiro.
 - **Tempo de envio:** o servidor permite cerca de 1 mensagem de 255 bytes por segundo por prefixo. Uma exportação típica de 60 dias leva alguns segundos. O máximo de 30.000 caracteres leva cerca de 2 minutos.
+
+### Alerta de raide
+
+O Grão Lorde ou um Lorde envia um alerta com `/vdl alerta <texto>` ou pelo botão **Alerta** da janela, que só aparece para esses cargos.
+
+- O texto vira uma linha só, sem `|`, com até 200 caracteres (e até 255 bytes com o prefixo no chat).
+- O remetente envia a mensagem de addon `A|<id>|<texto>` pelo canal `GUILD` com prioridade `ALERT` e publica uma vez no chat da guilda: `[Alerta] <texto>`. Quem não tem o addon vê só essa linha.
+- Quem tem o addon confere o cargo do remetente e mostra `<remetente>: <texto>` no centro da tela, no quadro do aviso de raide (`RaidNotice_AddMessage`), com o som padrão do aviso de raide, que não pode ser desativado. Se o quadro não existir, o addon usa uma faixa própria por 10 s.
+- O alerta vale só para quem está online: não fica salvo nem é reenviado.
+- Intervalo mínimo de 30 s entre envios. Quem recebe ignora IDs repetidos e alertas do mesmo remetente com menos de 20 s.
+- Durante a restrição de comunicação (encontros de chefe, M+ e JxJ), o envio é recusado com um aviso, porque um alerta atrasado perde o sentido.
 
 ### Horários
 
@@ -112,9 +126,10 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
   core/    Init, Config, Flavor_Forever (o que depende da versão do jogo), Main (eventos e comandos)
   logic/   lógica pura, testada fora do jogo:
            Codec (string), Snapshot (retrato completo), Import, GamePlan (calendário do jogo),
-           Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8)
-  game/    Store (SavedVariables), Guild, Calendar (C_Calendar), Comm (AceComm)
-  ui/      Theme (identidade do site), MainFrame, ImportDialog, PendingFrame, MinimapButton
+           Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8), Alert (alerta de raide)
+  game/    Store (SavedVariables), Guild, Calendar (C_Calendar), Comm (AceComm), Warning (alerta de raide)
+  ui/      Theme (identidade do site), MainFrame, ImportDialog, PendingFrame, AlertBanner, AlertDialog,
+           MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
   assets/  logo
   fonts/   Cinzel e Source Sans 3 (OFL)
@@ -188,6 +203,7 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 4. A diferença do horário do servidor está correta. Compare a linha "servidor" do detalhe com o relógio do jogo.
 5. A remoção de evento (`ContextMenuEventRemove`) funciona pelo botão.
 6. A mensagem de addon é adiada num encontro de chefe e enviada depois.
+7. `RaidNotice_AddMessage(RaidWarningFrame, …)` mostra o alerta no centro da tela, e `C_ChatInfo.SendChatMessage(…, "GUILD")` publica no chat da guilda sem clique. Se o quadro não existir, aparece a faixa própria.
 
 ### Administrador
 
@@ -211,3 +227,11 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 5. Com dois Lordes online, entre com o membro: só um deles deve responder. Para conferir, ative o log de mensagens de addon com `/etrace` ou um addon de debug.
 6. Mova temporariamente um personagem para um cargo diferente de Grão Lorde e Lorde e importe com ele uma string mais nova: os membros não devem aceitá-la.
 7. Saia e entre no jogo: os eventos continuam no calendário (SavedVariables).
+
+### Alerta de raide
+
+1. No Lorde, `/vdl alerta Raide no Núcleo às 20h | entrem`. O chat da guilda mostra `[Alerta] Raide no Núcleo às 20h / entrem`. O Lorde e o membro veem o aviso no centro da tela e ouvem o som do aviso de raide.
+2. Envie outro alerta antes de 30 s: deve aparecer "Aguarde … s".
+3. No membro, `/vdl alerta teste`: deve aparecer que só o Grão Lorde e os Lordes podem enviar. O botão **Alerta** não aparece na janela do membro.
+4. Num encontro de chefe, tente enviar: deve aparecer o aviso de comunicação restrita, e nada é publicado.
+5. Um membro que entra depois do alerta não o vê.

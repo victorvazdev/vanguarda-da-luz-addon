@@ -16,6 +16,7 @@ local FILES = {
   "logic/Time.lua",
   "logic/Protocol.lua",
   "logic/Trust.lua",
+  "logic/Alert.lua",
 }
 
 local LibDeflate

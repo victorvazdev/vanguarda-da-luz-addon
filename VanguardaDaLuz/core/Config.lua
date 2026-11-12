@@ -33,6 +33,13 @@ ns.Config = {
   REQUEST_DELAY_MAX = 15,
   RESPONSE_DELAY_MIN = 1,
   RESPONSE_DELAY_MAX = 6,
+
+  -- Alerta de raide.
+  ALERT_MAX_CHARS = 200,          -- tamanho máximo do texto, em caracteres
+  ALERT_CHAT_PREFIX = "[Alerta] ", -- prefixo da mensagem no chat da guilda
+  ALERT_SEND_INTERVAL = 30,       -- espera mínima entre dois envios, em segundos
+  ALERT_RECEIVE_INTERVAL = 20,    -- intervalo mínimo aceito do mesmo remetente
+  ALERT_DISPLAY_SECONDS = 10,     -- tempo do aviso na tela (faixa própria)
 }
 
 return ns.Config

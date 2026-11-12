@@ -172,6 +172,15 @@ function MainFrame.Refresh()
   local pending = #ns.Calendar.PendingList()
   frame.pendingButton:SetText(pending > 0 and ("Pendências (" .. pending .. ")") or "Pendências")
   frame.pendingButton:SetShown(pending > 0)
+  frame.alertButton:SetShown(ns.Guild.IsPlayerTrusted())
+  -- Botões do rodapé alinhados à direita, sem espaço para os escondidos.
+  local previous = frame.syncButton
+  for _, button in ipairs({ frame.alertButton, frame.pendingButton }) do
+    button:ClearAllPoints()
+    button:SetPoint("RIGHT", previous, "LEFT", -8, 0)
+    if button:IsShown() then previous = button end
+  end
+  frame.sync:SetPoint("RIGHT", previous, "LEFT", -12, 0)
   frame.sync:SetText(Theme.Code("textMuted") .. ns.Comm.Status() .. "|r")
 end
 
@@ -320,7 +329,6 @@ local function Build()
   -- Rodapé
   local sync = Theme.Text(frame, "small", "textMuted")
   sync:SetPoint("BOTTOMLEFT", 16, 20)
-  sync:SetPoint("RIGHT", frame, "CENTER", 40, 0)
   sync:SetWordWrap(false)
   frame.sync = sync
 
@@ -331,9 +339,13 @@ local function Build()
   local syncButton = Theme.Button(frame, "Sincronizar", "outline", 110)
   syncButton:SetPoint("RIGHT", importButton, "LEFT", -8, 0)
   syncButton:SetScript("OnClick", function() ns.Comm.RequestLatest() end)
+  frame.syncButton = syncButton
+
+  local alertButton = Theme.Button(frame, "Alerta", "outline", 90)
+  alertButton:SetScript("OnClick", function() ns.AlertDialog.Show() end)
+  frame.alertButton = alertButton
 
   local pendingButton = Theme.Button(frame, "Pendências", "outline", 130)
-  pendingButton:SetPoint("RIGHT", syncButton, "LEFT", -8, 0)
   pendingButton:SetScript("OnClick", function() ns.PendingFrame.Show() end)
   frame.pendingButton = pendingButton
 

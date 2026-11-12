@@ -42,5 +42,11 @@ function Text.Trim(s)
   return s
 end
 
+-- Número de caracteres UTF-8 (bytes que não são de continuação).
+function Text.Length(s)
+  local _, count = string.gsub(s, "[^\128-\191]", "")
+  return count
+end
+
 ns.Text = Text
 return Text
