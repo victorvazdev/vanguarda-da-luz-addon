@@ -8,8 +8,12 @@ local button
 local function Tooltip(owner)
   GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
   GameTooltip:AddLine("Vanguarda da Luz", 0.95, 0.79, 0.30)
-  GameTooltip:AddLine("Clique: abrir o calendário", 0.95, 0.93, 0.87)
-  GameTooltip:AddLine("Clique direito: importar eventos", 0.95, 0.93, 0.87)
+  if ns.Guild.IsMember() then
+    GameTooltip:AddLine("Clique: abrir o calendário", 0.95, 0.93, 0.87)
+    GameTooltip:AddLine("Clique direito: importar eventos", 0.95, 0.93, 0.87)
+  else
+    GameTooltip:AddLine("Clique: convite para a guilda", 0.95, 0.93, 0.87)
+  end
   GameTooltip:Show()
 end
 

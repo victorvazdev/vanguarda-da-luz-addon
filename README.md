@@ -33,8 +33,9 @@ O botão no minimapa e a entrada no compartimento de addons também abrem o cale
 
 | Ação | Quem pode |
 | --- | --- |
-| Ver o calendário do addon | Qualquer pessoa com o addon |
-| Importar uma string | Qualquer pessoa. A importação só atualiza o próprio calendário do addon. |
+| Ver o calendário do addon | Membros da guilda **Vanguarda da Luz** (`GUILD_NAME` em `core/Config.lua`) |
+| Fora da guilda (sem guilda ou em outra) | Só a janela de boas-vindas, com o logo, o nome da guilda e o link do Discord (`DISCORD_URL`) para copiar. O addon não sincroniza nem recebe alertas |
+| Importar uma string | Qualquer membro. A importação só atualiza o próprio calendário do addon. |
 | Enviar a exportação à guilda | Cargos aceitos (`TRUSTED_MAX_RANK_INDEX` e `TRUSTED_RANK_NAMES` em [`core/Config.lua`](VanguardaDaLuz/core/Config.lua)). Hoje são o **Grão Lorde** (Mestre da Guilda, aceito pelo índice 0, mesmo que o cargo seja renomeado) e o **Lorde** (aceito pelo nome, que precisa ser idêntico ao do jogo). |
 | Receber dados da guilda | Os membros só aceitam dados de remetentes com cargo aceito, conferido no roster da guilda |
 | Enviar alerta de raide | Cargos aceitos (Grão Lorde e Lorde). Os membros só mostram alertas de remetentes com cargo aceito |
@@ -116,7 +117,8 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
            Codec (string), Snapshot (retrato completo), Import,
            Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8), Alert (alerta de raide)
   game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide)
-  ui/      Theme (identidade do site), MainFrame, ImportDialog, AlertBanner, AlertDialog, MinimapButton
+  ui/      Theme (identidade do site), MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame,
+           MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
   assets/  logo
   fonts/   Cinzel e Source Sans 3 (OFL)
@@ -200,6 +202,11 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 6. Importe a mesma string de novo. Deve aparecer o aviso de exportação antiga.
 7. No site, edite um evento, cancele outro e exclua um terceiro, que precisa estar cancelado antes. Exporte e importe. O resumo deve mostrar 1 alterado, 1 cancelado e 1 removido, e o calendário do addon deve refletir as três mudanças.
 8. O calendário da Blizzard não muda.
+
+### Fora da guilda
+
+1. Com um personagem sem guilda, `/vdl`, o botão do minimapa e `/vdl importar` abrem só a janela de boas-vindas, com o link do Discord selecionado. Ctrl+C copia o link.
+2. Com um personagem de outra guilda: o mesmo comportamento, e nenhuma mensagem de addon é enviada.
 
 ### Membro
 

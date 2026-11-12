@@ -342,7 +342,16 @@ local function Build()
   ns.On("SYNC_STATUS", MainFrame.Refresh)
 end
 
+function MainFrame.Hide()
+  if frame then frame:Hide() end
+end
+
 function MainFrame.Toggle()
+  if not ns.Guild.IsMember() then
+    MainFrame.Hide()
+    ns.WelcomeFrame.Toggle()
+    return
+  end
   if not frame then Build() end
   if frame:IsShown() then
     frame:Hide()

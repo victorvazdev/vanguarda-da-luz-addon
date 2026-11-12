@@ -39,6 +39,7 @@ Layers (`VanguardaDaLuz/`):
 - `ui/` — `Theme` (colors/fonts copied from the website tokens; build all widgets with its helpers) and the frames.
 
 Key cross-cutting behavior:
+- **Guild gate:** everything (calendar, import, sync, alerts) requires `Guild.IsMember()` — in a guild named exactly `Config.GUILD_NAME`. Anyone else (no guild or another guild) only gets `ui/WelcomeFrame` with the Discord link; `MainFrame.Toggle`, `ImportDialog.Show`, `AlertDialog.Show` and the slash handler redirect there. Guild info loads late after login, so the login sync request waits for `PLAYER_GUILD_UPDATE`/`GUILD_ROSTER_UPDATE`.
 - **Trust:** only the Guild Master (rank index 0, named "Grão Lorde") and rank name "Lorde" (`TRUSTED_MAX_RANK_INDEX` / `TRUSTED_RANK_NAMES` in `Config`) may broadcast data or send alerts; receivers verify the sender's rank in the roster before accepting.
 - **Sync protocol** (`logic/Protocol.lua`): `Q|n` query on login after a random delay, `H|n` announce, `D|n|raw` full original string (receivers re-validate checksum), `A|id|text` raid alert. Only trusted members with newer data answer, after a random delay, cancelled when someone else announces the same or newer.
 - **Messaging lockdown** (boss encounters, M+, PvP): `Comm` queues the last message of each kind and resends on `ADDON_RESTRICTION_STATE_CHANGED` or a 30 s ticker; alerts are refused instead of queued.

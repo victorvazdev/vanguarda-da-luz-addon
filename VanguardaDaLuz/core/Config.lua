@@ -10,6 +10,11 @@ ns.Config = {
   FORMAT_VERSION = 1,
   MAX_STRING_LENGTH = 30000,
 
+  -- O addon só funciona para quem está nesta guilda (nome igual ao do jogo).
+  -- Os demais veem só a janela de boas-vindas com o convite do Discord.
+  GUILD_NAME = "Vanguarda da Luz",
+  DISCORD_URL = "https://discord.gg/uGyPjtEsBw",
+
   -- Cargos aceitos como fonte de dados. O índice do cargo começa em 0, que é
   -- sempre o Mestre da Guilda ("Grão Lorde" na Vanguarda da Luz), mesmo se o
   -- cargo for renomeado.

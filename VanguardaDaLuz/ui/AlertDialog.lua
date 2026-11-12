@@ -96,6 +96,10 @@ local function Build()
 end
 
 function AlertDialog.Show()
+  if not ns.Guild.IsMember() then
+    ns.WelcomeFrame.Show()
+    return
+  end
   if not ns.Guild.IsPlayerTrusted() then
     ns.Print("Somente o Grão Lorde e os Lordes podem enviar alertas.")
     return

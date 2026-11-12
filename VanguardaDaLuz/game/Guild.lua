@@ -4,6 +4,12 @@ local _, ns = ...
 local Guild = {}
 local waiting = {} -- callbacks esperando GUILD_ROSTER_UPDATE
 
+-- O jogador está na guilda do addon (ns.Config.GUILD_NAME)?
+function Guild.IsMember()
+  if not IsInGuild() then return false end
+  return ns.Trust.IsOurGuild((GetGuildInfo("player")), ns.Config)
+end
+
 function Guild.RequestRoster()
   if not IsInGuild() then return end
   if C_GuildInfo and C_GuildInfo.GuildRoster then C_GuildInfo.GuildRoster() end
@@ -39,7 +45,7 @@ end
 
 -- O próprio jogador tem cargo aceito?
 function Guild.IsPlayerTrusted()
-  if not IsInGuild() then return false end
+  if not Guild.IsMember() then return false end
   local _, rankName, rankIndex = GetGuildInfo("player")
   return ns.Trust.IsTrustedRank(rankIndex, rankName, ns.Config)
 end
@@ -47,6 +53,10 @@ end
 -- Confere o cargo de quem enviou. Se o remetente ainda não estiver no roster,
 -- atualiza o roster uma vez antes de decidir. callback(trusted)
 function Guild.CheckSender(sender, callback)
+  if not Guild.IsMember() then
+    callback(false)
+    return
+  end
   local trusted = ns.Trust.IsTrustedSender(sender, Guild.Roster(), ns.Config)
   if trusted ~= nil then
     callback(trusted)

@@ -14,7 +14,7 @@ local received = Alert.NewState()
 -- Envia o alerta. Retorna true ou false e a mensagem de erro.
 function Warning.Send(text)
   local config = ns.Config
-  if not IsInGuild() then return false, "Você não está em uma guilda." end
+  if not ns.Guild.IsMember() then return false, "Você não está na guilda " .. ns.Config.GUILD_NAME .. "." end
   if not ns.Guild.IsPlayerTrusted() then
     return false, "Somente o Grão Lorde e os Lordes podem enviar alertas."
   end

@@ -175,5 +175,18 @@ comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(ownId, "Raide / N�
 local alertId = 1794410000123
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(alertId, "Entrem já"), "GUILD", "Maren-Forever")
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Alert(alertId, "Entrem já"), "GUILD", "Maren-Forever")
+-- jogador de outra guilda: só a janela de boas-vindas, sem sincronização
+_G.GetGuildInfo = function() return "Outra Guilda", "Mestre", 0 end
+local commsBefore = #comms
+SlashCmdList.VANGUARDADALUZ("")
+local welcome = _G.VanguardaDaLuzWelcomeFrame
+print("boas-vindas:", welcome._shown, welcome.link._text, "calendário:", _G.VanguardaDaLuzMainFrame._shown)
+welcome:Hide()
+SlashCmdList.VANGUARDADALUZ("alerta Raide")
+print("alerta fora da guilda abre boas-vindas:", welcome._shown)
+ns.db.export = nil
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Data(1794409200, raw:gsub("%s+$","")), "GUILD", "Maren-Forever")
+ns.Comm.RequestLatest()
+print("fora da guilda: dados", ns.db.export == nil and "ignorados" or "aceitos", "envios", #comms - commsBefore)
 for _, c in ipairs(comms) do print("comm:", c) end
 return output, ns, comms, { chat = chat, warnings = warnings, sounds = sounds }

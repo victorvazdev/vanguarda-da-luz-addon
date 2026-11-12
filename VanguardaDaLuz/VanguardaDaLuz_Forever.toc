@@ -38,6 +38,7 @@ ui\MainFrame.lua
 ui\ImportDialog.lua
 ui\AlertBanner.lua
 ui\AlertDialog.lua
+ui\WelcomeFrame.lua
 ui\MinimapButton.lua
 
 core\Main.lua

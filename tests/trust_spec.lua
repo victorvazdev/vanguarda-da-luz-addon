@@ -1,6 +1,14 @@
 local addon = require("helpers.addon")
 
 describe("Trust", function()
+  it("só aceita a guilda configurada", function()
+    local T, config = addon.Load().Trust, { GUILD_NAME = "Vanguarda da Luz" }
+    assert.is_true(T.IsOurGuild("Vanguarda da Luz", config))
+    assert.is_false(T.IsOurGuild("Outra Guilda", config))
+    assert.is_false(T.IsOurGuild("vanguarda da luz", config))
+    assert.is_false(T.IsOurGuild(nil, config))
+  end)
+
   local Trust, config
 
   before_each(function()

@@ -148,6 +148,10 @@ local function Build()
 end
 
 function ImportDialog.Show()
+  if not ns.Guild.IsMember() then
+    ns.WelcomeFrame.Show()
+    return
+  end
   if not frame then Build() end
   frame:Show()
 end

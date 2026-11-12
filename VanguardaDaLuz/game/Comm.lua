@@ -30,7 +30,7 @@ end
 -- Envia agora ou guarda até a comunicação ser liberada. Só a última mensagem
 -- de cada tipo fica na fila.
 local function Send(kind, message, prio)
-  if not IsInGuild() then return end
+  if not ns.Guild.IsMember() then return end
   if Locked() then
     queue[kind] = { message = message, prio = prio }
     SetStatus("Comunicação restrita no momento. O envio será feito quando for permitido.")
@@ -76,7 +76,7 @@ end
 
 -- Pergunta à guilda se há exportação mais nova.
 function Comm.RequestLatest()
-  if not IsInGuild() then return end
+  if not ns.Guild.IsMember() then return end
   SetStatus("Perguntando à guilda pela exportação mais recente…")
   Send("query", ns.Protocol.Query(ns.Store.ExportNumber()), "NORMAL")
 end
@@ -93,7 +93,7 @@ end
 -- Envia um alerta de raide na hora, sem fila: um alerta atrasado perde o
 -- sentido. Retorna false durante a restrição de comunicação.
 function Comm.SendAlert(message)
-  if not IsInGuild() or Locked() then return false end
+  if not ns.Guild.IsMember() or Locked() then return false end
   RawSend(message, "ALERT")
   return true
 end
@@ -136,6 +136,7 @@ end
 
 function Comm.OnCommReceived(_, prefix, text, distribution, sender)
   if prefix ~= ns.Config.COMM_PREFIX or distribution ~= "GUILD" then return end
+  if not ns.Guild.IsMember() then return end
   if ns.Guild.IsPlayer(sender) then return end
   local message = ns.Protocol.Parse(text)
   if not message then return end

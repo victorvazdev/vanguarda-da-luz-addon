@@ -4,6 +4,12 @@ local _, ns = ...
 
 local Trust = {}
 
+-- O jogador está na guilda do addon? `guildName` vem de GetGuildInfo e é nil
+-- fora de guilda (ou enquanto o jogo ainda não carregou a guilda).
+function Trust.IsOurGuild(guildName, config)
+  return guildName ~= nil and guildName == config.GUILD_NAME
+end
+
 -- `rankIndex` começa em 0 (Mestre da Guilda).
 function Trust.IsTrustedRank(rankIndex, rankName, config)
   if rankIndex ~= nil and rankIndex <= config.TRUSTED_MAX_RANK_INDEX then return true end

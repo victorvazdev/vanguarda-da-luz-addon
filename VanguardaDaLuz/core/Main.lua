@@ -4,6 +4,16 @@ local ADDON_NAME, ns = ...
 local events = CreateFrame("Frame")
 local handlers = {}
 local loggedIn = false
+local requestPending = false -- pedido à guilda esperando a guilda carregar
+
+-- As informações da guilda chegam depois do login: o pedido só sai quando o
+-- jogador aparece como membro da guilda do addon.
+local function RequestWhenMember()
+  if requestPending and ns.Guild.IsMember() then
+    requestPending = false
+    ns.Comm.RequestLatest()
+  end
+end
 
 local function Register(name, fn)
   -- Eventos que não existem nesta versão do jogo são ignorados.
@@ -18,7 +28,8 @@ local function OnLogin()
   -- aleatória, para não chegarem muitos pedidos ao mesmo tempo.
   local delay = ns.Protocol.RandomDelay(ns.Config.REQUEST_DELAY_MIN, ns.Config.REQUEST_DELAY_MAX)
   C_Timer.After(delay, function()
-    if IsInGuild() then ns.Comm.RequestLatest() end
+    requestPending = true
+    RequestWhenMember()
   end)
   -- Reenvia mensagens adiadas se o aviso de fim da restrição não chegar.
   C_Timer.NewTicker(30, ns.Comm.Flush)
@@ -30,7 +41,11 @@ local function Start()
   ns.MinimapButton.Init()
 
   Register("PLAYER_ENTERING_WORLD", OnLogin)
-  Register("GUILD_ROSTER_UPDATE", ns.Guild.OnRosterUpdate)
+  Register("GUILD_ROSTER_UPDATE", function(...)
+    ns.Guild.OnRosterUpdate(...)
+    RequestWhenMember()
+  end)
+  Register("PLAYER_GUILD_UPDATE", RequestWhenMember)
   Register("ADDON_RESTRICTION_STATE_CHANGED", ns.Comm.OnRestrictionChanged)
 end
 
@@ -64,6 +79,12 @@ SlashCmdList.VANGUARDADALUZ = function(input)
   input = ns.Text.Trim(input or "")
   local word, rest = string.match(input, "^(%S+)%s*(.-)$")
   local command = string.lower(word or "")
+  -- Fora da guilda, o addon só mostra o convite (e o botão do minimapa).
+  if command ~= "minimapa" and not ns.Guild.IsMember() then
+    ns.MainFrame.Hide()
+    ns.WelcomeFrame.Toggle()
+    return
+  end
   if command == "" then
     ns.MainFrame.Toggle()
   elseif command == "importar" then
