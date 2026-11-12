@@ -83,13 +83,8 @@ _G.RaidNotice_AddMessage = function(_, text) warnings[#warnings + 1] = text end
 _G.PlaySound = function() sounds = sounds + 1 end
 _G.C_DateAndTime = { GetCurrentCalendarTime = function()
   return { year = 2026, month = 11, monthDay = 12, hour = 20, minute = 33 } end }
-local calls = {}
-_G.C_Calendar = setmetatable({
-  GetMonthInfo = function() return { year = 2026, month = 11 } end,
-  GetNumDayEvents = function() return 0 end,
-  CanAddEvent = function() return true end,
-  EventCanEdit = function() return true end,
-}, { __index = function(_, k) return function() calls[#calls + 1] = k end end })
+-- O addon não usa mais o calendário do jogo: qualquer acesso falha.
+_G.C_Calendar = nil
 _G.ChatFrame_AddMessageEventFilter = function() end
 _G.hooksecurefunc = function() end
 local output = {}
@@ -121,6 +116,8 @@ for line in io.lines(ROOT .. "VanguardaDaLuz_Forever.toc") do
 end
 
 local ev = frames.events
+-- SavedVariables de uma versão anterior, com a ligação ao calendário do jogo.
+_G.VanguardaDaLuzDB = { schema = 1, events = {}, game = { x = { state = "done" } } }
 ev._scripts.OnEvent(ev, "ADDON_LOADED", "VanguardaDaLuz")
 ev._scripts.OnEvent(ev, "PLAYER_ENTERING_WORLD")
 SlashCmdList.VANGUARDADALUZ("")
@@ -148,14 +145,6 @@ ns.Comm.SendCommMessage = function(_, prefix, msg, dist, _, prio)
 end
 Click("Confirmar importação")
 print("eventos salvos:", (function() local n=0 for _ in pairs(ns.db.events) do n=n+1 end return n end)())
-print("pendências:", #ns.Calendar.PendingList(), "mensagens enviadas:", #sent)
-RunTimers()  -- localizar
-print("status:", ns.Calendar.Status())
-Click("Aplicar próximo")
-print("chamadas C_Calendar:", table.concat(calls, ","))
-RunTimers()  -- gravar
-print("status:", ns.Calendar.Status())
-print("link A:", ns.db.game["3kTq9ZcV1bWfX7rLm2Pa"].state, ns.db.game["3kTq9ZcV1bWfX7rLm2Pa"].gameEventId)
 SlashCmdList.VANGUARDADALUZ("")  -- fecha
 SlashCmdList.VANGUARDADALUZ("")  -- abre de novo e renderiza
 print("info:", _G.VanguardaDaLuzMainFrame.info._text)

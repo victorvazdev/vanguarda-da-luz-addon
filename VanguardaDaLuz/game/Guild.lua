@@ -1,4 +1,4 @@
--- Guilda: roster, cargos aceitos e permissões do calendário.
+-- Guilda: roster e cargos aceitos.
 local _, ns = ...
 
 local Guild = {}
@@ -67,24 +67,6 @@ function Guild.OnRosterUpdate()
   local list = waiting
   waiting = {}
   for _, fn in ipairs(list) do fn() end
-end
-
--- Pode criar eventos de guilda no calendário do jogo?
--- Retorna true ou false e o motivo.
-function Guild.CanEditCalendar()
-  if not IsInGuild() then return false, "Você não está em uma guilda." end
-  if C_Calendar.CanAddEvent and not C_Calendar.CanAddEvent() then
-    return false, "O calendário do jogo não permite criar eventos agora."
-  end
-  local _, _, rankIndex = GetGuildInfo("player")
-  if rankIndex == 0 then return true end -- Mestre da Guilda
-  if rankIndex and C_GuildInfo and C_GuildInfo.GuildControlGetRankFlags then
-    local flags = C_GuildInfo.GuildControlGetRankFlags(rankIndex + 1)
-    if flags and not flags[ns.Flavor.RANK_FLAG_CREATE_EVENT] then
-      return false, "Seu cargo na guilda não tem a permissão \"Criar evento da guilda\"."
-    end
-  end
-  return true
 end
 
 ns.Guild = Guild

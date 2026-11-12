@@ -17,8 +17,8 @@ globals = {
 
 -- API do jogo usada pelo addon.
 read_globals = {
-  "Ambiguate", "BackdropTemplateMixin", "C_AddOns", "C_Calendar", "C_ChatInfo",
-  "C_DateAndTime", "C_GuildInfo", "C_Timer", "CalendarFrame", "CreateColor", "CreateFont",
+  "Ambiguate", "BackdropTemplateMixin", "C_AddOns", "C_ChatInfo",
+  "C_DateAndTime", "C_GuildInfo", "C_Timer", "CreateColor", "CreateFont",
   "CreateFrame", "Enum", "GameTooltip", "GetCursorPosition", "GetGuildInfo",
   "GetGuildRosterInfo", "GetNumGuildMembers", "GetServerTime", "InChatMessagingLockdown",
   "InCombatLockdown", "IsInGuild", "LibStub", "Minimap", "Mixin", "UIParent", "UnitName",

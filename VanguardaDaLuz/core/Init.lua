@@ -8,8 +8,6 @@ ns.version = (C_AddOns and C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")) or 
 
 -- Avisos entre módulos: ns.On("DATA_UPDATED", fn) e ns.Fire("DATA_UPDATED").
 --   DATA_UPDATED     eventos do addon mudaram
---   PENDING_UPDATED  pendências do calendário do jogo mudaram
---   CALENDAR_STATUS  estado do botão "Aplicar próximo" mudou
 --   SYNC_STATUS      estado da sincronização mudou
 local listeners = {}
 

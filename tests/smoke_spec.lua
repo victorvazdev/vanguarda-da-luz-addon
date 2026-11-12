@@ -1,14 +1,13 @@
 -- Executa tests/smoke/run.lua (addon completo com a API do jogo simulada).
 describe("Teste de fumaça do addon", function()
-  it("carrega, importa, prepara o calendário do jogo e sincroniza", function()
+  it("carrega, importa, sincroniza e envia alertas", function()
     local output, ns, comms, alert = dofile("tests/smoke/run.lua")
     local text = table.concat(output, "\n")
     assert.is_truthy(text:find("erro: Isto não é uma string de exportação", 1, true))
     assert.is_truthy(text:find("Novos: 2", 1, true))
     assert.is_truthy(text:find("eventos salvos: 3", 1, true))
-    assert.is_truthy(text:find("AddEvent", 1, true))
     assert.is_truthy(text:find("recebido da guilda: guild Maren-Forever", 1, true))
-    assert.are.equal("done", ns.db.game["3kTq9ZcV1bWfX7rLm2Pa"].state)
+    assert.is_nil(ns.db.game) -- dados antigos do calendário do jogo removidos
     assert.is_truthy(comms[1]:find("H|1794409200", 1, true))
     assert.is_truthy(comms[2]:find("D|1794409200|VDL1:", 1, true))
     -- alerta de raide

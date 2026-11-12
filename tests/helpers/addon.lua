@@ -12,7 +12,6 @@ local FILES = {
   "logic/Codec.lua",
   "logic/Snapshot.lua",
   "logic/Import.lua",
-  "logic/GamePlan.lua",
   "logic/Time.lua",
   "logic/Protocol.lua",
   "logic/Trust.lua",

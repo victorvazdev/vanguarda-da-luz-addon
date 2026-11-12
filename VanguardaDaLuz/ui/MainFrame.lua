@@ -30,7 +30,7 @@ end
 -- Linha de horários: Brasília e, se diferente, o servidor.
 local function TimesLine(event)
   local brasilia = Time.FormatClock(event.startsAt, Brasilia()) .. " (Brasília)"
-  local offset = ns.Calendar.ServerOffset()
+  local offset = Time.ServerOffset(C_DateAndTime.GetCurrentCalendarTime(), GetServerTime())
   if offset == Brasilia() then return brasilia end
   local f = Time.Fields(event.startsAt, offset)
   local b = Time.Fields(event.startsAt, Brasilia())
@@ -169,18 +169,10 @@ function MainFrame.Refresh()
   frame.info:SetText(InfoLine())
   RenderMonth()
   RenderDay()
-  local pending = #ns.Calendar.PendingList()
-  frame.pendingButton:SetText(pending > 0 and ("Pendências (" .. pending .. ")") or "Pendências")
-  frame.pendingButton:SetShown(pending > 0)
-  frame.alertButton:SetShown(ns.Guild.IsPlayerTrusted())
-  -- Botões do rodapé alinhados à direita, sem espaço para os escondidos.
-  local previous = frame.syncButton
-  for _, button in ipairs({ frame.alertButton, frame.pendingButton }) do
-    button:ClearAllPoints()
-    button:SetPoint("RIGHT", previous, "LEFT", -8, 0)
-    if button:IsShown() then previous = button end
-  end
-  frame.sync:SetPoint("RIGHT", previous, "LEFT", -12, 0)
+  -- O botão Alerta só aparece para os cargos aceitos.
+  local trusted = ns.Guild.IsPlayerTrusted()
+  frame.alertButton:SetShown(trusted)
+  frame.sync:SetPoint("RIGHT", trusted and frame.alertButton or frame.syncButton, "LEFT", -12, 0)
   frame.sync:SetText(Theme.Code("textMuted") .. ns.Comm.Status() .. "|r")
 end
 
@@ -342,15 +334,11 @@ local function Build()
   frame.syncButton = syncButton
 
   local alertButton = Theme.Button(frame, "Alerta", "outline", 90)
+  alertButton:SetPoint("RIGHT", syncButton, "LEFT", -8, 0)
   alertButton:SetScript("OnClick", function() ns.AlertDialog.Show() end)
   frame.alertButton = alertButton
 
-  local pendingButton = Theme.Button(frame, "Pendências", "outline", 130)
-  pendingButton:SetScript("OnClick", function() ns.PendingFrame.Show() end)
-  frame.pendingButton = pendingButton
-
   ns.On("DATA_UPDATED", MainFrame.Refresh)
-  ns.On("PENDING_UPDATED", MainFrame.Refresh)
   ns.On("SYNC_STATUS", MainFrame.Refresh)
 end
 

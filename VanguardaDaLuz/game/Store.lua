@@ -5,7 +5,6 @@
 --   export = { raw, exportNumber, windowStart, windowEnd, count,
 --              receivedAt, source = "import"|"guild", sender },
 --   events = { [siteId] = { id, title, startsAt, description, organizer, status, updatedAt } },
---   game = { [siteId] = link },   -- ver logic/GamePlan.lua
 --   settings = { minimap = { angle, hide } },
 -- }
 local _, ns = ...
@@ -18,7 +17,8 @@ function Store.Init()
   local db = VanguardaDaLuzDB
   db.schema = db.schema or SCHEMA
   db.events = db.events or {}
-  db.game = db.game or {}
+  -- Versões anteriores guardavam aqui a ligação com o calendário do jogo.
+  db.game = nil
   db.settings = db.settings or {}
   db.settings.minimap = db.settings.minimap or { angle = 210, hide = false }
   ns.db = db

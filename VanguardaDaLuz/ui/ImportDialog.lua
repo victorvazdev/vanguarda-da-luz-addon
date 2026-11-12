@@ -77,14 +77,6 @@ local function Confirm()
   ns.Print(string.format("Importação concluída: %d novo(s), %d alterado(s), %d cancelado(s), %d removido(s).",
     #diff.created, #diff.updated, #diff.cancelled, #diff.removed))
 
-  local canEdit, reason = ns.Guild.CanEditCalendar()
-  if canEdit then
-    ns.Calendar.Plan(diff)
-    if #ns.Calendar.PendingList() > 0 then ns.PendingFrame.Show() end
-  else
-    ns.Print("Somente o calendário do addon foi atualizado. " .. (reason or ""))
-  end
-
   if ns.Guild.IsPlayerTrusted() then
     ns.Comm.Broadcast()
   else

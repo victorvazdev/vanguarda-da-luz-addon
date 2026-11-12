@@ -23,7 +23,6 @@ logic\Text.lua
 logic\Codec.lua
 logic\Snapshot.lua
 logic\Import.lua
-logic\GamePlan.lua
 logic\Time.lua
 logic\Protocol.lua
 logic\Trust.lua
@@ -31,14 +30,12 @@ logic\Alert.lua
 
 game\Store.lua
 game\Guild.lua
-game\Calendar.lua
 game\Comm.lua
 game\Warning.lua
 
 ui\Theme.lua
 ui\MainFrame.lua
 ui\ImportDialog.lua
-ui\PendingFrame.lua
 ui\AlertBanner.lua
 ui\AlertDialog.lua
 ui\MinimapButton.lua

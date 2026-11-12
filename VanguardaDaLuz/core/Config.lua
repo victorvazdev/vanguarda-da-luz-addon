@@ -21,13 +21,6 @@ ns.Config = {
   -- Horário de Brasília: UTC-3, sem horário de verão desde 2019.
   BRASILIA_OFFSET = -3 * 3600,
 
-  -- Limites do calendário do jogo, em bytes. Textos maiores são cortados no
-  -- jogo e continuam completos no calendário do addon.
-  GAME_TITLE_MAX_BYTES = 31,
-  GAME_DESCRIPTION_MAX_BYTES = 255,
-  -- Prefixo do título de um evento cancelado no calendário do jogo.
-  GAME_CANCELLED_PREFIX = "[Cancelado] ",
-
   -- Sincronização: esperas aleatórias, em segundos.
   REQUEST_DELAY_MIN = 5,
   REQUEST_DELAY_MAX = 15,

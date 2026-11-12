@@ -14,7 +14,6 @@ local function OnLogin()
   if loggedIn then return end
   loggedIn = true
   ns.Guild.RequestRoster()
-  if C_Calendar and C_Calendar.OpenCalendar then C_Calendar.OpenCalendar() end
   -- Pergunta à guilda pela exportação mais recente depois de uma espera
   -- aleatória, para não chegarem muitos pedidos ao mesmo tempo.
   local delay = ns.Protocol.RandomDelay(ns.Config.REQUEST_DELAY_MIN, ns.Config.REQUEST_DELAY_MAX)
@@ -32,11 +31,6 @@ local function Start()
 
   Register("PLAYER_ENTERING_WORLD", OnLogin)
   Register("GUILD_ROSTER_UPDATE", ns.Guild.OnRosterUpdate)
-  Register("PLAYER_REGEN_DISABLED", ns.Calendar.OnCombatChanged)
-  Register("PLAYER_REGEN_ENABLED", ns.Calendar.OnCombatChanged)
-  Register("CALENDAR_OPEN_EVENT", ns.Calendar.OnOpenEvent)
-  Register("CALENDAR_UPDATE_ERROR", function(_, message) ns.Calendar.OnError(message) end)
-  Register("CALENDAR_UPDATE_ERROR_WITH_COUNT", function(_, message) ns.Calendar.OnError(message) end)
   Register("ADDON_RESTRICTION_STATE_CHANGED", ns.Comm.OnRestrictionChanged)
 end
 
@@ -60,7 +54,6 @@ events:RegisterEvent("ADDON_LOADED")
 local HELP = {
   "/vdl  abre e fecha o calendário",
   "/vdl importar  importa a string do site (Grão Lorde e Lordes)",
-  "/vdl pendencias  alterações pendentes no calendário do jogo",
   "/vdl sincronizar  pede à guilda a exportação mais recente",
   "/vdl alerta [texto]  envia um alerta de raide à guilda (Grão Lorde e Lordes)",
   "/vdl minimapa  mostra ou esconde o botão no minimapa",
@@ -75,8 +68,6 @@ SlashCmdList.VANGUARDADALUZ = function(input)
     ns.MainFrame.Toggle()
   elseif command == "importar" then
     ns.ImportDialog.Show()
-  elseif command == "pendencias" or command == "pendências" then
-    ns.PendingFrame.Show()
   elseif command == "sincronizar" then
     ns.Comm.RequestLatest()
   elseif command == "alerta" then

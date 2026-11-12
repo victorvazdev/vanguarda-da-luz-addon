@@ -5,7 +5,6 @@ Calendário de eventos da guilda **Vanguarda da Luz** dentro do World of Warcraf
 Os eventos são criados no [site da guilda](https://vanguarda-da-luz.web.app/). Para levá-los ao jogo, um administrador gera uma string em **Exportar para o addon** e a importa no addon. Depois disso:
 
 - o addon mostra os eventos num calendário próprio;
-- o addon do administrador cria, edita e cancela os eventos no calendário do jogo;
 - a exportação é enviada aos membros da guilda pelo canal de addons.
 
 ## Instalação
@@ -23,7 +22,6 @@ Os eventos são criados no [site da guilda](https://vanguarda-da-luz.web.app/). 
 | --- | --- |
 | `/vdl` | Abre e fecha o calendário |
 | `/vdl importar` | Abre o modal para colar a string do site |
-| `/vdl pendencias` | Mostra as alterações pendentes no calendário do jogo |
 | `/vdl sincronizar` | Pergunta à guilda qual é a exportação mais recente |
 | `/vdl alerta [texto]` | Envia um alerta de raide à guilda. Sem texto, abre o modal do alerta (Grão Lorde e Lordes) |
 | `/vdl minimapa` | Mostra ou esconde o botão no minimapa |
@@ -40,7 +38,6 @@ O botão no minimapa e a entrada no compartimento de addons também abrem o cale
 | Enviar a exportação à guilda | Cargos aceitos (`TRUSTED_MAX_RANK_INDEX` e `TRUSTED_RANK_NAMES` em [`core/Config.lua`](VanguardaDaLuz/core/Config.lua)). Hoje são o **Grão Lorde** (Mestre da Guilda, aceito pelo índice 0, mesmo que o cargo seja renomeado) e o **Lorde** (aceito pelo nome, que precisa ser idêntico ao do jogo). |
 | Receber dados da guilda | Os membros só aceitam dados de remetentes com cargo aceito, conferido no roster da guilda |
 | Enviar alerta de raide | Cargos aceitos (Grão Lorde e Lorde). Os membros só mostram alertas de remetentes com cargo aceito |
-| Alterar o calendário do jogo | Quem importou a string e tem a permissão **Criar evento da guilda** no cargo (índice 17 de `C_GuildInfo.GuildControlGetRankFlags`; o 14 é obsoleto) |
 
 Contas trial e veteranas do WoW Forever não podem enviar mensagens de addon nem criar eventos no calendário.
 
@@ -73,18 +70,9 @@ A exportação é um **retrato completo** da janela de datas, seguindo [`docs/fo
 | Evento salvo, dentro da janela, que não veio na exportação | Removido (foi excluído no site ou mudou para fora da janela) |
 | Evento fora da janela | Mantido sem alteração |
 
-### Calendário do jogo (administrador)
+### Calendário do jogo
 
-Depois de uma importação feita por quem tem permissão, a janela **Calendário do jogo** lista as alterações pendentes. O jogo só permite gravar eventos com um clique (hardware event), então cada clique em **Aplicar próximo** grava uma alteração.
-
-- Os eventos são criados como **anúncio de guilda**. As presenças continuam no site.
-- No jogo, o título fica com até 31 bytes e a descrição com até 255 bytes; textos maiores são cortados com "…". A descrição começa com o organizador e termina com a marca `[VDL:<id do site>]`. O texto completo aparece no calendário do addon.
-- O caractere `|` vira `/` no calendário do jogo, porque o jogo o usa como código de escape.
-- Evento cancelado no site: o título no jogo ganha o prefixo `[Cancelado] `. Quando o evento é excluído no site, ele é removido do jogo.
-- O addon guarda a ligação entre o ID do site e o evento do jogo, então edita o evento em vez de criar outro. Ele só altera eventos que criou.
-- Nada é aplicado em combate nem com o calendário da Blizzard aberto.
-- Falhas ficam registradas por evento e podem ser repetidas com **Tentar de novo**.
-- Quem não tem permissão no calendário recebe um aviso, e só o calendário do addon é atualizado.
+O addon **não altera o calendário da Blizzard**. No WoW Forever, `C_Calendar.AddEvent()` é bloqueada para addons ("A ação falhou devido a um AddOn"), mesmo a partir de um clique ou de `/run`. Os eventos ficam só no calendário do addon. Quem quiser um anúncio no calendário do jogo precisa criá-lo à mão.
 
 ### Sincronização com a guilda
 
@@ -116,7 +104,7 @@ O Grão Lorde ou um Lorde envia um alerta com `/vdl alerta <texto>` ou pelo bot�
 
 ### Horários
 
-Os horários do addon estão em **Brasília** (UTC−3). Quando o horário do servidor é diferente, ele aparece ao lado com o fuso (por exemplo, `UTC-8`). O calendário do jogo usa o horário do servidor, calculado com `C_DateAndTime.GetCurrentCalendarTime()` e `GetServerTime()`.
+Os horários do addon estão em **Brasília** (UTC−3). Quando o horário do servidor é diferente, ele aparece ao lado com o fuso (por exemplo, `UTC-8`). O horário do servidor é calculado com `C_DateAndTime.GetCurrentCalendarTime()` e `GetServerTime()`.
 
 ## Estrutura
 
@@ -125,11 +113,10 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
   VanguardaDaLuz_Forever.toc     Interface 16001
   core/    Init, Config, Flavor_Forever (o que depende da versão do jogo), Main (eventos e comandos)
   logic/   lógica pura, testada fora do jogo:
-           Codec (string), Snapshot (retrato completo), Import, GamePlan (calendário do jogo),
+           Codec (string), Snapshot (retrato completo), Import,
            Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8), Alert (alerta de raide)
-  game/    Store (SavedVariables), Guild, Calendar (C_Calendar), Comm (AceComm), Warning (alerta de raide)
-  ui/      Theme (identidade do site), MainFrame, ImportDialog, PendingFrame, AlertBanner, AlertDialog,
-           MinimapButton
+  game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide)
+  ui/      Theme (identidade do site), MainFrame, ImportDialog, AlertBanner, AlertDialog, MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
   assets/  logo
   fonts/   Cinzel e Source Sans 3 (OFL)
@@ -148,10 +135,11 @@ scripts/   setup-dev.sh, check.sh, package.sh
   schema = 1,
   export = { raw, exportNumber, windowStart, windowEnd, count, receivedAt, source, sender },
   events = { [idDoSite] = { id, title, startsAt, description, organizer, status, updatedAt } },
-  game = { [idDoSite] = { gameEventId, gameTitle, gameTime, op, state, error, attempts } },
   settings = { minimap = { angle, hide } },
 }
 ```
+
+A chave `game`, usada por versões anteriores para ligar os eventos ao calendário do jogo, é apagada ao carregar.
 
 ### Versão Retail (futuro)
 
@@ -159,9 +147,8 @@ O que depende da versão do jogo fica em `core/Flavor_Forever.lua` e no `.toc`:
 
 - número de Interface;
 - valor de `game` aceito na string;
-- tipo de evento;
 - detecção do bloqueio de mensagens;
-- índices de permissão do cargo.
+- chat da guilda, aviso de raide e som.
 
 Uma versão Retail teria um `Flavor_Retail.lua` e um `VanguardaDaLuz_Standard.toc`, com o mesmo resto do código.
 
@@ -191,7 +178,7 @@ Os testes usam os arquivos de [`docs/exemplos-addon/`](docs/exemplos-addon/). El
 
 ## Roteiro de teste no jogo
 
-Use dois personagens na guilda: um Lorde (ou o Grão Lorde) com a permissão **Criar evento da guilda** e um membro comum. Os dois precisam do addon.
+Use dois personagens na guilda: um Lorde (ou o Grão Lorde) e um membro comum. Os dois precisam do addon.
 
 ### Confirmações pendentes
 
@@ -199,11 +186,9 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 
 1. `/dump select(4, GetBuildInfo())` mostra `16001`, e o addon aparece na lista sem o aviso "desatualizado".
 2. A fonte (Cinzel e Source Sans 3) e o logo (TGA) aparecem na janela.
-3. O título de 31 bytes e a descrição de 255 bytes são aceitos no calendário do jogo. Se o limite for outro, ajuste `GAME_TITLE_MAX_BYTES` e `GAME_DESCRIPTION_MAX_BYTES`.
-4. A diferença do horário do servidor está correta. Compare a linha "servidor" do detalhe com o relógio do jogo.
-5. A remoção de evento (`ContextMenuEventRemove`) funciona pelo botão.
-6. A mensagem de addon é adiada num encontro de chefe e enviada depois.
-7. `RaidNotice_AddMessage(RaidWarningFrame, …)` mostra o alerta no centro da tela, e `C_ChatInfo.SendChatMessage(…, "GUILD")` publica no chat da guilda sem clique. Se o quadro não existir, aparece a faixa própria.
+3. A diferença do horário do servidor está correta. Compare a linha "servidor" do detalhe com o relógio do jogo.
+4. A mensagem de addon é adiada num encontro de chefe e enviada depois.
+5. `RaidNotice_AddMessage(RaidWarningFrame, …)` mostra o alerta no centro da tela, e `C_ChatInfo.SendChatMessage(…, "GUILD")` publica no chat da guilda sem clique. Se o quadro não existir, aparece a faixa própria.
 
 ### Administrador
 
@@ -212,11 +197,9 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. Cole o conteúdo de `docs/exemplos-addon/corrompida.txt` e clique em **Validar**. Deve aparecer o erro de string incompleta ou corrompida.
 4. No site, gere uma exportação real, cole e clique em **Validar**. Confira o resumo e clique em **Confirmar importação**.
 5. Os eventos aparecem no calendário do addon. Os cancelados aparecem como "Cancelado". O cabeçalho mostra quando os dados foram gerados e recebidos.
-6. A janela **Calendário do jogo** abre com as pendências. Entre em combate: o botão fica bloqueado. Saia do combate e clique em **Aplicar próximo** até terminar. Confira os eventos no calendário da Blizzard.
-7. Importe a mesma string de novo. Deve aparecer o aviso de exportação antiga.
-8. No site, edite um evento, cancele outro e exclua um terceiro, que precisa estar cancelado antes. Exporte e importe. O resumo deve mostrar 1 alterado, 1 cancelado e 1 removido. Aplique e confira: o evento editado foi atualizado sem duplicar, o cancelado ganhou `[Cancelado]` e o excluído sumiu do jogo.
-9. Crie um evento à mão no calendário do jogo e repita a importação. O addon não deve alterá-lo.
-10. Num personagem sem a permissão de criar eventos, importe uma string nova. Deve aparecer o aviso, e só o calendário do addon é atualizado.
+6. Importe a mesma string de novo. Deve aparecer o aviso de exportação antiga.
+7. No site, edite um evento, cancele outro e exclua um terceiro, que precisa estar cancelado antes. Exporte e importe. O resumo deve mostrar 1 alterado, 1 cancelado e 1 removido, e o calendário do addon deve refletir as três mudanças.
+8. O calendário da Blizzard não muda.
 
 ### Membro
 
