@@ -27,15 +27,19 @@ Os eventos são criados no [site da guilda](https://vanguarda-da-luz.web.app/). 
 | `/vdl sincronizar` | Pergunta à guilda qual é a exportação mais recente |
 | `/vdl presencas` | Gera a string de presenças para colar no site (Grão Lorde e Lordes) |
 | `/vdl profissoes` | Abre e fecha a lista de profissões dos membros |
+| `/vdl main` | Define o personagem atual como main. Os outros personagens da conta na guilda viram alts dele ao logar |
 | `/vdl alerta [texto]` | Envia um alerta de raide à guilda. Sem texto, abre o modal do alerta (Grão Lorde e Lordes) |
 | `/vdl minimapa` | Mostra ou esconde o botão no minimapa |
+| `/vdl membros` | Abre a janela do addon na aba Membros |
 | `/vdl ajuda` | Lista os comandos |
 
-O botão no minimapa e a entrada no compartimento de addons também abrem a janela no Início. O clique direito abre um menu de atalhos: Início, Eventos, Profissões, Sincronizar, Administração (só para o Grão Lorde e os Lordes) e Esconder botão do minimapa.
+Os comandos também aceitam os nomes em inglês, em qualquer idioma do jogo: `import`, `sync`, `attendance`, `professions`, `members`, `alert`, `minimap` e `help`.
 
-A janela tem as abas **Início**, **Eventos**, **Profissões** e **Administração** (só Grão Lorde e Lordes). O rodapé mostra a última exportação recebida, o estado da sincronização e o botão **Sincronizar**.
+O botão no minimapa e a entrada no compartimento de addons também abrem a janela no Início. O clique direito abre um menu de atalhos: Início, Eventos, Profissões, Membros, Sincronizar, Administração (só para o Grão Lorde e os Lordes), Configurações e Esconder botão do minimapa.
 
-Na janela **Guilda e comunidades** do jogo (J), com a guilda selecionada, o addon acrescenta três botões abaixo dos botões laterais da Blizzard: **Eventos**, **Profissões** e **Administração** (só Grão Lorde e Lordes).
+A janela tem as abas **Início**, **Eventos**, **Profissões**, **Membros**, **Administração** (só Grão Lorde e Lordes) e **Configurações**. O rodapé mostra a última exportação recebida, o estado da sincronização e o botão **Sincronizar**.
+
+Na janela **Guilda e comunidades** do jogo (J), com a guilda selecionada, o addon acrescenta três botões abaixo dos botões laterais da Blizzard: **Eventos**, **Profissões** e **Administração** (só Grão Lorde e Lordes). As abas **Informações** e **Membros** mostram o Início e a lista de membros do addon, com um botão para ver as originais da Blizzard.
 
 ## Permissões
 
@@ -102,6 +106,15 @@ As mensagens usam o canal `GUILD` com o prefixo `VanguardaDaLuz`. A AceComm divi
 | `F\|<horário>\|<lista>` | Profissões primárias e níveis do próprio remetente |
 | `G` | Pedido dos níveis de profissão conhecidos, enviado junto com o `Q` |
 | `K\|<lista>` | Níveis de profissão conhecidos de todos os membros |
+| `J\|<horário>\|<lista>` | Como `F`, com o ID de cada profissão |
+| `Y` | Pedido dos níveis com IDs, enviado junto com o `Q` (as versões antigas mandam `G`) |
+| `X\|<lista>` | Como `K`, com IDs |
+| `M\|<horário>\|<dados>` | Item level equipado e main do próprio remetente |
+| `N` | Pedido dos item levels e mains conhecidos, enviado junto com o `Q` |
+| `O\|<lista>` | Item levels e mains conhecidos de todos os membros |
+| `T\|<total>` | Tempo de jogo com a guilda do próprio remetente, em segundos |
+| `U` | Pedido dos tempos com a guilda conhecidos, enviado junto com o `Q` |
+| `V\|<lista>` | Tempos com a guilda conhecidos de todos os membros |
 
 - Só responde quem tem cargo aceito e dados mais novos. A resposta sai depois de uma espera aleatória de 1 a 6 s e é cancelada se outro remetente avisar (`H`) ou enviar (`D`) a mesma exportação ou uma mais nova.
 - Ao confirmar uma importação, um Grão Lorde ou Lorde envia a exportação à guilda na hora.
@@ -114,7 +127,7 @@ As mensagens usam o canal `GUILD` com o prefixo `VanguardaDaLuz`. A AceComm divi
 A janela do addon abre sempre no Início, com:
 
 - **Mensagem do dia** (`GetGuildRosterMOTD`) e **Informações da guilda** (`GetGuildInfoText`), atualizadas quando a guilda muda (`GUILD_MOTD` e `GUILD_ROSTER_UPDATE`);
-- os links desses textos (`http://`, `https://` e `www.`) em azul. O jogo não deixa um addon copiar para a área de transferência, então o clique no link põe o link numa caixa já selecionada, para o Ctrl+C. Os links são hyperlinks do próprio addon (`|Hvdlurl:…|h`); se o jogo não aceitar hyperlinks no quadro, a caixa já mostra o primeiro link das informações;
+- os links desses textos (`http://`, `https://` e `www.`) em azul. O jogo não deixa um addon copiar para a área de transferência, então o clique no link abre uma caixa por cima do texto, com o link já selecionado, para o Ctrl+C. Clicar fora da caixa, Esc ou Enter a fecham. Os links são hyperlinks do próprio addon (`|Hvdlurl:…|h`); se o jogo não aceitar hyperlinks no quadro, a caixa já mostra o primeiro link das informações;
 - **Próximo evento** ativo, com o horário de Brasília, quantos confirmaram no jogo e o botão **Ver no calendário**, que abre a aba Eventos nesse dia;
 - **Guilda**: total de membros, quantos estão online e o personagem com que você está jogando.
 
@@ -133,11 +146,51 @@ No detalhe de um evento ativo que ainda não começou, o botão **Confirmar pres
 A aba **Profissões** da janela (ou `/vdl profissoes`, que abre uma janela só com a lista) abre a lista dos membros da guilda com as profissões primárias e o nível, para todos os membros.
 
 - Quem é membro, quais profissões tem e se está online vem da lista da guilda do jogo (`C_Club`). Ela traz as profissões de todos, mesmo sem o addon, mas no WoW Forever o nível vem sempre 1.
-- Por isso o nível vem do addon de cada membro: ele lê as próprias profissões (`GetProfessions` e `GetProfessionInfo`) e anuncia (`F`) ao entrar no jogo e quando um nível muda (`SKILL_LINES_CHANGED`, 10 s depois, juntando vários pontos num envio). Só anuncia se algo mudou desde o último anúncio.
-- Ao entrar no jogo ou em **Sincronizar**, o addon pede os níveis (`G`), e qualquer membro online responde com os que conhece (`K`), depois de uma espera aleatória. Em cada personagem vale a leitura mais recente. Níveis de quem saiu da guilda são apagados.
+- Por isso o nível vem do addon de cada membro: ele lê as próprias profissões (`GetProfessions` e `GetProfessionInfo`) e anuncia ao entrar no jogo e quando um nível muda (`SKILL_LINES_CHANGED`, 10 s depois, juntando vários pontos num envio). Só anuncia se algo mudou desde o último anúncio.
+- O nível é casado com a profissão da lista da guilda pelo **ID da profissão** (164 = Ferraria, 393 = Esfolamento…), que é igual em todos os idiomas: `GetProfessionInfo` traz o ID no sétimo valor, e `C_Club` em `profession1ID`/`profession2ID`. Assim, quem joga em português e quem joga em inglês veem os níveis uns dos outros. Dados de versões antigas do addon, sem ID, são casados pelo nome.
+- O anúncio sai em dois formatos: `J` (com IDs) e `F` (só nomes, para versões antigas). Ao entrar no jogo ou em **Sincronizar**, o addon pede os níveis (`Y`), e qualquer membro online responde com os que conhece (`X`), depois de uma espera aleatória. Versões antigas pedem com `G` e recebem `K`. Em cada personagem vale a leitura mais recente; no mesmo horário, a versão com IDs substitui a só com nomes. Níveis de quem saiu da guilda são apagados.
 - Quem não tem o addon aparece com o nível como "—".
 - Filtros: profissão (com a profissão escolhida, a lista fica do maior nível para o menor) e **Mostrar**, que começa em "só online" e alterna para "todos".
 - **Sussurrar** abre o chat com `/w <Nome Sobrenome>`. Fica desativado para quem está offline e não aparece na linha do próprio jogador.
+
+### Membros
+
+A aba **Membros** (na janela do addon e por cima da aba Membros da janela da guilda) lista os membros com nome na cor da classe, nível, item level, main/alt ("Main" ou "Alt de Fulano"), zona, posto e tempo de jogo com a guilda. A bolinha é verde para online, amarela para ausente, vermelha para ocupado e cinza para offline (também na aba Profissões).
+
+- Nome, nível, classe, zona, posto e online vêm do roster do jogo (`GetGuildRosterInfo`); a cor, de `RAID_CLASS_COLORS`. Item level e main/alt são os sincronizados (ver abaixo). Quem não tem o addon aparece com "—".
+- Abre com **todos** os membros; **Mostrar** alterna para só online. Offline aparece em cinza, com "Offline" na zona.
+- Ordem padrão: online primeiro, depois o posto (Grão Lorde primeiro), o nível (maior primeiro) e o nome. Clicar no título de uma coluna ordena por ela; de novo, inverte; uma terceira vez, volta à ordem padrão.
+- O clique direito num membro abre um menu com **Sussurrar** (abre o chat com `/w Nome Sobrenome`) e **Convidar para o grupo** (`C_PartyInfo.InviteUnit`). As duas opções ficam desativadas para quem está offline e na linha do próprio jogador. O menu fecha ao escolher, ao clicar fora ou com Esc.
+- Promover, rebaixar, remover e editar notas ficam na lista original da Blizzard (**Ver original da Blizzard**), porque são ações protegidas. Na original, cada linha continua mostrando o item level e o main/alt.
+
+### Tempo de jogo com a guilda
+
+O addon soma quanto tempo cada pessoa joga junto com a guilda.
+
+- A cada minuto, o addon verifica se o jogador está em grupo (ou raide) com pelo menos um membro da guilda que está conectado, na mesma zona e não está ausente, e se o próprio jogador não está ausente. Se sim, soma o minuto.
+- Os membros do grupo são achados no roster pelo GUID (`UnitName("party1")` traz só o primeiro nome no WoW Forever); a zona e o estado de ausente vêm do roster e de `UnitIsAFK`. A leitura do grupo fica num `pcall`, porque o jogo pode esconder dados das unidades em encontros.
+- Cada addon conta só o próprio tempo. Quem não tem o addon não acumula tempo. O tempo de antes da instalação não entra, e o total acumula para sempre.
+- O total é por pessoa: os alts somam no main (main/alt das Configurações).
+- O addon anuncia o próprio total (`T`) ao entrar no jogo e a cada 10 min enquanto ele cresce. Ao entrar ou em **Sincronizar**, pede os totais (`U`), e qualquer membro responde com os que conhece (`V`). Como o total só cresce, vale sempre o maior valor recebido.
+- Aparece na coluna **TEMPO** da aba Membros da janela do addon (ordenável; na janela da guilda a coluna não aparece) e no ranking "Mais tempo jogando com a guilda" do Início da janela do addon (até 5 pessoas que ainda estão na guilda). No Início da janela da guilda o espaço é pequeno, e o ranking não aparece.
+
+### Configurações
+
+A aba **Configurações** da janela do addon reúne as opções, salvas por conta:
+
+- **Este personagem é o meu main:** o mesmo que `/vdl main`. Desmarcar tira o main da conta (os personagens deixam de aparecer como main ou alt).
+- **Mostrar o botão no minimapa:** o mesmo que `/vdl minimapa`.
+- **Janela da guilda:** liga e desliga, uma por uma, as abas Eventos, Profissões e Administração (esta opção só aparece para o Grão Lorde e os Lordes), o Início do addon na aba Informações, a lista de membros do addon na aba Membros e o item level e main/alt na lista original de Membros. Os botões que continuam ligados se juntam, sem deixar espaço vazio.
+
+### Item level e main/alt
+
+Na lista de **Membros** da janela da guilda, cada linha mostra à direita o item level e se o personagem é main ou alt ("231 · Alt"). Passar o mouse na linha mostra o texto completo no tooltip ("Item level 231 · Alt de Victor Vaz").
+
+- O jogo só informa o item level do próprio personagem (`GetAverageItemLevel`, valor equipado, arredondado). Cada addon anuncia o seu (`M`) ao entrar no jogo e quando o equipamento muda (10 s depois, juntando várias peças num envio). Só anuncia se algo mudou.
+- `/vdl main` define o personagem atual como main. A escolha vale para a conta (as SavedVariables são por conta): ao logar, os outros personagens da conta que estão na guilda anunciam que são alts dele. Se o main sair da guilda, os alts deixam de mostrar o main.
+- Ao entrar no jogo ou em **Sincronizar**, o addon pede os dados (`N`), e qualquer membro online responde com os que conhece (`O`). Vale a leitura mais recente de cada personagem. Dados de quem saiu da guilda são apagados.
+- Quem não tem o addon fica sem texto na linha.
+- O addon só acrescenta: observa o preenchimento das linhas (`hooksecurefunc` em `SetMember`) e cria o próprio texto, sem alterar os textos da Blizzard. Em outras comunidades, o texto não aparece.
 
 ### Abas na janela da guilda
 
@@ -147,6 +200,7 @@ O addon espera a janela "Guilda e comunidades" carregar (`Blizzard_Communities`)
 - **Profissões:** a mesma lista da janela Profissões.
 - **Administração:** estado da sincronização e cartões para importar a string, exportar as presenças e enviar o alerta (abrem os mesmos modais da janela do addon).
 - Os botões só aparecem com a guilda Vanguarda da Luz selecionada (junto com o botão de Informações da guilda) e com a janela no tamanho normal (não minimizada).
+- **Informações:** a aba Informações da Blizzard mostra o Início do addon (mensagem do dia e informações com links para copiar, próximo evento e membros). O botão **Ver original da Blizzard** mostra a original, onde ficam a edição da mensagem do dia e das informações, as notícias e o registro. Addons não podem editar as informações da guilda no WoW Forever (`SetGuildInfoText` é bloqueado). Clicar de novo em Informações volta ao Início do addon.
 - O painel do addon fica por cima da área de conteúdo. O addon não esconde nem altera os quadros da Blizzard: só acrescenta os botões e "escuta" os cliques nos botões dela (`HookScript`), que fecham o painel.
 
 ### Alerta de raide
@@ -160,6 +214,15 @@ O Grão Lorde ou um Lorde envia um alerta com `/vdl alerta <texto>` ou em **Admi
 - Intervalo mínimo de 30 s entre envios. Quem recebe ignora IDs repetidos e alertas do mesmo remetente com menos de 20 s.
 - Durante a restrição de comunicação (encontros de chefe, M+ e JxJ), o envio é recusado com um aviso, porque um alerta atrasado perde o sentido.
 
+### Idiomas
+
+O addon fala português no jogo em português do Brasil (`ptBR`) e inglês em qualquer outro idioma (`GetLocale()`).
+
+- No código, os textos são escritos em português dentro de `L["..."]`. A tradução para o inglês fica em `core/Locale.lua`; sem tradução, o texto aparece em português. O teste `tests/locale_spec.lua` falha se algum texto usado não tiver tradução, se sobrar tradução sem uso ou se os marcadores de formato (`%s`, `%d`) forem diferentes.
+- Datas em inglês: "Saturday, November 14, 2026" e "2026-11-14 20:00". O horário continua sendo o de Brasília.
+- Não são traduzidos: o que vem do site (títulos e descrições dos eventos), o que vem do jogo (zonas, classes, postos e profissões, que já chegam no idioma do jogo), o texto do alerta e o prefixo "[Alerta]" no chat da guilda, os nomes dos postos "Grão Lorde" e "Lorde" e o conteúdo das strings `VDL1` e `VDLP1`.
+- Os comandos aceitam os nomes em português e em inglês em qualquer idioma.
+
 ### Horários
 
 Os horários do addon estão em **Brasília** (UTC−3). Quando o horário do servidor é diferente, ele aparece ao lado com o fuso (por exemplo, `UTC-8`). O horário do servidor é calculado com `C_DateAndTime.GetCurrentCalendarTime()` e `GetServerTime()`.
@@ -169,16 +232,20 @@ Os horários do addon estão em **Brasília** (UTC−3). Quando o horário do se
 ```
 VanguardaDaLuz/                  addon (vai para a pasta AddOns)
   VanguardaDaLuz_Forever.toc     Interface 16001
-  core/    Init, Config, Flavor_Forever (o que depende da versão do jogo), Main (eventos e comandos)
+  core/    Init, Locale (textos em inglês), Config, Flavor_Forever (o que depende da versão do jogo),
+           Main (eventos e comandos)
   logic/   lógica pura, testada fora do jogo:
            Codec (string), Snapshot (retrato completo), Import,
            Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8 e links), Alert (alerta de raide),
-           Attendance e PresenceCodec (lista de presença e string VDLP1), Professions
+           Attendance e PresenceCodec (lista de presença e string VDLP1), Professions,
+           Members (item level e main/alt), Roster (lista de membros), Together (tempo com a guilda)
   game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide),
-           Presence (lista de presença), GuildProfessions (profissões)
+           Presence (lista de presença), GuildProfessions (profissões), GuildMembers (item level e main/alt),
+           GuildTogether (tempo com a guilda)
   ui/      Theme (identidade do site), painéis reaproveitáveis HomePanel, CalendarPanel, ProfessionsPanel e AdminPanel,
-           MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, PresenceExport,
-           ProfessionsFrame, GuildTabs (abas na janela da guilda), MinimapButton
+           MembersPanel, SettingsPanel, MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, PresenceExport,
+           ProfessionsFrame, GuildTabs (abas e Informações na janela da guilda),
+           GuildRoster (texto na lista de membros), MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
   assets/  logo
   fonts/   Cinzel e Source Sans 3 (OFL)
@@ -198,7 +265,11 @@ scripts/   setup-dev.sh, check.sh, package.sh
   export = { raw, exportNumber, windowStart, windowEnd, count, receivedAt, source, sender },
   events = { [idDoSite] = { id, title, startsAt, description, organizer, status, updatedAt } },
   attendance = { [idDoSite] = { ["Nome Sobrenome"] = { s = 1|0, t = horário } } },
-  settings = { minimap = { angle, hide } },
+  professions = { ["Nome Sobrenome"] = { t = horário, p = { { n, l, m } } } },
+  members = { ["Nome Sobrenome"] = { t = horário, i = itemLevel, m = main } },
+  together = { ["Nome Sobrenome"] = segundos },
+  settings = { minimap = { angle, hide }, main = "Nome Sobrenome",
+               guildWindow = { events|professions|admin|info|roster = false } }, -- desligadas
 }
 ```
 
@@ -268,7 +339,7 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 ### Início
 
 1. Clique no botão do minimapa: a janela abre no **Início**, com a mensagem do dia e as informações da guilda iguais às da janela da guilda (J).
-2. Clique no link `https://vanguarda-da-luz.web.app` das informações: a caixa abaixo mostra o link selecionado, e Ctrl+C copia. Passar o mouse no link mostra "Clique para copiar o link".
+2. Clique no link `https://vanguarda-da-luz.web.app` das informações: uma caixa abre por cima do texto, com o link selecionado, e Ctrl+C copia. Clicar fora da caixa a fecha. Passar o mouse no link mostra "Clique para copiar o link".
 3. **Próximo evento** mostra o evento futuro mais próximo. **Ver no calendário** abre a aba Eventos com o dia e o evento selecionados.
 4. Mude a mensagem do dia na janela da guilda: o Início atualiza.
 5. Feche e abra a janela em outra aba: ela volta ao Início.
@@ -309,6 +380,50 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 7. Minimize a janela da guilda: os botões do addon somem.
 8. Feche e abra a janela, troque de aba várias vezes e entre em combate com a janela aberta: não deve aparecer o erro "ação bloqueada" (`/console taintLog 1` registra a causa, se aparecer).
 9. Os ícones de ferraria e de chave aparecem. Se aparecer um quadrado verde, o ícone não existe no WoW Forever e precisa ser trocado em `Flavor.guildWindow.icons`.
+10. Clique em **Informações**: aparece o Início do addon, com a mensagem do dia, as informações e o próximo evento. Uma mensagem do dia longa ganha barra de rolagem, sem cobrir as informações. A dica "Clique num link para copiar" não aparece aqui. **Ver no calendário** abre a aba Eventos no dia do evento.
+11. **Ver original da Blizzard** mostra a aba original, onde o Lorde consegue editar a mensagem do dia e as informações. Clique em Informações de novo: volta o Início do addon. Feche e abra a janela: volta o Início do addon.
+
+### Configurações
+
+1. Com um membro sem cargo, as abas da janela do addon ficam juntas (sem espaço onde estaria Administração). Abra a aba **Configurações**. As opções refletem o estado atual (main, minimapa e todas as funcionalidades da janela da guilda ligadas).
+2. Desligue **Aba Eventos** com a janela da guilda aberta: o botão some e **Profissões** sobe para o lugar dele. Ligue de novo: volta na ordem.
+3. Desligue **Início do addon na aba Informações**: Informações mostra a original da Blizzard. Desligue **Item level e main/alt**: os textos somem da lista de Membros.
+4. Desmarque **Mostrar o botão no minimapa**: o botão some; marque de novo: volta.
+5. Marque **Este personagem é o meu main** num alt: a nota muda e a lista de Membros mostra "· Main" nele. Desmarque: some o main/alt.
+6. Faça `/reload`: as opções continuam como foram deixadas.
+
+### Membros
+
+1. Abra a aba **Membros** da janela do addon: aparecem todos os membros, com o nome na cor da classe (offline em cinza), nível, item level, main/alt, zona e posto, iguais aos da janela da guilda.
+2. Clique em **NV**: ordena do menor nível para o maior; de novo, do maior para o menor; uma terceira vez, volta à ordem padrão (online, posto, nível do maior para o menor, nome). Faça o mesmo com as outras colunas.
+3. **Mostrar: todos** alterna para só online. Clique direito num membro online: o menu mostra o nome, **Sussurrar** abre o chat e **Convidar para o grupo** envia o convite (confirme que não aparece "ação bloqueada" e que o convite chega com o nome "Nome Sobrenome"). Num membro offline ou em você, as opções ficam desativadas. Clicar fora ou Esc fecha o menu.
+4. Na janela da guilda (J), clique em **Membros**: aparece a lista do addon. **Ver original da Blizzard** mostra a original, com o "27 · Main" nas linhas. Clique em Membros de novo: volta a lista do addon.
+5. Em Configurações, desligue **Lista de membros do addon na aba Membros**: a aba Membros da guilda volta a ser só a da Blizzard.
+
+### Tempo de jogo com a guilda
+
+1. Agrupe com um membro da guilda na mesma zona, os dois sem ausente. Depois de alguns minutos, a coluna **TEMPO** da aba Membros mostra o tempo na sua linha (e nas dos seus alts).
+2. Fique ausente (`/afk`), ou vá para outra zona, ou saia do grupo: o tempo para de subir. Volte: continua.
+3. Em até 10 min, o outro jogador vê o seu tempo na lista dele. Faça `/reload` e **Sincronizar**: o tempo continua o mesmo.
+4. No Início da janela do addon, "Mais tempo jogando com a guilda" mostra as pessoas com mais tempo, com você em destaque.
+5. Num membro ausente, a bolinha da lista de Membros e de Profissões fica amarela.
+
+### Item level e main/alt
+
+1. Com o Lorde e o membro online, os dois com o addon, abra a lista de **Membros** (J). Na linha de cada um aparece o item level à direita, igual ao da ficha do personagem (arredondado). Quem não tem o addon fica sem texto.
+2. No membro, `/vdl main`. Em poucos segundos, a linha dele no Lorde mostra "· Main".
+3. Logue com outro personagem da mesma conta que esteja na guilda: a linha dele mostra "· Alt", e o tooltip mostra "Item level N · Alt de <main>".
+4. Troque uma peça de equipamento: cerca de 10 s depois, o item level muda no outro jogador.
+5. Role a lista e alterne "Mostrar Membros Desconectados": os textos acompanham as linhas certas (nenhum texto fica na linha de outro membro).
+6. Selecione outra comunidade: a lista dela não mostra os textos do addon.
+
+### Idioma
+
+1. Com o jogo em português, tudo continua em português.
+2. Mude o idioma do jogo para inglês (no Battle.net, nas opções do jogo) e entre: janelas, abas, botões, menus, dicas, Configurações, boas-vindas e mensagens no chat aparecem em inglês, e as datas como "Saturday, November 14, 2026". Os títulos e descrições dos eventos continuam como no site.
+3. `/vdl help` mostra os comandos em inglês; `/vdl import`, `/vdl members` e `/vdl importar` funcionam nos dois idiomas.
+4. Um oficial em português envia um alerta: no chat da guilda aparece "[Alerta] …" para todos.
+5. Com um membro em português e outro em inglês, os dois com o addon: na aba Profissões, cada um vê o nível do outro (casado pelo ID da profissão).
 
 ### Fora da guilda
 

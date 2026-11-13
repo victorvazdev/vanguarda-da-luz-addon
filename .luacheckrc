@@ -24,8 +24,13 @@ read_globals = {
   "InCombatLockdown", "IsInGuild", "LibStub", "Minimap", "Mixin", "UIParent", "UnitName",
   "geterrorhandler", "GetTime", "PlaySound", "RaidNotice_AddMessage", "RaidWarningFrame",
   "SendChatMessage", "SOUNDKIT", "UnitGUID", "C_Club", "GetProfessions", "GetProfessionInfo",
+  "GetAverageItemLevel", "PixelUtil", "RAID_CLASS_COLORS", "C_PartyInfo", "InviteUnit",
+  "GetLocale", "UnitIsAFK", "GetZoneText", "GetNumGroupMembers", "IsInRaid", "UnitExists", "UnitIsUnit", "UnitIsConnected",
   "ChatFrameUtil", "ChatFrame_SendTell", "hooksecurefunc",
   "GetGuildRosterMOTD", "GetGuildInfoText",
 }
 
 files["tests/"] = { std = "+busted" }
+
+-- Tabela de traduções: as chaves são os textos em português, inteiros.
+files["VanguardaDaLuz/core/Locale.lua"] = { max_line_length = false }

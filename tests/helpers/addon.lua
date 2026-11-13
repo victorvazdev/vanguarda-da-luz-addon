@@ -6,6 +6,7 @@ M.ROOT = "VanguardaDaLuz/"
 M.DOCS = "docs/exemplos-addon/"
 
 local FILES = {
+  "core/Locale.lua",
   "core/Config.lua",
   "core/Flavor_Forever.lua",
   "logic/Text.lua",
@@ -19,6 +20,9 @@ local FILES = {
   "logic/Attendance.lua",
   "logic/PresenceCodec.lua",
   "logic/Professions.lua",
+  "logic/Members.lua",
+  "logic/Roster.lua",
+  "logic/Together.lua",
 }
 
 local LibDeflate

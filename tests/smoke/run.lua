@@ -60,14 +60,21 @@ _G.InCombatLockdown = function() return false end
 _G.GetGuildInfo = function() return "Vanguarda da Luz", "Lorde", 1 end
 -- O nome do jogador no roster é diferente de UnitName("player").
 local roster = {
-  { "Maren-Forever", "Lorde", 1 },
-  { "Tester Vaz", "Lorde", 1, [17] = "Player-1" },
+  { "Maren-Forever", "Lorde", 1, [17] = "Player-2", level = 30, class = "Ladina", zone = "Pantanal",
+    online = true, classFile = "ROGUE" },
+  { "Tester Vaz", "Lorde", 1, [17] = "Player-1", level = 33, class = "Paladino", zone = "Desolação",
+    online = true, classFile = "PALADIN" },
+  { "Ana Clara", "Escudeiro", 4, level = 34, class = "Maga", zone = "Vale Gris", online = false,
+    classFile = "MAGE" },
 }
 _G.GetNumGuildMembers = function() return #roster end
 _G.GetGuildRosterInfo = function(i)
   local m = roster[i]
-  return m[1], m[2], m[3], nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, m[17]
+  return m[1], m[2], m[3], m.level, m.class, m.zone, nil, nil, m.online, m.status, m.classFile,
+    nil, nil, nil, nil, nil, m[17]
 end
+_G.RAID_CLASS_COLORS = { ROGUE = { colorStr = "fffff468" }, PALADIN = { colorStr = "fff48cba" },
+  MAGE = { colorStr = "ff3fc7eb" } }
 _G.UnitName = function() return "Tester" end
 _G.UnitGUID = function() return "Player-1" end
 _G.Ambiguate = function(n) return n end
@@ -143,7 +150,34 @@ _G.C_DateAndTime = { GetCurrentCalendarTime = function()
 -- O addon não usa mais o calendário do jogo: qualquer acesso falha.
 _G.C_Calendar = nil
 _G.ChatFrame_AddMessageEventFilter = function() end
-_G.hooksecurefunc = function() end
+_G.hooksecurefunc = function(t, name, fn)
+  if type(t) ~= "table" then return end
+  local old = t[name]
+  t[name] = function(...)
+    old(...)
+    fn(...)
+  end
+end
+_G.GetAverageItemLevel = function() return 27.3, 27.3125, 27 end
+local tipLines = {}
+_G.GameTooltip.AddLine = function(_, text) tipLines[#tipLines + 1] = text end
+-- Lista de membros da janela da guilda: as linhas copiam SetMember do mixin
+-- ao serem criadas, como no jogo.
+local selectedClub = "clube"
+_G.CommunitiesFrame.GetSelectedClubId = function() return selectedClub end
+_G.CommunitiesMemberListEntryMixin = { SetMember = function(self, info) self._member = info end }
+local rosterRows = {}
+local function NewRosterRow()
+  local row = Mock()
+  row.SetMember = _G.CommunitiesMemberListEntryMixin.SetMember
+  rosterRows[#rosterRows + 1] = row
+  return row
+end
+NewRosterRow() -- linha criada antes de o addon carregar
+_G.CommunitiesFrame.MemberList = Mock("MemberList")
+_G.CommunitiesFrame.MemberList.ScrollBox = {
+  ForEachFrame = function(_, fn) for _, row in ipairs(rosterRows) do fn(row) end end,
+}
 local output = {}
 _G.print = function(...)
   local t = {}
@@ -214,6 +248,8 @@ print("mdd:", home.motd.holder.text._text)
 print("info guilda:", home.info.holder.text._text)
 home.info.holder._scripts.OnHyperlinkClick(home.info.holder, "vdlurl:www.discord.gg/abc", "x")
 print("copiar:", home.copy._shown, home.copy.edit._text)
+home.copy._scripts.OnEvent(home.copy, "GLOBAL_MOUSE_DOWN") -- clique fora da caixa
+print("copiar fecha com clique fora:", home.copy._shown)
 print("próximo evento:", home.nextEvent.name._text)
 Click("Ver no calendário")
 print("ver no calendário:", main.panels.events.frame._shown, home.frame._shown, main.dayTitle._text)
@@ -321,6 +357,174 @@ gt.events._scripts.OnClick(gt.events)
 cf.GuildInfoTab:Hide() -- outra comunidade selecionada
 print("outra comunidade:", gt.events._shown, GT.overlay._shown, cf.RosterTab._checked)
 cf.GuildInfoTab:Show()
+-- aba Informações: o Início do addon por cima, com o botão para a original
+cf.RosterTab:SetChecked(false)
+cf.GuildInfoTab:SetChecked(true) -- a Blizzard marca o botão clicado
+cf.GuildInfoTab._scripts.OnClick(cf.GuildInfoTab)
+RunTimers()
+local infoPanel = GT.panels.info
+print("informações:", GT.overlay._shown, infoPanel and infoPanel.frame._shown, cf.GuildInfoTab._checked)
+print("dica informações:", infoPanel.hint._text)
+infoPanel.original._scripts.OnClick(infoPanel.original)
+print("original da Blizzard:", GT.overlay._shown)
+cf.GuildInfoTab._scripts.OnClick(cf.GuildInfoTab)
+RunTimers()
+print("informações de novo:", GT.overlay._shown)
+gt.events._scripts.OnClick(gt.events)
+print("eventos a partir de informações:", GT.overlay._shown, gt.events._checked, cf.GuildInfoTab._checked,
+  infoPanel.frame._shown)
+cf.GuildInfoTab:SetChecked(false)
+cf.RosterTab:SetChecked(true)
+cf.RosterTab._scripts.OnClick(cf.RosterTab)
+RunTimers()
+print("membros depois:", GT.overlay._shown, GT.panels.members and GT.panels.members.frame._shown)
+local membersCover = GT.panels.members
+local coverRow = membersCover.inner.rows[1]
+print("lista na guilda:", coverRow.name._text, "|", coverRow.rank._text, "| dica:", membersCover.hint._shown,
+  "| tempo:", membersCover.inner.columns.time ~= nil, rawget(membersCover.inner.headers, "time") ~= nil)
+membersCover.original._scripts.OnClick(membersCover.original)
+print("membros original:", GT.overlay._shown)
+cf.RosterTab._scripts.OnClick(cf.RosterTab)
+RunTimers()
+print("membros de novo:", GT.overlay._shown)
+-- item level e main/alt na lista de membros
+local beforeMembers = #comms
+SlashCmdList.VANGUARDADALUZ("main")
+print("main anunciado:", #comms - beforeMembers, comms[#comms])
+comm.OnCommReceived(comm, "VanguardaDaLuz",
+  ns.Protocol.Member(now, ns.Members.EncodeOwn({ i = 231, m = "Aelin Ashryvrr" })), "GUILD", "Maren-Forever")
+local newRow = NewRosterRow() -- linha criada depois: gancho pelo mixin
+rosterRows[1]:SetMember(club[1])
+newRow:SetMember(club[2])
+local GR = ns.GuildRoster
+print("linhas membros:", GR.labels[rosterRows[1]]._text, "|", GR.labels[newRow]._text, "|",
+  rosterRows[1]._member.name)
+newRow._scripts.OnEnter(newRow)
+print("tooltip membro:", tipLines[#tipLines])
+selectedClub = "outra"
+GR.Refresh()
+print("outra comunidade sem texto:", GR.labels[newRow]._shown)
+selectedClub = "clube"
+ns.db.settings.main = "Aelin Ashryvrr" -- outro personagem da conta é o main
+ns.GuildMembers.Announce()
+GR.Refresh()
+print("vira alt:", GR.labels[rosterRows[1]]._text, comms[#comms])
+beforeMembers = #comms
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.MembersRequest(), "GUILD", "Dorvan")
+RunTimers()
+print("membros enviados:", #comms - beforeMembers, comms[#comms])
+-- tempo de jogo com a guilda: em grupo com Maren, na mesma zona
+local group = { count = 2, afk = {} }
+_G.GetNumGroupMembers = function() return group.count end
+_G.IsInRaid = function() return false end
+_G.UnitExists = function() return true end
+_G.UnitIsUnit = function(a, b) return a == b end
+_G.UnitIsConnected = function() return true end
+_G.UnitIsAFK = function(unit) return group.afk[unit] end
+_G.GetZoneText = function() return "Pantanal" end
+_G.UnitGUID = function(unit) return unit == "party1" and "Player-2" or "Player-1" end
+ns.GuildTogether.Tick()
+local afterOne = ns.db.together["Tester Vaz"]
+group.afk.party1 = true; ns.GuildTogether.Tick(); group.afk.party1 = nil
+group.afk.player = true; ns.GuildTogether.Tick(); group.afk.player = nil
+roster[1].status = 1; ns.GuildTogether.Tick() -- ausente no roster
+_G.GetZoneText = function() return "Desolação" end; ns.GuildTogether.Tick()
+_G.GetZoneText = function() return "Pantanal" end
+group.count = 1; ns.GuildTogether.Tick(); group.count = 2
+print("tempo junto:", afterOne, ns.db.together["Tester Vaz"])
+ns.GuildTogether.Tick()
+print("tempo junto depois:", ns.db.together["Tester Vaz"])
+ns.GuildTogether.Announce()
+print("tempo anunciado:", comms[#comms])
+comm.OnCommReceived(comm, "VanguardaDaLuz",
+  ns.Protocol.TogetherList(ns.Together.EncodeStore({ ["Ana Clara"] = 3600, ["Maren-Forever"] = 100 })),
+  "GUILD", "Maren-Forever")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Together(ns.Together.EncodeOwn(50)), "GUILD", "Maren-Forever")
+print("tempo recebido:", ns.db.together["Ana Clara"], ns.db.together["Maren-Forever"])
+ns.MainFrame.Open("home")
+local hp = _G.VanguardaDaLuzMainFrame.panels.home
+print("ranking:", #hp.guild.rankLines, hp.guild.rankLines[1].name._text, hp.guild.rankLines[1].time._text,
+  hp.guild.rankLines[2].name._text)
+-- aba Membros da janela do addon
+ns.MainFrame.Open("members")
+local mp = _G.VanguardaDaLuzMainFrame.panels.members
+local function MemberLine(i)
+  local r = mp.rows[i]
+  if not (r and r._shown) then return "-" end
+  return table.concat({ r.name._text, r.level._text, r.ilvl._text, r.main._text, r.zone._text, r.rank._text }, " | ")
+end
+print("membros 1:", MemberLine(1))
+print("membros 2:", MemberLine(2))
+print("membros 3:", MemberLine(3))
+print("membros contagem:", mp.count._text, mp.online._text)
+print("membros tempo:", mp.rows[1].time._text, mp.rows[3].time._text, mp.rows[2].data.status,
+  ns.Theme.PresenceColor(true, mp.rows[2].data.status) == ns.Theme.colors.away)
+-- clique direito: menu com sussurrar e convidar
+local invites = {}
+_G.C_PartyInfo = { InviteUnit = function(name) invites[#invites + 1] = name end }
+mp.rows[2]._scripts.OnMouseUp(mp.rows[2], "RightButton")
+local memberMenu = _G.VanguardaDaLuzMemberMenu
+local function MenuState(m)
+  local parts = {}
+  for _, b in ipairs(m.buttons) do
+    if b._shown then parts[#parts + 1] = b._text .. "=" .. tostring(b._enabled) end
+  end
+  return table.concat(parts, ",")
+end
+print("menu membro:", memberMenu._shown, memberMenu.title._text, MenuState(memberMenu))
+memberMenu.buttons[2]._scripts.OnClick(memberMenu.buttons[2])
+print("convite:", invites[1], memberMenu._shown)
+mp.rows[2]._scripts.OnMouseUp(mp.rows[2], "RightButton")
+memberMenu.buttons[1]._scripts.OnClick(memberMenu.buttons[1])
+print("sussurro membro:", tells[#tells])
+mp.rows[3]._scripts.OnMouseUp(mp.rows[3], "RightButton")
+print("menu offline:", MenuState(memberMenu))
+mp.rows[1]._scripts.OnMouseUp(mp.rows[1], "RightButton")
+print("menu você:", MenuState(memberMenu))
+memberMenu._scripts.OnEvent(memberMenu, "GLOBAL_MOUSE_DOWN")
+print("menu fecha fora:", memberMenu._shown)
+mp.headers.level._scripts.OnClick(mp.headers.level)
+print("ordem nível:", mp.rows[1].level._text, mp.rows[2].level._text, mp.rows[3].level._text)
+mp.headers.level._scripts.OnClick(mp.headers.level)
+print("ordem nível desc:", mp.rows[1].level._text, mp.rows[2].level._text, mp.rows[3].level._text)
+mp.headers.level._scripts.OnClick(mp.headers.level)
+mp.online._scripts.OnClick(mp.online)
+print("membros só online:", mp.online._text, mp.rows[3]._shown)
+_G.VanguardaDaLuzMainFrame:Hide()
+-- Configurações
+ns.MainFrame.Open("settings")
+local sp = _G.VanguardaDaLuzMainFrame.panels.settings
+print("configurações:", sp.frame._shown, sp.main.value, sp.minimap.value, sp.features.events.value, sp.mainNote._text)
+Click("Aba Eventos")
+print("sem aba eventos:", gt.events._shown, gt.professions._shown, gt.professions._rel._name,
+  ns.db.settings.guildWindow.events)
+Click("Aba Eventos")
+print("aba eventos de volta:", gt.events._shown, gt.professions._rel._name, ns.db.settings.guildWindow.events)
+Click("Item level e main/alt na lista original de Membros")
+print("sem item level:", GR.labels[newRow]._shown)
+Click("Item level e main/alt na lista original de Membros")
+print("item level de volta:", GR.labels[newRow]._shown)
+Click("Início do addon na aba Informações")
+cf.RosterTab:SetChecked(false)
+cf.GuildInfoTab:SetChecked(true)
+cf.GuildInfoTab._scripts.OnClick(cf.GuildInfoTab)
+RunTimers()
+print("informações desligada:", GT.overlay._shown)
+Click("Início do addon na aba Informações")
+print("informações ligada:", GT.overlay._shown)
+cf.GuildInfoTab:SetChecked(false)
+cf.RosterTab:SetChecked(true)
+cf.RosterTab._scripts.OnClick(cf.RosterTab)
+RunTimers()
+Click("Mostrar o botão no minimapa")
+print("minimapa escondido:", _G.VanguardaDaLuzMinimapButton._shown, ns.db.settings.minimap.hide, sp.minimap.value)
+Click("Mostrar o botão no minimapa")
+print("minimapa de volta:", _G.VanguardaDaLuzMinimapButton._shown, ns.db.settings.minimap.hide)
+Click("Este personagem é o meu main")
+print("main pela tela:", ns.db.settings.main, sp.main.value, sp.mainNote._text)
+Click("Este personagem é o meu main")
+print("main desmarcado:", ns.db.settings.main, sp.main.value, ns.db.members["Tester Vaz"].m)
+_G.VanguardaDaLuzMainFrame:Hide()
 -- menu de atalhos do minimapa (clique direito)
 local mb, mainFrame = _G.VanguardaDaLuzMinimapButton, _G.VanguardaDaLuzMainFrame
 local function MenuLabels(menu)
@@ -341,6 +545,15 @@ local trustedInfo = _G.GetGuildInfo
 _G.GetGuildInfo = function() return "Vanguarda da Luz", "Membro", 5 end
 mb._scripts.OnClick(mb, "RightButton")
 print("menu sem cargo:", MenuLabels(mm))
+ns.MainFrame.Open("settings")
+print("abas sem cargo:", mainFrame.tabs.admin._shown, mainFrame.tabs.settings._rel == mainFrame.tabs.members)
+GT.panels.members:Refresh()
+print("dica membros sem cargo:", GT.panels.members.hint._shown, GT.panels.members.hint._text)
+GT.panels.info:Refresh()
+print("dica informações sem cargo:", GT.panels.info.hint._text)
+local sf = mainFrame.panels.settings.features
+print("opção administração sem cargo:", sf.admin._shown, sf.info._rel == sf.professions)
+mainFrame:Hide()
 mm:Hide()
 dialog:Hide()
 SlashCmdList.VANGUARDADALUZ("importar")

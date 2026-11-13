@@ -1,7 +1,9 @@
 -- Janela principal do addon, com abas: Início (mensagem do dia e informações
--- da guilda), Eventos (calendário), Profissões e Administração (Grão Lorde e
--- Lordes). Abre sempre no Início.
+-- da guilda), Eventos (calendário), Profissões, Membros, Administração (Grão
+-- Lorde e Lordes) e Configurações. Abre sempre no Início.
 local _, ns = ...
+
+local L = ns.L
 
 local Theme = ns.Theme
 local MainFrame = {}
@@ -12,10 +14,12 @@ local CONTENT_TOP = 116  -- abaixo do cabeçalho e da barra de abas
 local FOOTER_H = 62
 
 local TABS = {
-  { key = "home", label = "Início", width = 100 },
-  { key = "events", label = "Eventos", width = 100 },
-  { key = "professions", label = "Profissões", width = 116 },
-  { key = "admin", label = "Administração", width = 140, trusted = true },
+  { key = "home", label = L["Início"], width = 100 },
+  { key = "events", label = L["Eventos"], width = 100 },
+  { key = "professions", label = L["Profissões"], width = 116 },
+  { key = "members", label = L["Membros"], width = 110 },
+  { key = "admin", label = L["Administração"], width = 140, trusted = true },
+  { key = "settings", label = L["Configurações"], width = 140 },
 }
 
 local frame
@@ -27,10 +31,20 @@ end
 
 function MainFrame.Refresh()
   if not frame or not frame:IsShown() then return end
-  if not Available(TABS[#TABS]) and active == "admin" then active = "home" end
+  if active == "admin" and not ns.Guild.IsPlayerTrusted() then active = "home" end
+  -- Cada aba visível fica ao lado da anterior (as ocultas não deixam buraco).
+  local previous
   for _, tab in ipairs(TABS) do
     local button = frame.tabs[tab.key]
-    button:SetShown(Available(tab))
+    local visible = Available(tab)
+    button:ClearAllPoints()
+    if previous then
+      button:SetPoint("LEFT", previous, "RIGHT", 6, 0)
+    else
+      button:SetPoint("TOPLEFT", PAD, -72)
+    end
+    if visible then previous = button end
+    button:SetShown(visible)
     button:SetKind(tab.key == active and "primary" or "ghost")
     frame.panels[tab.key].frame:SetShown(tab.key == active)
   end
@@ -39,10 +53,10 @@ function MainFrame.Refresh()
   frame.sync:SetText(Theme.Code("textMuted") .. ns.Comm.Status() .. "|r")
 end
 
--- Abre uma aba ("home", "events", "professions" ou "admin").
+-- Abre uma aba ("home", "events", "professions", "members", "admin" ou "settings").
 function MainFrame.ShowTab(key)
   active = key
-  if key == "professions" then ns.Guild.RequestRoster() end
+  if key == "professions" or key == "members" then ns.Guild.RequestRoster() end
   MainFrame.Refresh()
 end
 
@@ -52,21 +66,15 @@ local function Build()
 
   local subtitle = Theme.Text(frame, "small", "textMuted")
   subtitle:SetPoint("TOPLEFT", frame.heading, "BOTTOMLEFT", 0, -2)
-  subtitle:SetText("Guilda Vanguarda da Luz  ·  " .. ns.Flavor.label .. "  ·  Horários de Brasília")
+  subtitle:SetText(L["Guilda Vanguarda da Luz"] .. "  ·  " .. ns.Flavor.label .. "  ·  " .. L["Horários de Brasília"])
 
   -- Barra de abas
   frame.tabs = {}
-  local previous
   for _, tab in ipairs(TABS) do
+    -- A posição é definida em Refresh, conforme as abas visíveis.
     local button = Theme.Button(frame, tab.label, "ghost", tab.width)
-    if previous then
-      button:SetPoint("LEFT", previous, "RIGHT", 6, 0)
-    else
-      button:SetPoint("TOPLEFT", PAD, -72)
-    end
     button:SetScript("OnClick", function() MainFrame.ShowTab(tab.key) end)
     frame.tabs[tab.key] = button
-    previous = button
   end
 
   -- Painéis
@@ -79,7 +87,9 @@ local function Build()
     end),
     events = ns.CalendarPanel.Create(frame, w, "wide", h),
     professions = ns.ProfessionsPanel.Create(frame, w, h),
+    members = ns.MembersPanel.Create(frame, w, h),
     admin = ns.AdminPanel.Create(frame, w, h),
+    settings = ns.SettingsPanel.Create(frame, w, h),
   }
   for _, panel in pairs(frame.panels) do
     panel.frame:SetPoint("TOPLEFT", PAD, -CONTENT_TOP)
@@ -106,7 +116,7 @@ local function Build()
   sync:SetWordWrap(false)
   frame.sync = sync
 
-  local syncButton = Theme.Button(frame, "Sincronizar", "outline", 110)
+  local syncButton = Theme.Button(frame, L["Sincronizar"], "outline", 110)
   syncButton:SetPoint("BOTTOMRIGHT", -PAD, 18)
   syncButton:SetScript("OnClick", function() ns.Comm.RequestLatest() end)
 
@@ -115,6 +125,9 @@ local function Build()
   ns.On("ATTENDANCE_UPDATED", MainFrame.Refresh)
   ns.On("PROFESSIONS_UPDATED", MainFrame.Refresh)
   ns.On("GUILD_UPDATED", MainFrame.Refresh)
+  ns.On("SETTINGS_UPDATED", MainFrame.Refresh)
+  ns.On("MEMBERS_UPDATED", MainFrame.Refresh)
+  ns.On("TOGETHER_UPDATED", MainFrame.Refresh)
 end
 
 function MainFrame.Hide()

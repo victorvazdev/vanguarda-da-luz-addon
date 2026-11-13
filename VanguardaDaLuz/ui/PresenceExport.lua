@@ -2,6 +2,8 @@
 -- para um administrador colar no site. Só para os cargos aceitos.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme = ns.Theme
 local PresenceExport = {}
 
@@ -15,15 +17,15 @@ local function Select()
 end
 
 local function Build()
-  frame = Theme.Window("VanguardaDaLuzPresenceExport", 560, 330, "Exportar presenças")
+  frame = Theme.Window("VanguardaDaLuzPresenceExport", 560, 330, L["Exportar presenças"])
   frame:SetFrameStrata("DIALOG")
 
   local help = Theme.Text(frame, "body")
   help:SetPoint("TOPLEFT", 16, -70)
   help:SetPoint("TOPRIGHT", -16, -70)
   help:SetSpacing(3)
-  help:SetText("Confirmações e cancelamentos do jogo nos eventos que ainda não começaram. "
-    .. "Copie com Ctrl+C e cole no site, na administração de eventos.")
+  help:SetText(L["Confirmações e cancelamentos do jogo nos eventos que ainda não começaram. "
+    .. "Copie com Ctrl+C e cole no site, na administração de eventos."])
 
   local box = CreateFrame("Frame", nil, frame, "BackdropTemplate")
   box:SetPoint("TOPLEFT", help, "BOTTOMLEFT", 0, -12)
@@ -54,7 +56,7 @@ local function Build()
   summary:SetPoint("RIGHT", -16, 0)
   frame.summary = summary
 
-  local close = Theme.Button(frame, "Fechar", "primary", 110)
+  local close = Theme.Button(frame, L["Fechar"], "primary", 110)
   close:SetPoint("BOTTOMRIGHT", -16, 14)
   close:SetScript("OnClick", function() frame:Hide() end)
 
@@ -68,7 +70,7 @@ local function Build()
         if record.s == 1 then confirmed = confirmed + 1 else cancelled = cancelled + 1 end
       end
     end
-    summary:SetText(string.format("%d evento(s)  ·  %d confirmação(ões)  ·  %d cancelamento(s)",
+    summary:SetText(string.format(L["%d evento(s)  ·  %d confirmação(ões)  ·  %d cancelamento(s)"],
       events, confirmed, cancelled))
     Select()
   end)
@@ -80,7 +82,7 @@ function PresenceExport.Show()
     return
   end
   if not ns.Guild.IsPlayerTrusted() then
-    ns.Print("Somente o Grão Lorde e os Lordes podem exportar as presenças.")
+    ns.Print(L["Somente o Grão Lorde e os Lordes podem exportar as presenças."])
     return
   end
   if not frame then Build() end

@@ -10,6 +10,15 @@
 --   F|<t>|<lista>  Profissões e níveis do próprio remetente (logic/Professions.lua)
 --   G           Pedido: "alguém me manda os níveis de profissão que conhece?"
 --   K|<lista>   Níveis de profissão conhecidos (logic/Professions.lua)
+--   J|<t>|<lista>  Como F, com o ID de cada profissão (casa em qualquer idioma)
+--   Y           Como G, pedindo a resposta com IDs (X)
+--   X|<lista>   Como K, com IDs
+--   M|<t>|<dados>  Item level e main do próprio remetente (logic/Members.lua)
+--   N           Pedido: "alguém me manda os item levels e mains que conhece?"
+--   O|<lista>   Item levels e mains conhecidos (logic/Members.lua)
+--   T|<total>   Tempo de jogo com a guilda do próprio remetente (logic/Together.lua)
+--   U           Pedido: "alguém me manda os tempos com a guilda que conhece?"
+--   V|<lista>   Tempos com a guilda conhecidos (logic/Together.lua)
 --
 -- A AceComm divide e junta as mensagens grandes.
 local _, ns = ...
@@ -56,14 +65,69 @@ function Protocol.ProfessionsList(payload)
   return "K|" .. payload
 end
 
+function Protocol.ProfessionIds(at, payload)
+  return "J|" .. at .. "|" .. payload
+end
+
+function Protocol.ProfessionIdsRequest()
+  return "Y"
+end
+
+function Protocol.ProfessionIdsList(payload)
+  return "X|" .. payload
+end
+
+function Protocol.Member(at, payload)
+  return "M|" .. at .. "|" .. payload
+end
+
+function Protocol.MembersRequest()
+  return "N"
+end
+
+function Protocol.MembersList(payload)
+  return "O|" .. payload
+end
+
+function Protocol.Together(payload)
+  return "T|" .. payload
+end
+
+function Protocol.TogetherRequest()
+  return "U"
+end
+
+function Protocol.TogetherList(payload)
+  return "V|" .. payload
+end
+
 -- Retorna { kind = "query"|"have"|"data", number, raw }, { kind = "alert", id,
 -- text }, { kind = "presence", eventId, status, at }, { kind = "presenceRequest" },
 -- { kind = "presenceList", encoded }, { kind = "professions", at, payload },
--- { kind = "professionsRequest" }, { kind = "professionsList", payload } ou nil.
+-- { kind = "professionsRequest" }, { kind = "professionsList", payload } (com
+-- `withIds` = true quando vêm de J, Y e X),
+-- { kind = "member", at, payload }, { kind = "membersRequest" },
+-- { kind = "membersList", payload }, { kind = "together", payload },
+-- { kind = "togetherRequest" }, { kind = "togetherList", payload } ou nil.
 function Protocol.Parse(message)
   if type(message) ~= "string" then return nil end
   if message == "R" then return { kind = "presenceRequest" } end
   if message == "G" then return { kind = "professionsRequest" } end
+  if message == "Y" then return { kind = "professionsRequest", withIds = true } end
+  local idsAt, ids = string.match(message, "^J|(%d+)|(%d.*)$")
+  if idsAt then return { kind = "professions", at = tonumber(idsAt), payload = ids, withIds = true } end
+  local idsList = string.match(message, "^X|(%d.*)$")
+  if idsList then return { kind = "professionsList", payload = idsList, withIds = true } end
+  if message == "N" then return { kind = "membersRequest" } end
+  if message == "U" then return { kind = "togetherRequest" } end
+  local together = string.match(message, "^T|(%d.*)$")
+  if together then return { kind = "together", payload = together } end
+  local togetherList = string.match(message, "^V|(%d.*)$")
+  if togetherList then return { kind = "togetherList", payload = togetherList } end
+  local memberAt, member = string.match(message, "^M|(%d+)|(%d.*)$")
+  if memberAt then return { kind = "member", at = tonumber(memberAt), payload = member } end
+  local members = string.match(message, "^O|(%d.*)$")
+  if members then return { kind = "membersList", payload = members } end
   local ownAt, own = string.match(message, "^F|(%d+)|(%d.*)$")
   if ownAt then return { kind = "professions", at = tonumber(ownAt), payload = own } end
   local known = string.match(message, "^K|(%d.*)$")

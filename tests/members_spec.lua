@@ -1,0 +1,82 @@
+local addon = require("helpers.addon")
+
+describe("Item level e main/alt", function()
+  local ns, Members
+
+  before_each(function()
+    ns = addon.Load()
+    Members = ns.Members
+  end)
+
+  it("guarda o registro mais recente de cada personagem", function()
+    local store = {}
+    assert.is_true(Members.Set(store, "Victor Vaz", { i = 231, m = "Victor Vaz" }, 100))
+    assert.is_false(Members.Set(store, "Victor Vaz", { i = 240 }, 100))
+    assert.is_false(Members.Set(store, "Victor Vaz", { i = 240 }, 90))
+    assert.are.same({ t = 100, i = 231, m = "Victor Vaz" }, store["Victor Vaz"])
+    assert.is_true(Members.Set(store, "Victor Vaz", { i = 240 }, 101))
+    assert.is_nil(store["Victor Vaz"].m)
+  end)
+
+  it("recusa dados inválidos", function()
+    local store = {}
+    assert.is_false(Members.Set(store, "", { i = 1 }, 1))
+    assert.is_false(Members.Set(store, "Ana", { i = -1 }, 1))
+    assert.is_false(Members.Set(store, "Ana", { i = 1.5 }, 1))
+    assert.is_false(Members.Set(store, "Ana", { i = 10000 }, 1))
+    assert.is_false(Members.Set(store, "Ana", { i = 1, m = "a|b" }, 1))
+    assert.is_false(Members.Set(store, "Ana", { i = 1 }, "1"))
+    assert.is_nil(next(store))
+  end)
+
+  it("compara, mescla e apaga quem saiu", function()
+    assert.is_true(Members.Same({ i = 1, m = "A" }, { i = 1, m = "A" }))
+    assert.is_false(Members.Same({ i = 1 }, { i = 1, m = "A" }))
+    assert.is_false(Members.Same(nil, { i = 1 }))
+    local store = { Ana = { t = 5, i = 200 } }
+    local changed = Members.Merge(store, { Ana = { t = 4, i = 1 }, Bia = { t = 1, i = 100, m = "Ana" } })
+    assert.are.equal(1, changed)
+    assert.are.equal(200, store.Ana.i)
+    Members.Prune(store, { Bia = true })
+    assert.is_nil(store.Ana)
+    assert.are.equal("Ana", store.Bia.m)
+  end)
+
+  it("só usa o main da conta se ele está na guilda", function()
+    assert.are.equal("Victor Vaz", Members.MainFor("Victor Vaz", { ["Victor Vaz"] = true }))
+    assert.is_nil(Members.MainFor("Victor Vaz", { Outro = true }))
+    assert.is_nil(Members.MainFor(nil, { Outro = true }))
+  end)
+
+  it("codifica e decodifica os próprios dados", function()
+    local payload = Members.EncodeOwn({ i = 231, m = "Victor Vaz" })
+    assert.are.equal("3:23110:Victor Vaz", payload)
+    assert.are.same({ i = 231, m = "Victor Vaz" }, Members.DecodeOwn(payload))
+    assert.are.same({ i = 5 }, Members.DecodeOwn(Members.EncodeOwn({ i = 5 })))
+    assert.is_nil(Members.DecodeOwn("3:231"))
+    assert.is_nil(Members.DecodeOwn("3:2310:1:x"))
+    assert.is_nil(Members.DecodeOwn("1:x0:"))
+    assert.is_nil(Members.DecodeOwn(nil))
+  end)
+
+  it("codifica e decodifica todos os dados conhecidos", function()
+    local store = { ["Victor Vaz"] = { t = 10, i = 231, m = "Victor Vaz" }, Ana = { t = 7, i = 90 } }
+    local decoded = Members.DecodeStore(Members.EncodeStore(store))
+    assert.are.same(store, decoded)
+    assert.are.same({}, Members.DecodeStore(Members.EncodeStore({})))
+    assert.is_nil(Members.DecodeStore("1:2"))
+    assert.is_nil(Members.DecodeStore("1:13:Ana1:72:900:2:xx"))
+    assert.is_nil(Members.DecodeStore("x"))
+  end)
+
+  it("monta os textos da lista e do tooltip", function()
+    assert.are.equal("231 · Main", Members.Short("Victor Vaz", { i = 231, m = "Victor Vaz" }))
+    assert.are.equal("231 · Alt", Members.Short("Vaz Alt", { i = 231, m = "Victor Vaz" }))
+    assert.are.equal("231", Members.Short("Ana", { i = 231 }))
+    assert.is_nil(Members.Short("Ana", nil))
+    assert.are.equal("Item level 231 · Alt de Victor Vaz", Members.Detail("Vaz Alt", { i = 231, m = "Victor Vaz" }))
+    assert.are.equal("Item level 231 · Main", Members.Detail("Victor Vaz", { i = 231, m = "Victor Vaz" }))
+    assert.are.equal("Item level 90", Members.Detail("Ana", { i = 90 }))
+    assert.is_nil(Members.Detail("Ana", nil))
+  end)
+end)

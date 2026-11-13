@@ -4,7 +4,7 @@
 -- servidor aparece quando é outro.
 local _, ns = ...
 
-local Theme, Time, Text = ns.Theme, ns.Time, ns.Text
+local Theme, Time, Text, L = ns.Theme, ns.Time, ns.Text, ns.L
 local CalendarPanel = {}
 
 local LAYOUTS = {
@@ -30,27 +30,27 @@ end
 
 -- Linha de horários: Brasília e, se diferente, o servidor.
 local function TimesLine(event)
-  local brasilia = Time.FormatClock(event.startsAt, Brasilia()) .. " (Brasília)"
+  local brasilia = Time.FormatClock(event.startsAt, Brasilia()) .. " " .. L["(Brasília)"]
   local offset = Time.ServerOffset(C_DateAndTime.GetCurrentCalendarTime(), GetServerTime())
   if offset == Brasilia() then return brasilia end
   local f = Time.Fields(event.startsAt, offset)
   local b = Time.Fields(event.startsAt, Brasilia())
   local server = Time.FormatClock(event.startsAt, offset)
   if f.day ~= b.day then server = string.format("%02d/%02d ", f.day, f.month) .. server end
-  return brasilia .. "  ·  " .. server .. " (servidor, " .. Time.FormatOffset(offset) .. ")"
+  return brasilia .. "  ·  " .. server .. " " .. string.format(L["(servidor, %s)"], Time.FormatOffset(offset))
 end
 
 -- Linha da última exportação recebida (usada pelas janelas que mostram o painel).
 function CalendarPanel.InfoLine()
   local export = ns.db.export
   if not export then
-    return "Nenhuma exportação recebida ainda. Os eventos chegam do Grão Lorde ou de um Lorde da guilda."
+    return L["Nenhuma exportação recebida ainda. Os eventos chegam do Grão Lorde ou de um Lorde da guilda."]
   end
   local generated = Time.FormatDateTime(export.exportNumber, Brasilia())
   local received = Time.FormatDateTime(export.receivedAt, Brasilia())
   local from = export.source == "guild" and export.sender
-    and (" de " .. Ambiguate(export.sender, "short")) or " por importação"
-  return "Gerado no site em " .. generated .. "  ·  Recebido em " .. received .. from
+    and string.format(L[" de %s"], Ambiguate(export.sender, "short")) or L[" por importação"]
+  return string.format(L["Gerado no site em %s  ·  Recebido em %s%s"], generated, received, from)
 end
 
 local Panel = {}
@@ -62,19 +62,19 @@ Panel.__index = Panel
 
 -- Lista de presença do jogo e botão de confirmar/cancelar.
 function Panel:ShowAttendance(event)
-  local d, L = self.detail, self.layout
+  local d, Lay = self.detail, self.layout
   local names = ns.Presence.Confirmed(event.id)
   local escaped = {}
   for i, name in ipairs(names) do escaped[i] = Text.Escape(name) end
-  local line = Theme.Code("textMuted") .. "Confirmados no jogo (" .. #names .. "):|r "
-  d.attendance:SetText(line .. (#names > 0 and table.concat(escaped, ", ") or "ninguém ainda"))
+  local line = Theme.Code("textMuted") .. string.format(L["Confirmados no jogo (%d):"], #names) .. "|r "
+  d.attendance:SetText(line .. (#names > 0 and table.concat(escaped, ", ") or L["ninguém ainda"]))
   local open = ns.Presence.IsOpen(event)
   d.attend:SetShown(open)
   -- Sem botão, a área com rolagem desce até o pé do cartão.
-  d.body:SetPoint("BOTTOMRIGHT", -L.cardPad - 18, open and (L.cardPad + 28 + 10) or L.cardPad)
+  d.body:SetPoint("BOTTOMRIGHT", -Lay.cardPad - 18, open and (Lay.cardPad + 28 + 10) or Lay.cardPad)
   if open then
     d.attend.eventId = event.id
-    d.attend:SetText(ns.Presence.Status(event.id) == 1 and "Cancelar presença" or "Confirmar presença")
+    d.attend:SetText(ns.Presence.Status(event.id) == 1 and L["Cancelar presença"] or L["Confirmar presença"])
   end
 end
 
@@ -84,16 +84,16 @@ function Panel:ShowDetail(event)
   d.title:SetText(Text.Escape(event.title))
   d.title:SetTextColor(unpack(Theme.colors[event.status == "cancelado" and "cancel" or "heading"]))
   if event.status == "cancelado" then
-    d.status:SetText(Theme.Code("cancel") .. "CANCELADO|r")
+    d.status:SetText(Theme.Code("cancel") .. L["CANCELADO"] .. "|r")
   else
-    d.status:SetText(Theme.Code("success") .. "ATIVO|r")
+    d.status:SetText(Theme.Code("success") .. L["ATIVO"] .. "|r")
   end
   d.when:SetText(Time.FormatLongDate(event.startsAt, Brasilia()) .. "\n" .. TimesLine(event))
   d.organizer:SetText(Text.Escape(event.organizer))
   self:ShowAttendance(event)
   local description = Text.Escape(event.description or "")
   d.description:SetText(description ~= "" and description
-    or (Theme.Code("textMuted") .. "Sem descrição.|r"))
+    or (Theme.Code("textMuted") .. L["Sem descrição."] .. "|r"))
   d.body:Layout()
 end
 
@@ -102,7 +102,7 @@ end
 ---------------------------------------------------------------------------
 
 function Panel:RenderDay()
-  local s, L = self.selected, self.layout
+  local s, Lay = self.selected, self.layout
   local list = ns.Store.EventsOn(s.year, s.month, s.day)
   local ts = Time.FromFields(s.year, s.month, s.day, 12, 0, Brasilia())
   self.dayTitle:SetText(Time.FormatLongDate(ts, Brasilia()))
@@ -115,7 +115,7 @@ function Panel:RenderDay()
       button.time:SetText(Time.FormatClock(event.startsAt, Brasilia()))
       button.name:SetText(Text.Escape(event.title))
       button.name:SetTextColor(unpack(Theme.colors[event.status == "cancelado" and "cancel" or "text"]))
-      button.badge:SetText(event.status == "cancelado" and "Cancelado" or "")
+      button.badge:SetText(event.status == "cancelado" and L["Cancelado"] or "")
       local isSelected = s.eventId == event.id
       Theme.Backdrop(button, isSelected and "surfaceRaised" or "surface", isSelected and "gold" or "border")
       if isSelected then chosen = event end
@@ -133,8 +133,8 @@ function Panel:RenderDay()
   self.noEvents:SetShown(#list == 0)
   -- O cartão do dia só ocupa a altura dos eventos que o dia tem.
   local rows = math.min(#list, MAX_DAY_EVENTS)
-  local top = L.cardPad + 30
-  self.dayCard:SetHeight(top + (rows > 0 and rows * L.rowStep or 20) + L.cardPad - 4)
+  local top = Lay.cardPad + 30
+  self.dayCard:SetHeight(top + (rows > 0 and rows * Lay.rowStep or 20) + Lay.cardPad - 4)
   self.detail:SetShown(chosen ~= nil)
   self:ShowDetail(chosen)
 end
@@ -144,9 +144,8 @@ end
 ---------------------------------------------------------------------------
 
 function Panel:RenderMonth()
-  local v, s, L = self.view, self.selected, self.layout
-  local monthName = string.gsub(Time.MONTHS[v.month], "^%l", string.upper)
-  self.monthTitle:SetText(monthName .. " de " .. v.year)
+  local v, s, Lay = self.view, self.selected, self.layout
+  self.monthTitle:SetText(Time.FormatMonth(v.year, v.month))
   local first = Time.FirstWeekday(v.year, v.month)
   local days = Time.DaysInMonth(v.year, v.month)
   local ty, tm, td = Today()
@@ -157,7 +156,7 @@ function Panel:RenderMonth()
       cell.day = day
       cell.number:SetText(day)
       local events = ns.Store.EventsOn(v.year, v.month, day)
-      for k = 1, L.labels do
+      for k = 1, Lay.labels do
         local label, event = cell.labels[k], events[k]
         if event then
           label:SetText(Text.Escape(event.title))
@@ -166,8 +165,8 @@ function Panel:RenderMonth()
           label:SetText("")
         end
       end
-      local hidden = #events - L.labels
-      if L.labels == 0 then
+      local hidden = #events - Lay.labels
+      if Lay.labels == 0 then
         cell.more:SetText(#events > 1 and ("×" .. #events) or "")
       else
         cell.more:SetText(hidden > 0 and ("+" .. hidden) or "")
@@ -184,7 +183,7 @@ function Panel:RenderMonth()
     else
       cell.day = nil
       cell.number:SetText("")
-      for k = 1, L.labels do cell.labels[k]:SetText("") end
+      for k = 1, Lay.labels do cell.labels[k]:SetText("") end
       cell.more:SetText("")
       cell.marker:Hide()
       Theme.Backdrop(cell, "bgDeep", "bgDeep")
@@ -266,7 +265,7 @@ local function DetailBody(parent)
 end
 
 function Panel:BuildGrid(gridW, gridH)
-  local L = self.layout
+  local Lay = self.layout
   local grid = CreateFrame("Frame", nil, self.frame)
   grid:SetSize(gridW, gridH)
   grid:SetPoint("TOPLEFT")
@@ -277,7 +276,7 @@ function Panel:BuildGrid(gridW, gridH)
   local nextButton = Theme.Button(grid, "›", "outline", 32)
   nextButton:SetPoint("TOPRIGHT")
   nextButton:SetScript("OnClick", function() self:ChangeMonth(1) end)
-  local todayButton = Theme.Button(grid, "Hoje", "ghost", L.labels > 0 and 60 or 48)
+  local todayButton = Theme.Button(grid, L["Hoje"], "ghost", Lay.labels > 0 and 60 or 48)
   todayButton:SetPoint("RIGHT", nextButton, "LEFT", -6, 0)
   todayButton:SetScript("OnClick", function()
     self.view.year, self.view.month = Today()
@@ -293,17 +292,17 @@ function Panel:BuildGrid(gridW, gridH)
 
   for i = 1, 7 do
     local label = Theme.Text(grid, "smallStrong", "textMuted")
-    label:SetWidth(L.cellW)
+    label:SetWidth(Lay.cellW)
     label:SetJustifyH("CENTER")
-    label:SetPoint("TOPLEFT", (i - 1) * (L.cellW + L.gap), -(L.gridTop - 20))
-    label:SetText(Time.WEEKDAYS_SHORT[i])
+    label:SetPoint("TOPLEFT", (i - 1) * (Lay.cellW + Lay.gap), -(Lay.gridTop - 20))
+    label:SetText(Time.Names().WEEKDAYS_SHORT[i])
   end
 
   for i = 1, 42 do
     local col, row = (i - 1) % 7, math.floor((i - 1) / 7)
     local cell = CreateFrame("Button", nil, grid, "BackdropTemplate")
-    cell:SetSize(L.cellW, L.cellH)
-    cell:SetPoint("TOPLEFT", col * (L.cellW + L.gap), -L.gridTop - row * (L.cellH + L.gap))
+    cell:SetSize(Lay.cellW, Lay.cellH)
+    cell:SetPoint("TOPLEFT", col * (Lay.cellW + Lay.gap), -Lay.gridTop - row * (Lay.cellH + Lay.gap))
     cell.number = Theme.Text(cell, "day")
     cell.number:SetPoint("TOPLEFT", 5, -4)
     cell.marker = cell:CreateTexture(nil, "OVERLAY")
@@ -311,13 +310,13 @@ function Panel:BuildGrid(gridW, gridH)
     cell.marker:SetPoint("TOPRIGHT", -5, -7)
     cell.marker:SetColorTexture(unpack(Theme.colors.gold))
     cell.more = Theme.Text(cell, "small", "textMuted")
-    if L.labels > 0 then
+    if Lay.labels > 0 then
       cell.more:SetPoint("RIGHT", cell.marker, "LEFT", -4, 0)
     else
       cell.more:SetPoint("BOTTOMRIGHT", -4, 4)
     end
     cell.labels = {}
-    for k = 1, L.labels do
+    for k = 1, Lay.labels do
       local label = Theme.Text(cell, "small")
       label:SetPoint("TOPLEFT", 6, -7 - k * 15)
       label:SetPoint("RIGHT", -4, 0)
@@ -332,10 +331,10 @@ function Panel:BuildGrid(gridW, gridH)
 end
 
 function Panel:BuildSide(grid, sideW, height)
-  local L = self.layout
+  local Lay = self.layout
   local side = CreateFrame("Frame", nil, self.frame)
   side:SetSize(sideW, height)
-  side:SetPoint("TOPLEFT", grid, "TOPRIGHT", L.sideGap, 0)
+  side:SetPoint("TOPLEFT", grid, "TOPRIGHT", Lay.sideGap, 0)
 
   local dayCard = CreateFrame("Frame", nil, side, "BackdropTemplate")
   dayCard:SetPoint("TOPLEFT")
@@ -345,22 +344,22 @@ function Panel:BuildSide(grid, sideW, height)
   self.dayCard = dayCard
 
   local dayTitle = Theme.Text(dayCard, "heading", "heading")
-  dayTitle:SetPoint("TOPLEFT", L.cardPad, -L.cardPad + 2)
-  dayTitle:SetPoint("TOPRIGHT", -L.cardPad, -L.cardPad + 2)
+  dayTitle:SetPoint("TOPLEFT", Lay.cardPad, -Lay.cardPad + 2)
+  dayTitle:SetPoint("TOPRIGHT", -Lay.cardPad, -Lay.cardPad + 2)
   dayTitle:SetWordWrap(false)
   self.dayTitle = dayTitle
 
-  local top = L.cardPad + 30
+  local top = Lay.cardPad + 30
   local noEvents = Theme.Text(dayCard, "body", "textMuted")
-  noEvents:SetPoint("TOPLEFT", L.cardPad, -top)
-  noEvents:SetText("Nenhum evento neste dia.")
+  noEvents:SetPoint("TOPLEFT", Lay.cardPad, -top)
+  noEvents:SetText(L["Nenhum evento neste dia."])
   self.noEvents = noEvents
 
   for i = 1, MAX_DAY_EVENTS do
     local button = CreateFrame("Button", nil, dayCard, "BackdropTemplate")
-    button:SetHeight(L.rowH)
-    button:SetPoint("TOPLEFT", L.cardPad - 4, -top - (i - 1) * L.rowStep)
-    button:SetPoint("RIGHT", -(L.cardPad - 4), 0)
+    button:SetHeight(Lay.rowH)
+    button:SetPoint("TOPLEFT", Lay.cardPad - 4, -top - (i - 1) * Lay.rowStep)
+    button:SetPoint("RIGHT", -(Lay.cardPad - 4), 0)
     button.time = Theme.Text(button, "smallStrong", "gold")
     button.time:SetPoint("LEFT", 8, 0)
     button.badge = Theme.Text(button, "small", "cancel")
@@ -384,25 +383,25 @@ function Panel:BuildSide(grid, sideW, height)
   self.detail = detail
 
   detail.status = Theme.Text(detail, "smallStrong")
-  detail.status:SetPoint("TOPRIGHT", -L.cardPad, -L.cardPad - 1)
+  detail.status:SetPoint("TOPRIGHT", -Lay.cardPad, -Lay.cardPad - 1)
   detail.title = Theme.Text(detail, "heading", "heading")
-  detail.title:SetPoint("TOPLEFT", L.cardPad, -L.cardPad + 2)
+  detail.title:SetPoint("TOPLEFT", Lay.cardPad, -Lay.cardPad + 2)
   detail.title:SetPoint("RIGHT", detail.status, "LEFT", -10, 0)
   local line = Theme.Divider(detail)
   line:SetPoint("TOPLEFT", detail.title, "BOTTOMLEFT", 0, -8)
-  line:SetPoint("RIGHT", -L.cardPad, 0)
+  line:SetPoint("RIGHT", -Lay.cardPad, 0)
 
   local body = DetailBody(detail)
   body:SetPoint("TOPLEFT", line, "BOTTOMLEFT", 0, -10)
-  body:SetPoint("BOTTOMRIGHT", -L.cardPad - 18, L.cardPad)
+  body:SetPoint("BOTTOMRIGHT", -Lay.cardPad - 18, Lay.cardPad)
   detail.body = body
-  detail.when = body.Add("QUANDO")
-  detail.organizer = body.Add("ORGANIZADOR")
-  detail.attendance = body.Add("PRESENÇA")
-  detail.description = body.Add("DESCRIÇÃO")
+  detail.when = body.Add(L["QUANDO"])
+  detail.organizer = body.Add(L["ORGANIZADOR"])
+  detail.attendance = body.Add(L["PRESENÇA"])
+  detail.description = body.Add(L["DESCRIÇÃO"])
 
-  detail.attend = Theme.Button(detail, "Confirmar presença", "primary", 170)
-  detail.attend:SetPoint("BOTTOMLEFT", L.cardPad, L.cardPad)
+  detail.attend = Theme.Button(detail, L["Confirmar presença"], "primary", 170)
+  detail.attend:SetPoint("BOTTOMLEFT", Lay.cardPad, Lay.cardPad)
   detail.attend:SetScript("OnClick", function(b)
     local ok, err = ns.Presence.Toggle(b.eventId)
     if not ok then ns.Print(err) end
@@ -414,26 +413,26 @@ end
 -- a altura das células ao espaço disponível. Quem usa o painel chama
 -- panel:Refresh() quando ele está visível.
 function CalendarPanel.Create(parent, width, layoutName, height)
-  local L = {}
-  for k, v in pairs(LAYOUTS[layoutName or "wide"]) do L[k] = v end
-  local fit = height and math.floor((height - L.gridTop - 5 * L.gap) / 6)
+  local Lay = {}
+  for k, v in pairs(LAYOUTS[layoutName or "wide"]) do Lay[k] = v end
+  local fit = height and math.floor((height - Lay.gridTop - 5 * Lay.gap) / 6)
   if layoutName == "compact" then
     -- Metade da largura para a grade, e a altura disponível para as linhas.
-    L.cellW = math.max(L.cellW, math.floor((width * 0.5 - 6 * L.gap) / 7))
-    if fit then L.cellH = math.max(L.cellH, fit) end
+    Lay.cellW = math.max(Lay.cellW, math.floor((width * 0.5 - 6 * Lay.gap) / 7))
+    if fit then Lay.cellH = math.max(Lay.cellH, fit) end
   elseif fit then
-    L.cellH = fit
+    Lay.cellH = fit
   end
   local self = setmetatable({
-    layout = L, view = {}, selected = {}, cells = {}, eventButtons = {},
+    layout = Lay, view = {}, selected = {}, cells = {}, eventButtons = {},
   }, Panel)
-  local gridW = 7 * L.cellW + 6 * L.gap
-  height = L.gridTop + 6 * L.cellH + 5 * L.gap
+  local gridW = 7 * Lay.cellW + 6 * Lay.gap
+  height = Lay.gridTop + 6 * Lay.cellH + 5 * Lay.gap
   self.height = height
   self.frame = CreateFrame("Frame", nil, parent)
   self.frame:SetSize(width, height)
   local grid = self:BuildGrid(gridW, height)
-  self:BuildSide(grid, width - gridW - L.sideGap, height)
+  self:BuildSide(grid, width - gridW - Lay.sideGap, height)
   return self
 end
 

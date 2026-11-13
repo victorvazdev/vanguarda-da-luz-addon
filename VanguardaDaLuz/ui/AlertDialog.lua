@@ -2,6 +2,8 @@
 -- guilda e enviar. Só para cargos aceitos.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme, Text, Alert = ns.Theme, ns.Text, ns.Alert
 local AlertDialog = {}
 
@@ -21,14 +23,14 @@ local function Update()
   if clean == "" then
     frame.preview:SetText("")
   else
-    frame.preview:SetText(Theme.Code("textMuted") .. "No chat da guilda:|r "
+    frame.preview:SetText(Theme.Code("textMuted") .. L["No chat da guilda:"] .. "|r "
       .. Text.Escape(Alert.ChatLine(clean, config)))
   end
   frame.send:SetEnabled(code == nil)
   if code == "long" then
-    SetMessage(Alert.ERRORS.long, "cancel")
+    SetMessage(L[Alert.ERRORS.long], "cancel")
   else
-    SetMessage("O alerta aparece na tela de quem tem o addon e no chat da guilda para todos.")
+    SetMessage(L["O alerta aparece na tela de quem tem o addon e no chat da guilda para todos."])
   end
 end
 
@@ -43,7 +45,7 @@ local function Send()
 end
 
 local function Build()
-  frame = Theme.Window("VanguardaDaLuzAlertDialog", 520, 250, "Alerta de raide")
+  frame = Theme.Window("VanguardaDaLuzAlertDialog", 520, 250, L["Alerta de raide"])
   frame:SetFrameStrata("DIALOG")
 
   local box = CreateFrame("Frame", nil, frame, "BackdropTemplate")
@@ -80,12 +82,12 @@ local function Build()
   message:SetPoint("RIGHT", -16, 0)
   frame.message = message
 
-  local send = Theme.Button(frame, "Enviar alerta", "primary", 140)
+  local send = Theme.Button(frame, L["Enviar alerta"], "primary", 140)
   send:SetPoint("BOTTOMRIGHT", -16, 14)
   send:SetScript("OnClick", Send)
   frame.send = send
 
-  local cancel = Theme.Button(frame, "Cancelar", "ghost", 90)
+  local cancel = Theme.Button(frame, L["Cancelar"], "ghost", 90)
   cancel:SetPoint("RIGHT", send, "LEFT", -8, 0)
   cancel:SetScript("OnClick", function() frame:Hide() end)
 
@@ -101,7 +103,7 @@ function AlertDialog.Show()
     return
   end
   if not ns.Guild.IsPlayerTrusted() then
-    ns.Print("Somente o Grão Lorde e os Lordes podem enviar alertas.")
+    ns.Print(L["Somente o Grão Lorde e os Lordes podem enviar alertas."])
     return
   end
   if not frame then Build() end

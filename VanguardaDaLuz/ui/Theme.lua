@@ -33,6 +33,8 @@ Theme.colors = {
   azureDeep = Hex("#1b2a4a"),
   success = Hex("#9be08f"),
   warning = Hex("#f2b04c"),
+  away = Hex("#f5d742"),   -- bolinha de ausente (AFK)
+  busy = Hex("#f2786b"),   -- bolinha de ocupado (Não perturbe)
 }
 
 -- Cor no formato do chat: "|cffRRGGBB".
@@ -70,9 +72,19 @@ end
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 -- Fundo liso com borda de 1 pixel.
+-- Borda de pelo menos 1 pixel da tela: com a escala da interface abaixo de 1,
+-- uma borda de 1 unidade pode sumir em alguns lados quando o quadro não cai
+-- exatamente num pixel.
+local function EdgeSize(frame)
+  if not (PixelUtil and PixelUtil.GetNearestPixelSize and frame.GetEffectiveScale) then return 1 end
+  local scale = frame:GetEffectiveScale()
+  if not scale or scale <= 0 then return 1 end
+  return math.max(1, PixelUtil.GetNearestPixelSize(1, scale, 1))
+end
+
 function Theme.Backdrop(frame, bg, border)
   if not frame.SetBackdrop then Mixin(frame, BackdropTemplateMixin) end
-  frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+  frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = EdgeSize(frame) })
   frame:SetBackdropColor(unpack(Theme.colors[bg or "surface"]))
   frame:SetBackdropBorderColor(unpack(Theme.colors[border or "border"]))
 end
@@ -141,6 +153,110 @@ function Theme.Button(parent, label, kind, width)
   button:SetText(label)
   Paint(button, false)
   return button
+end
+
+-- Caixa de marcar com rótulo. `onChange(valor)` é chamado no clique;
+-- toggle:SetValue(v) muda a marcação sem chamar onChange.
+function Theme.Toggle(parent, label, width, onChange)
+  local toggle = CreateFrame("Button", nil, parent)
+  toggle:SetSize(width or 300, 26)
+  local box = CreateFrame("Frame", nil, toggle, "BackdropTemplate")
+  box:SetSize(20, 20)
+  box:SetPoint("LEFT")
+  Theme.Backdrop(box, "bgDeep", "borderField")
+  local check = box:CreateTexture(nil, "OVERLAY")
+  check:SetSize(24, 24)
+  check:SetPoint("CENTER")
+  check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+  check:Hide()
+  local text = Theme.Text(toggle, "body")
+  text:SetPoint("LEFT", box, "RIGHT", 10, 0)
+  text:SetPoint("RIGHT")
+  text:SetWordWrap(false)
+  toggle:SetFontString(text)
+  toggle:SetText(label)
+  toggle.label = text
+
+  function toggle.SetValue(self, value)
+    self.value = value and true or false
+    check:SetShown(self.value)
+  end
+  function toggle.GetValue(self) return self.value end
+  toggle:SetScript("OnClick", function(self)
+    self:SetValue(not self.value)
+    if onChange then onChange(self.value) end
+  end)
+  toggle:SetScript("OnEnter", function() Theme.Backdrop(box, "bgDeep", "gold") end)
+  toggle:SetScript("OnLeave", function() Theme.Backdrop(box, "bgDeep", "borderField") end)
+  toggle:SetValue(false)
+  return toggle
+end
+
+-- Menu de contexto junto do cursor: um título e uma lista de ações. Fecha ao
+-- escolher uma ação, ao clicar fora dele ou com Esc.
+-- menu:Open(title, { { label, action, disabled }, ... })
+function Theme.PopupMenu(name, width)
+  width = width or 200
+  local menu = CreateFrame("Frame", name, UIParent, "BackdropTemplate")
+  menu:SetWidth(width)
+  menu:SetFrameStrata("FULLSCREEN_DIALOG")
+  menu:SetClampedToScreen(true)
+  menu:EnableMouse(true)
+  Theme.Backdrop(menu, "surfaceRaised", "goldDeep")
+  menu:Hide()
+  local title = Theme.Text(menu, "smallStrong", "goldDeep")
+  title:SetPoint("TOPLEFT", 12, -10)
+  title:SetPoint("RIGHT", -12, 0)
+  title:SetWordWrap(false)
+  menu.title = title
+  menu.buttons = {}
+  if name then table.insert(UISpecialFrames, name) end
+  menu:SetScript("OnEvent", function(self)
+    if not self:IsMouseOver() then self:Hide() end
+  end)
+  menu:SetScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_DOWN") end)
+
+  function menu.Open(self, text, items)
+    title:SetText(text or "")
+    for i, item in ipairs(items) do
+      local b = self.buttons[i]
+      if not b then
+        b = Theme.Button(self, "", "ghost", width - 12)
+        b:SetHeight(24)
+        b:SetPoint("TOPLEFT", 6, -30 - (i - 1) * 26)
+        b.label:ClearAllPoints()
+        b.label:SetPoint("LEFT", 10, 0)
+        b:SetScript("OnClick", function(button)
+          self:Hide()
+          if button.action then button.action() end
+        end)
+        self.buttons[i] = b
+      end
+      b.action = item.action
+      b:SetText(item.label)
+      b:SetEnabled(not item.disabled)
+      b:Show()
+    end
+    for i = #items + 1, #self.buttons do self.buttons[i]:Hide() end
+    self:SetHeight(36 + #items * 26 - 2)
+    local scale = UIParent:GetEffectiveScale()
+    local x, y = GetCursorPosition()
+    self:ClearAllPoints()
+    self:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+    self:Show()
+    -- Clique fora fecha (o evento só é observado com o menu aberto).
+    pcall(self.RegisterEvent, self, "GLOBAL_MOUSE_DOWN")
+  end
+  return menu
+end
+
+-- Cor da bolinha de presença: online, ausente, ocupado ou offline.
+-- `status` = "away", "busy" ou nil.
+function Theme.PresenceColor(online, status)
+  if not online then return Theme.colors.border end
+  if status == "away" then return Theme.colors.away end
+  if status == "busy" then return Theme.colors.busy end
+  return Theme.colors.success
 end
 
 -- Janela com a moldura do addon: fundo escuro, borda dourada, arrastável e

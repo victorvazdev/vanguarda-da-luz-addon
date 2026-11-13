@@ -1,6 +1,8 @@
 -- Modal de importação: colar a string, validar, ver o resumo e confirmar.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme, Time, Text = ns.Theme, ns.Time, ns.Text
 local ImportDialog = {}
 
@@ -12,7 +14,7 @@ local function Brasilia() return ns.Config.BRASILIA_OFFSET end
 local function Names(list, limit)
   local names = {}
   for i = 1, math.min(#list, limit) do names[i] = Text.Escape(list[i].event.title) end
-  if #list > limit then names[#names + 1] = "e mais " .. (#list - limit) end
+  if #list > limit then names[#names + 1] = string.format(L["e mais %d"], #list - limit) end
   return table.concat(names, ", ")
 end
 
@@ -20,26 +22,26 @@ local function Summary(p)
   local export, diff = p.export, p.diff
   local lastDay = export.windowEnd - 86400
   local lines = {
-    Theme.Code("gold") .. "Exportação válida|r",
-    "Gerada em " .. Time.FormatDateTime(export.exportNumber, Brasilia()) .. " (Brasília)",
-    "Janela: " .. Time.FormatDateTime(export.windowStart, Brasilia()):sub(1, 10)
-      .. " a " .. Time.FormatDateTime(lastDay, Brasilia()):sub(1, 10)
-      .. "  ·  " .. export.count .. " evento(s) na exportação",
+    Theme.Code("gold") .. L["Exportação válida"] .. "|r",
+    string.format(L["Gerada em %s"], Time.FormatDateTime(export.exportNumber, Brasilia())) .. " " .. L["(Brasília)"],
+    string.format(L["Janela: %s a %s"], Time.FormatDate(export.windowStart, Brasilia()),
+      Time.FormatDate(lastDay, Brasilia()))
+      .. "  ·  " .. string.format(L["%d evento(s) na exportação"], export.count),
     "",
   }
   local rows = {
-    { "Novos", diff.created, "success" },
-    { "Alterados", diff.updated, "azure" },
-    { "Cancelados", diff.cancelled, "cancel" },
-    { "Removidos", diff.removed, "warning" },
+    { L["Novos"], diff.created, "success" },
+    { L["Alterados"], diff.updated, "azure" },
+    { L["Cancelados"], diff.cancelled, "cancel" },
+    { L["Removidos"], diff.removed, "warning" },
   }
   for _, row in ipairs(rows) do
     local line = Theme.Code(row[3]) .. row[1] .. ": " .. #row[2] .. "|r"
     if #row[2] > 0 then line = line .. "  " .. Theme.Code("textMuted") .. Names(row[2], 4) .. "|r" end
     lines[#lines + 1] = line
   end
-  lines[#lines + 1] = Theme.Code("textMuted") .. "Sem alteração: " .. diff.unchanged
-    .. "  ·  Fora da janela (mantidos): " .. diff.outside .. "|r"
+  lines[#lines + 1] = Theme.Code("textMuted") .. string.format(L["Sem alteração: %d"], diff.unchanged)
+    .. "  ·  " .. string.format(L["Fora da janela (mantidos): %d"], diff.outside) .. "|r"
   return table.concat(lines, "\n")
 end
 
@@ -51,7 +53,7 @@ end
 local function Reset()
   prepared = nil
   frame.confirm:Disable()
-  SetMessage("Cole a string gerada em \"Exportar para o addon\" no site e clique em Validar.", "textMuted")
+  SetMessage(L["Cole a string gerada em \"Exportar para o addon\" no site e clique em Validar."], "textMuted")
 end
 
 local function Validate()
@@ -74,25 +76,25 @@ local function Confirm()
   prepared = nil
   frame.edit:SetText("")
   frame:Hide()
-  ns.Print(string.format("Importação concluída: %d novo(s), %d alterado(s), %d cancelado(s), %d removido(s).",
+  ns.Print(string.format(L["Importação concluída: %d novo(s), %d alterado(s), %d cancelado(s), %d removido(s)."],
     #diff.created, #diff.updated, #diff.cancelled, #diff.removed))
 
   if ns.Guild.IsPlayerTrusted() then
     ns.Comm.Broadcast()
   else
-    ns.Print("Seu cargo não está entre os aceitos pela guilda; a exportação não foi enviada aos membros.")
+    ns.Print(L["Seu cargo não está entre os aceitos pela guilda; a exportação não foi enviada aos membros."])
   end
 end
 
 local function Build()
-  frame = Theme.Window("VanguardaDaLuzImportDialog", 620, 500, "Importar eventos")
+  frame = Theme.Window("VanguardaDaLuzImportDialog", 620, 500, L["Importar eventos"])
   frame:SetFrameStrata("DIALOG")
 
   local help = Theme.Text(frame, "body", "textMuted")
   help:SetPoint("TOPLEFT", 16, -68)
   help:SetPoint("TOPRIGHT", -16, -68)
-  help:SetText("No site, abra Administração de eventos > Exportar para o addon, clique em Copiar e cole "
-    .. "abaixo com Ctrl+V.")
+  help:SetText(L["No site, abra Administração de eventos > Exportar para o addon, clique em Copiar e cole "
+    .. "abaixo com Ctrl+V."])
 
   local box = CreateFrame("Frame", nil, frame, "BackdropTemplate")
   box:SetPoint("TOPLEFT", 16, -100)
@@ -124,16 +126,16 @@ local function Build()
   message:SetSpacing(3)
   frame.message = message
 
-  local confirm = Theme.Button(frame, "Confirmar importação", "primary", 180)
+  local confirm = Theme.Button(frame, L["Confirmar importação"], "primary", 180)
   confirm:SetPoint("BOTTOMRIGHT", -16, 14)
   confirm:SetScript("OnClick", Confirm)
   frame.confirm = confirm
 
-  local validate = Theme.Button(frame, "Validar", "outline", 100)
+  local validate = Theme.Button(frame, L["Validar"], "outline", 100)
   validate:SetPoint("RIGHT", confirm, "LEFT", -8, 0)
   validate:SetScript("OnClick", Validate)
 
-  local clear = Theme.Button(frame, "Limpar", "ghost", 80)
+  local clear = Theme.Button(frame, L["Limpar"], "ghost", 80)
   clear:SetPoint("BOTTOMLEFT", 16, 14)
   clear:SetScript("OnClick", function()
     edit:SetText("")
@@ -153,7 +155,7 @@ function ImportDialog.Show()
     return
   end
   if not ns.Guild.IsPlayerTrusted() then
-    ns.Print("Somente o Grão Lorde e os Lordes podem importar eventos.")
+    ns.Print(L["Somente o Grão Lorde e os Lordes podem importar eventos."])
     return
   end
   if not frame then Build() end

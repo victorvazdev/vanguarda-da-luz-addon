@@ -1,12 +1,17 @@
 -- Abas do addon na janela "Guilda e comunidades" da interface padrão: Eventos,
 -- Profissões e Administração (só Grão Lorde e Lordes), abaixo dos botões
--- laterais da Blizzard.
+-- laterais da Blizzard. Nas abas Informações e Membros da Blizzard, o painel
+-- mostra o Início e a lista de membros do addon, com um botão para ver a
+-- original (edição da mensagem do dia e das informações, notícias, registro e
+-- gestão dos membros, que addons não podem fazer).
 --
 -- Para não interferir na janela da Blizzard, o addon só acrescenta: os botões
 -- são próprios, e o painel do addon fica por cima da área de conteúdo, sem
 -- esconder nem alterar os quadros dela. Os nomes dos quadros estão em
 -- Flavor.guildWindow.
 local _, ns = ...
+
+local L = ns.L
 
 local Theme = ns.Theme
 local GuildTabs = {}
@@ -21,11 +26,20 @@ local active = nil      -- aba do addon aberta
 local restore = {}      -- botões da Blizzard que estavam marcados
 local ours = {}         -- [botão] = true, para não confundir com os da Blizzard
 local hooked = {}       -- botões da Blizzard com o clique já observado
+local showOriginal = {}    -- [aba coberta] = true: o jogador pediu a da Blizzard
+
+-- Abas da Blizzard cobertas por um painel do addon: chave do painel (e da opção
+-- em Configurações) e o nome do botão em Flavor.guildWindow.
+local COVERS = {
+  { key = "info", tab = "infoTab" },
+  { key = "members", tab = "rosterTab" },
+}
+local covered = { info = true, members = true }
 
 local TABS = {
-  { key = "events", tooltip = "Eventos da guilda" },
-  { key = "professions", tooltip = "Profissões da guilda" },
-  { key = "admin", tooltip = "Administração do addon", trusted = true },
+  { key = "events", tooltip = L["Eventos da guilda"] },
+  { key = "professions", tooltip = L["Profissões da guilda"] },
+  { key = "admin", tooltip = L["Administração do addon"], trusted = true },
 }
 
 local function Spec() return ns.Flavor.guildWindow end
@@ -42,6 +56,7 @@ local function Visible(key)
   if not (anchor and anchor:IsShown() and ns.Guild.IsMember()) then return false end
   -- Janela minimizada: não há espaço para o painel.
   if (host:GetWidth() or 0) < spec.minWidth then return false end
+  if not ns.Store.GuildFeature(key) then return false end
   if key == "admin" then return ns.Guild.IsPlayerTrusted() end
   return true
 end
@@ -110,10 +125,60 @@ local function PanelSize()
   return w - 2 * INSET, h - 2 * INSET
 end
 
+local function Activate() end -- definida abaixo
+
+-- Dicas ao lado do botão da original: `trusted` para o Grão Lorde e os Lordes
+-- (que podem editar) e `member` para os outros.
+local HINTS = {
+  info = {
+    trusted = L["Para editar a mensagem do dia e as informações, ou ver notícias e registro, use a original."],
+    member = L["Para ver notícias e registro, use a original."],
+  },
+  members = {
+    trusted = L["Para promover, rebaixar, remover ou editar notas, use a original."],
+    member = L["Para alterar a nota, use a original."],
+  },
+}
+
+-- Painel do addon no lugar de uma aba da Blizzard, com o botão para a original.
+local function CreateCoverPanel(key, w, h)
+  local frame = CreateFrame("Frame", nil, overlay)
+  frame:SetSize(w, h)
+  local inner
+  if key == "info" then
+    inner = ns.HomePanel.Create(frame, w, h - 36, function(event)
+      local f = ns.Time.Fields(event.startsAt, ns.Config.BRASILIA_OFFSET)
+      Activate("events")
+      panels.events:ShowDate(f.year, f.month, f.day, event.id)
+    end, true)
+  else
+    inner = ns.MembersPanel.Create(frame, w, h - 36, { time = true })
+  end
+  inner.frame:SetPoint("TOPLEFT")
+  local original = Theme.Button(frame, L["Ver original da Blizzard"], "ghost", 190)
+  original:SetPoint("BOTTOMRIGHT")
+  original:SetScript("OnClick", function()
+    showOriginal[key] = true
+    GuildTabs.Update()
+  end)
+  local hint = Theme.Text(frame, "small", "textMuted")
+  hint:SetPoint("LEFT", frame, "BOTTOMLEFT", 0, 13)
+  hint:SetPoint("RIGHT", original, "LEFT", -12, 0)
+  return { frame = frame, inner = inner, home = key == "info" and inner or nil, original = original, hint = hint,
+    Refresh = function()
+      local text = HINTS[key][ns.Guild.IsPlayerTrusted() and "trusted" or "member"]
+      hint:SetText(text or "")
+      hint:SetShown(text ~= nil)
+      inner:Refresh()
+    end }
+end
+
 local function CreatePanel(key)
   local w, h = PanelSize()
   local panel
-  if key == "events" then
+  if covered[key] then
+    panel = CreateCoverPanel(key, w, h)
+  elseif key == "events" then
     panel = ns.CalendarPanel.Create(overlay, w, "compact", h)
   elseif key == "professions" then
     panel = ns.ProfessionsPanel.Create(overlay, w, h)
@@ -171,10 +236,30 @@ local function Raise()
   overlay:SetFrameLevel(math.min(level + 10, 9000))
 end
 
-local function Activate(key)
+-- Abre o painel do addon no lugar de uma aba da Blizzard (o botão dela
+-- continua marcado, porque é a aba dela que está aberta).
+local function ShowCover(key)
+  restore = {}
+  active = key
+  for _, tab in pairs(tabs) do Mark(tab, false) end
+  local panel = panels[key] or CreatePanel(key)
+  for name, other in pairs(panels) do other.frame:SetShown(name == key) end
+  Raise()
+  overlay:Show()
+  if key == "members" then ns.Guild.RequestRoster() end
+  panel:Refresh()
+end
+
+-- A aba da Blizzard que um painel cobre está aberta?
+local function CoverMode(cover)
+  local tab = host[Spec()[cover.tab]]
+  return tab and tab:IsShown() and tab:GetChecked() and true or false
+end
+
+function Activate(key)
   if not Visible(key) then return end
   -- Guarda a marcação da Blizzard só ao abrir o painel, não ao trocar de aba.
-  if not active then
+  if not active or covered[active] then
     restore = {}
     for _, tab in ipairs(BlizzardTabs()) do
       if tab:GetChecked() then restore[#restore + 1] = tab end
@@ -195,11 +280,25 @@ end
 -- da Blizzard) e fecha o painel quando eles somem.
 function GuildTabs.Update()
   if not host then return end
-  local first = tabs[order[1]]
-  first:ClearAllPoints()
-  first:SetPoint("TOPLEFT", LowestBlizzardTab(), "BOTTOMLEFT", 0, -Spec().tabGap)
-  for _, key in ipairs(order) do tabs[key]:SetShown(Visible(key)) end
+  -- Cada botão visível fica abaixo do anterior (os desligados não deixam buraco).
+  local previous = LowestBlizzardTab()
+  for _, key in ipairs(order) do
+    local tab = tabs[key]
+    tab:ClearAllPoints()
+    tab:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -Spec().tabGap)
+    local visible = Visible(key)
+    tab:SetShown(visible)
+    if visible then previous = tab end
+  end
   if active and not Visible(active) then Close() end
+  for _, cover in ipairs(COVERS) do
+    if active == cover.key and (showOriginal[cover.key] or not CoverMode(cover)) then Deactivate() end
+  end
+  for _, cover in ipairs(COVERS) do
+    if not active and not showOriginal[cover.key] and Visible(cover.key) and CoverMode(cover) then
+      ShowCover(cover.key)
+    end
+  end
 end
 
 -- Botão lateral no mesmo estilo dos da Blizzard (moldura do livro de feitiços).
@@ -275,10 +374,21 @@ local function Setup()
     previous = tab
   end
   GuildTabs.tabs = tabs
+  GuildTabs.panels = panels
 
   -- Clique num botão da Blizzard: ela troca o conteúdo e o painel do addon sai
   -- (BlizzardTabs observa o clique de cada botão que encontra).
   BlizzardTabs()
+  -- Clicar em Informações ou Membros volta a mostrar o painel do addon.
+  for _, cover in ipairs(COVERS) do
+    local tab = host[spec[cover.tab]]
+    if tab then
+      tab:HookScript("OnClick", function()
+        showOriginal[cover.key] = nil
+        ScheduleUpdate()
+      end)
+    end
+  end
   anchor:HookScript("OnShow", GuildTabs.Update)
   anchor:HookScript("OnHide", GuildTabs.Update)
   -- Os botões da Blizzard se arrumam depois de a janela aparecer e a cada
@@ -289,11 +399,18 @@ local function Setup()
   end)
   if host.SetDisplayMode then hooksecurefunc(host, "SetDisplayMode", ScheduleUpdate) end
   host:HookScript("OnSizeChanged", GuildTabs.Update)
-  host:HookScript("OnHide", Close)
+  host:HookScript("OnHide", function()
+    Close()
+    showOriginal = {}
+  end)
 
   ns.On("DATA_UPDATED", GuildTabs.Refresh)
   ns.On("ATTENDANCE_UPDATED", GuildTabs.Refresh)
   ns.On("SYNC_STATUS", GuildTabs.Refresh)
+  ns.On("GUILD_UPDATED", GuildTabs.Refresh)
+  ns.On("MEMBERS_UPDATED", GuildTabs.Refresh)
+  ns.On("TOGETHER_UPDATED", GuildTabs.Refresh)
+  ns.On("SETTINGS_UPDATED", GuildTabs.Update)
   ns.On("PROFESSIONS_UPDATED", function()
     GuildTabs.Update()
     GuildTabs.Refresh()

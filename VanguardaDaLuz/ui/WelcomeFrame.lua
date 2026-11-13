@@ -2,6 +2,8 @@
 -- É a única janela que o addon mostra para essas pessoas.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme = ns.Theme
 local WelcomeFrame = {}
 
@@ -23,8 +25,8 @@ local function Build()
   text:SetPoint("TOPLEFT", 16, -74)
   text:SetPoint("TOPRIGHT", -16, -74)
   text:SetSpacing(3)
-  text:SetText("Você ainda não faz parte da guilda " .. ns.Config.GUILD_NAME .. ". "
-    .. "Entre no nosso Discord para conhecer a guilda:")
+  text:SetText(string.format(L["Você ainda não faz parte da guilda %s. Entre no nosso Discord para conhecer a guilda:"],
+    ns.Config.GUILD_NAME))
 
   local box = CreateFrame("Frame", nil, frame, "BackdropTemplate")
   box:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -14)
@@ -48,9 +50,9 @@ local function Build()
 
   local hint = Theme.Text(frame, "small", "textMuted")
   hint:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -8)
-  hint:SetText("O link já está selecionado: use Ctrl+C para copiar.")
+  hint:SetText(L["O link já está selecionado: use Ctrl+C para copiar."])
 
-  local close = Theme.Button(frame, "Fechar", "primary", 110)
+  local close = Theme.Button(frame, L["Fechar"], "primary", 110)
   close:SetPoint("BOTTOMRIGHT", -16, 14)
   close:SetScript("OnClick", function() frame:Hide() end)
 

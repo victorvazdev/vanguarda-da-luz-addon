@@ -3,10 +3,12 @@
 -- logic/Alert.lua; o aviso na tela em ui/AlertBanner.lua.
 local _, ns = ...
 
+local L = ns.L
+
 local Alert = ns.Alert
 local Warning = {}
 
-local LOCKED = "Comunicação restrita no momento (encontro, Mítica+ ou JxJ). O alerta não foi enviado."
+local LOCKED = L["Comunicação restrita no momento (encontro, Mítica+ ou JxJ). O alerta não foi enviado."]
 
 local lastSentAt = nil
 local received = Alert.NewState()
@@ -14,15 +16,17 @@ local received = Alert.NewState()
 -- Envia o alerta. Retorna true ou false e a mensagem de erro.
 function Warning.Send(text)
   local config = ns.Config
-  if not ns.Guild.IsMember() then return false, "Você não está na guilda " .. ns.Config.GUILD_NAME .. "." end
+  if not ns.Guild.IsMember() then
+    return false, string.format(L["Você não está na guilda %s."], ns.Config.GUILD_NAME)
+  end
   if not ns.Guild.IsPlayerTrusted() then
-    return false, "Somente o Grão Lorde e os Lordes podem enviar alertas."
+    return false, L["Somente o Grão Lorde e os Lordes podem enviar alertas."]
   end
   if ns.Flavor.InMessagingLockdown() then return false, LOCKED end
   local clean, code = Alert.Validate(text, config)
-  if not clean then return false, Alert.ERRORS[code] end
+  if not clean then return false, L[Alert.ERRORS[code]] end
   local wait = Alert.WaitTime(lastSentAt, GetTime(), config.ALERT_SEND_INTERVAL)
-  if wait > 0 then return false, string.format(Alert.ERRORS.wait, wait) end
+  if wait > 0 then return false, string.format(L[Alert.ERRORS.wait], wait) end
 
   local id = Alert.NewId(GetServerTime())
   if not ns.Comm.SendAlert(ns.Protocol.Alert(id, clean)) then

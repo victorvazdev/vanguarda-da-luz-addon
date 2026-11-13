@@ -36,6 +36,14 @@ ns.Config = {
   -- segundos (vários pontos seguidos viram um anúncio só).
   PROFESSIONS_ANNOUNCE_DELAY = 10,
 
+  -- Item level: espera depois de uma troca de equipamento antes de anunciar,
+  -- em segundos (várias peças seguidas viram um anúncio só).
+  MEMBERS_ANNOUNCE_DELAY = 10,
+
+  -- Tempo com a guilda: intervalo da contagem e de anúncio do total, em segundos.
+  TOGETHER_TICK = 60,
+  TOGETHER_ANNOUNCE_INTERVAL = 600,
+
   -- Alerta de raide.
   ALERT_MAX_CHARS = 200,          -- tamanho máximo do texto, em caracteres
   ALERT_CHAT_PREFIX = "[Alerta] ", -- prefixo da mensagem no chat da guilda

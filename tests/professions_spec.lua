@@ -124,4 +124,28 @@ describe("Profissões", function()
         Professions.Names(Professions.BuildRows(members, store)))
     end)
   end)
+  it("casa o nível pelo ID da profissão, em qualquer idioma", function()
+    local store = {}
+    local list = { { n = "Blacksmithing", l = 88, m = 150, i = 164 } }
+    local payload = Professions.EncodeOwn(list, true)
+    assert.are.equal("1:13:1642:883:15013:Blacksmithing", payload)
+    assert.are.same(list, Professions.DecodeOwn(payload, true))
+    assert.is_nil(Professions.DecodeOwn(payload)) -- formato antigo não lê o novo
+    assert.is_true(Professions.Set(store, "Ana", list, 10))
+    local rows = Professions.BuildRows({
+      { name = "Ana", online = true, professions = { "Ferraria" }, professionIds = { 164 } },
+    }, store)
+    assert.are.equal(88, rows[1].professions[1].level)
+    assert.are.equal("Ferraria", rows[1].professions[1].name)
+    local decoded = Professions.DecodeStore(Professions.EncodeStore(store, true), true)
+    assert.are.same(store, decoded)
+  end)
+
+  it("no mesmo horário, a versão com IDs substitui a só com nomes", function()
+    local store = {}
+    assert.is_true(Professions.Set(store, "Ana", { { n = "Ferraria", l = 88, m = 150 } }, 10))
+    assert.is_true(Professions.Set(store, "Ana", { { n = "Ferraria", l = 88, m = 150, i = 164 } }, 10))
+    assert.is_false(Professions.Set(store, "Ana", { { n = "Ferraria", l = 88, m = 150 } }, 10))
+    assert.are.equal(164, store.Ana.p[1].i)
+  end)
 end)

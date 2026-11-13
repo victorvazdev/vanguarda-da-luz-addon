@@ -5,14 +5,18 @@ local events = CreateFrame("Frame")
 local handlers = {}
 local loggedIn = false
 local requestPending = false -- pedido à guilda esperando a guilda carregar
+local requested = false      -- o pedido do login já saiu
 
 -- As informações da guilda chegam depois do login: o pedido só sai quando o
 -- jogador aparece como membro da guilda do addon.
 local function RequestWhenMember()
   if requestPending and ns.Guild.IsMember() then
     requestPending = false
+    requested = true
     ns.Comm.RequestLatest()
     ns.GuildProfessions.Announce()
+    ns.GuildMembers.Announce()
+    ns.GuildTogether.Announce()
   end
 end
 
@@ -32,6 +36,7 @@ local function OnLogin()
     requestPending = true
     RequestWhenMember()
   end)
+  ns.GuildTogether.Start()
   -- Reenvia mensagens adiadas se o aviso de fim da restrição não chegar.
   C_Timer.NewTicker(30, ns.Comm.Flush)
 end
@@ -41,18 +46,25 @@ local function Start()
   ns.Comm.Init()
   ns.Presence.Init()
   ns.GuildProfessions.Init()
+  ns.GuildMembers.Init()
+  ns.GuildTogether.Init()
   ns.MinimapButton.Init()
   ns.GuildTabs.Init()
+  ns.GuildRoster.Init()
 
   Register("PLAYER_ENTERING_WORLD", OnLogin)
   Register("GUILD_ROSTER_UPDATE", function(...)
     ns.Guild.OnRosterUpdate(...)
     RequestWhenMember()
+    -- O main pode ter entrado ou saído da guilda.
+    if requested then ns.GuildMembers.Announce() end
     ns.Fire("PROFESSIONS_UPDATED")
     ns.Fire("GUILD_UPDATED")
   end)
   Register("GUILD_MOTD", function() ns.Fire("GUILD_UPDATED") end)
   Register("SKILL_LINES_CHANGED", ns.GuildProfessions.OnSkillChanged)
+  Register("PLAYER_EQUIPMENT_CHANGED", ns.GuildMembers.OnEquipmentChanged)
+  Register("PLAYER_AVG_ITEM_LEVEL_UPDATE", ns.GuildMembers.OnEquipmentChanged)
   Register("PLAYER_GUILD_UPDATE", RequestWhenMember)
   Register("ADDON_RESTRICTION_STATE_CHANGED", ns.Comm.OnRestrictionChanged)
 end
@@ -74,48 +86,70 @@ events:RegisterEvent("ADDON_LOADED")
 -- Comandos
 ---------------------------------------------------------------------------
 
+local L = ns.L
+
+-- Ajuda no idioma do jogo (cada linha mostra o comando desse idioma).
 local HELP = {
-  "/vdl  abre e fecha o calendário",
+  "/vdl  abre e fecha a janela do addon",
   "/vdl importar  importa a string do site (Grão Lorde e Lordes)",
   "/vdl sincronizar  pede à guilda a exportação mais recente",
   "/vdl presencas  gera a string de presenças para o site (Grão Lorde e Lordes)",
   "/vdl profissoes  mostra as profissões dos membros da guilda",
+  "/vdl membros  mostra a lista de membros da guilda",
+  "/vdl main  define este personagem como main (os outros da conta viram alts)",
   "/vdl alerta [texto]  envia um alerta de raide à guilda (Grão Lorde e Lordes)",
   "/vdl minimapa  mostra ou esconde o botão no minimapa",
+}
+
+-- Comandos aceitos em qualquer idioma: português, inglês e sem acento.
+local COMMANDS = {
+  importar = "import", import = "import",
+  sincronizar = "sync", sync = "sync",
+  presencas = "attendance", ["presenças"] = "attendance", attendance = "attendance",
+  profissoes = "professions", ["profissões"] = "professions", professions = "professions",
+  membros = "members", members = "members",
+  main = "main",
+  alerta = "alert", alert = "alert",
+  minimapa = "minimap", minimap = "minimap",
 }
 
 SLASH_VANGUARDADALUZ1 = "/vdl"
 SlashCmdList.VANGUARDADALUZ = function(input)
   input = ns.Text.Trim(input or "")
   local word, rest = string.match(input, "^(%S+)%s*(.-)$")
-  local command = string.lower(word or "")
+  local typed = string.lower(word or "")
+  local command = typed == "" and "" or COMMANDS[typed]
   -- Fora da guilda, o addon só mostra o convite (e o botão do minimapa).
-  if command ~= "minimapa" and not ns.Guild.IsMember() then
+  if command ~= "minimap" and not ns.Guild.IsMember() then
     ns.MainFrame.Hide()
     ns.WelcomeFrame.Toggle()
     return
   end
   if command == "" then
     ns.MainFrame.Toggle()
-  elseif command == "importar" then
+  elseif command == "import" then
     ns.ImportDialog.Show()
-  elseif command == "sincronizar" then
+  elseif command == "sync" then
     ns.Comm.RequestLatest()
-  elseif command == "presencas" or command == "presenças" then
+  elseif command == "attendance" then
     ns.PresenceExport.Show()
-  elseif command == "profissoes" or command == "profissões" then
+  elseif command == "professions" then
     ns.ProfessionsFrame.Toggle()
-  elseif command == "alerta" then
+  elseif command == "members" then
+    ns.MainFrame.Open("members")
+  elseif command == "main" then
+    ns.GuildMembers.SetMain()
+  elseif command == "alert" then
     if rest == "" then
       ns.AlertDialog.Show()
     else
       local ok, err = ns.Warning.Send(rest)
       if not ok then ns.Print(err) end
     end
-  elseif command == "minimapa" then
+  elseif command == "minimap" then
     ns.MinimapButton.Toggle()
   else
-    ns.Print("comandos (versão " .. ns.version .. "):")
-    for _, line in ipairs(HELP) do print("  " .. line) end
+    ns.Print(string.format(L["comandos (versão %s):"], ns.version))
+    for _, line in ipairs(HELP) do print("  " .. L[line]) end
   end
 end

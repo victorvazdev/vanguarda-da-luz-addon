@@ -13,6 +13,23 @@ Time.MONTHS = {
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
 }
 
+-- Nomes em inglês (ns.locale == "enUS").
+local EN = {
+  WEEKDAYS = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" },
+  WEEKDAYS_SHORT = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" },
+  MONTHS = {
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  },
+}
+
+local function English() return ns.locale == "enUS" end
+
+-- Nomes no idioma do addon: Time.Names().MONTHS etc.
+function Time.Names()
+  return English() and EN or Time
+end
+
 -- Dias desde 1970-01-01 para uma data do calendário gregoriano.
 function Time.DaysFromCivil(y, m, d)
   if m <= 2 then y = y - 1 end
@@ -69,10 +86,17 @@ end
 
 local function Pad(n) return string.format("%02d", n) end
 
--- "14/11/2026 20:00"
+-- "14/11/2026 20:00" (em inglês, "2026-11-14 20:00")
 function Time.FormatDateTime(ts, offset)
   local f = Time.Fields(ts, offset)
-  return Pad(f.day) .. "/" .. Pad(f.month) .. "/" .. f.year .. " " .. Pad(f.hour) .. ":" .. Pad(f.minute)
+  return Time.FormatDate(ts, offset) .. " " .. Pad(f.hour) .. ":" .. Pad(f.minute)
+end
+
+-- "14/11/2026" (em inglês, "2026-11-14")
+function Time.FormatDate(ts, offset)
+  local f = Time.Fields(ts, offset)
+  if English() then return f.year .. "-" .. Pad(f.month) .. "-" .. Pad(f.day) end
+  return Pad(f.day) .. "/" .. Pad(f.month) .. "/" .. f.year
 end
 
 -- "20:00"
@@ -81,10 +105,19 @@ function Time.FormatClock(ts, offset)
   return Pad(f.hour) .. ":" .. Pad(f.minute)
 end
 
--- "sábado, 14 de novembro de 2026"
+-- "sábado, 14 de novembro de 2026" (em inglês, "Saturday, November 14, 2026")
 function Time.FormatLongDate(ts, offset)
   local f = Time.Fields(ts, offset)
+  if English() then
+    return EN.WEEKDAYS[f.weekday] .. ", " .. EN.MONTHS[f.month] .. " " .. f.day .. ", " .. f.year
+  end
   return Time.WEEKDAYS[f.weekday] .. ", " .. f.day .. " de " .. Time.MONTHS[f.month] .. " de " .. f.year
+end
+
+-- "Novembro de 2026" (em inglês, "November 2026")
+function Time.FormatMonth(year, month)
+  if English() then return EN.MONTHS[month] .. " " .. year end
+  return (string.gsub(Time.MONTHS[month], "^%l", string.upper)) .. " de " .. year
 end
 
 -- "UTC-3", "UTC+5:30"

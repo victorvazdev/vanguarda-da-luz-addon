@@ -7,9 +7,14 @@
 --   events = { [siteId] = { id, title, startsAt, description, organizer, status, updatedAt } },
 --   attendance = { [siteId] = { [personagem] = { s, t } } },     -- logic/Attendance.lua
 --   professions = { [personagem] = { t, p = { { n, l, m } } } }, -- logic/Professions.lua
---   settings = { minimap = { angle, hide } },
+--   members = { [personagem] = { t, i, m } },                   -- logic/Members.lua
+--   together = { [personagem] = segundos },                       -- logic/Together.lua
+--   settings = { minimap = { angle, hide }, main = personagem,
+--                guildWindow = { [funcionalidade] = false } },  -- desligadas
 -- }
 local _, ns = ...
+
+local L = ns.L
 
 local Store = {}
 local SCHEMA = 1
@@ -26,6 +31,33 @@ function Store.Init()
   ns.db = db
 end
 
+-- Funcionalidades do addon na janela da guilda que podem ser desligadas, na
+-- ordem da tela de Configurações.
+Store.GUILD_FEATURES = {
+  { key = "events", label = L["Aba Eventos"] },
+  { key = "professions", label = L["Aba Profissões"] },
+  { key = "admin", label = L["Aba Administração"], trusted = true }, -- só Grão Lorde e Lordes
+  { key = "info", label = L["Início do addon na aba Informações"] },
+  { key = "members", label = L["Lista de membros do addon na aba Membros"] },
+  { key = "roster", label = L["Item level e main/alt na lista original de Membros"] },
+}
+
+-- A funcionalidade está ligada? Todas começam ligadas.
+function Store.GuildFeature(key)
+  local saved = ns.db.settings.guildWindow
+  return not (saved and saved[key] == false)
+end
+
+function Store.SetGuildFeature(key, enabled)
+  ns.db.settings.guildWindow = ns.db.settings.guildWindow or {}
+  if enabled then
+    ns.db.settings.guildWindow[key] = nil
+  else
+    ns.db.settings.guildWindow[key] = false
+  end
+  ns.Fire("SETTINGS_UPDATED")
+end
+
 function Store.ExportNumber()
   return ns.db.export and ns.db.export.exportNumber or nil
 end
@@ -34,7 +66,7 @@ end
 -- nil e a mensagem do erro.
 function Store.Prepare(raw)
   local prepared, code = ns.Import.Prepare(ns.db, raw)
-  if not prepared then return nil, ns.Codec.ERRORS[code] or code, code end
+  if not prepared then return nil, ns.Codec.ERRORS[code] and L[ns.Codec.ERRORS[code]] or code, code end
   return prepared
 end
 

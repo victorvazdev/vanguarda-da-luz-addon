@@ -3,6 +3,8 @@
 -- em logic/PresenceCodec.lua.
 local _, ns = ...
 
+local L = ns.L
+
 local Attendance = ns.Attendance
 local Presence = {}
 
@@ -46,7 +48,7 @@ end
 function Presence.Toggle(eventId)
   local event = ns.db.events[eventId]
   if not Presence.IsOpen(event) then
-    return false, "Só é possível responder a eventos ativos que ainda não começaram."
+    return false, L["Só é possível responder a eventos ativos que ainda não começaram."]
   end
   local status = Presence.Status(eventId) == 1 and 0 or 1
   local at = GetServerTime()

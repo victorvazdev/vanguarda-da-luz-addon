@@ -3,6 +3,8 @@
 -- clique direito abre um menu de atalhos.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme = ns.Theme
 local MinimapButton = {}
 local button
@@ -14,10 +16,10 @@ local function Tooltip(owner)
   GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
   GameTooltip:AddLine("Vanguarda da Luz", 0.95, 0.79, 0.30)
   if ns.Guild.IsMember() then
-    GameTooltip:AddLine("Clique: abrir o addon", 0.95, 0.93, 0.87)
-    GameTooltip:AddLine("Clique direito: atalhos", 0.95, 0.93, 0.87)
+    GameTooltip:AddLine(L["Clique: abrir o addon"], 0.95, 0.93, 0.87)
+    GameTooltip:AddLine(L["Clique direito: atalhos"], 0.95, 0.93, 0.87)
   else
-    GameTooltip:AddLine("Clique: convite para a guilda", 0.95, 0.93, 0.87)
+    GameTooltip:AddLine(L["Clique: convite para a guilda"], 0.95, 0.93, 0.87)
   end
   GameTooltip:Show()
 end
@@ -27,17 +29,19 @@ end
 
 local function Items()
   local items = {
-    { label = "Início", action = function() ns.MainFrame.Open("home") end },
-    { label = "Eventos", action = function() ns.MainFrame.Open("events") end },
-    { label = "Profissões", action = function() ns.MainFrame.Open("professions") end },
-    { label = "Sincronizar", action = function() ns.Comm.RequestLatest() end },
+    { label = L["Início"], action = function() ns.MainFrame.Open("home") end },
+    { label = L["Eventos"], action = function() ns.MainFrame.Open("events") end },
+    { label = L["Profissões"], action = function() ns.MainFrame.Open("professions") end },
+    { label = L["Membros"], action = function() ns.MainFrame.Open("members") end },
+    { label = L["Sincronizar"], action = function() ns.Comm.RequestLatest() end },
   }
   if ns.Guild.IsPlayerTrusted() then
-    items[#items + 1] = { label = "Administração", action = function() ns.MainFrame.Open("admin") end }
+    items[#items + 1] = { label = L["Administração"], action = function() ns.MainFrame.Open("admin") end }
   end
+  items[#items + 1] = { label = L["Configurações"], action = function() ns.MainFrame.Open("settings") end }
   local hidden = ns.db.settings.minimap.hide
   items[#items + 1] = {
-    label = hidden and "Mostrar botão do minimapa" or "Esconder botão do minimapa",
+    label = hidden and L["Mostrar botão do minimapa"] or L["Esconder botão do minimapa"],
     action = function() MinimapButton.Toggle() end,
   }
   return items
@@ -167,12 +171,21 @@ function MinimapButton.Init()
   button:SetShown(not ns.db.settings.minimap.hide)
 end
 
-function MinimapButton.Toggle()
-  ns.db.settings.minimap.hide = not ns.db.settings.minimap.hide
-  button:SetShown(not ns.db.settings.minimap.hide)
-  if ns.db.settings.minimap.hide then
-    ns.Print("Botão do minimapa escondido. Use /vdl minimapa para mostrar de novo.")
+function MinimapButton.IsShown()
+  return not ns.db.settings.minimap.hide
+end
+
+function MinimapButton.SetShown(shown)
+  ns.db.settings.minimap.hide = not shown
+  button:SetShown(shown)
+  if not shown then
+    ns.Print(L["Botão do minimapa escondido. Use /vdl minimapa ou Configurações para mostrar de novo."])
   end
+  ns.Fire("SETTINGS_UPDATED")
+end
+
+function MinimapButton.Toggle()
+  MinimapButton.SetShown(not MinimapButton.IsShown())
 end
 
 -- Funções globais do compartimento de addons (nomes definidos no .toc).

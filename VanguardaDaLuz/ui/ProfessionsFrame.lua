@@ -2,6 +2,8 @@
 -- Para todos os membros.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme = ns.Theme
 local ProfessionsFrame = {}
 
@@ -15,7 +17,7 @@ function ProfessionsFrame.Refresh()
 end
 
 local function Build()
-  frame = Theme.Window("VanguardaDaLuzProfessionsFrame", WIDTH, HEIGHT, "Profissões da guilda")
+  frame = Theme.Window("VanguardaDaLuzProfessionsFrame", WIDTH, HEIGHT, L["Profissões da guilda"])
   frame:SetFrameStrata("DIALOG")
   frame:SetScript("OnShow", function()
     ns.Guild.RequestRoster()
@@ -35,9 +37,9 @@ local function Build()
   local hint = Theme.Text(frame, "small", "textMuted")
   hint:SetPoint("BOTTOMLEFT", PAD, 22)
   hint:SetPoint("RIGHT", -150, 0)
-  hint:SetText("Os níveis vêm do addon de cada membro. Sem o addon, o nível aparece como —.")
+  hint:SetText(L["Os níveis vêm do addon de cada membro. Sem o addon, o nível aparece como —."])
 
-  local close = Theme.Button(frame, "Fechar", "primary", 110)
+  local close = Theme.Button(frame, L["Fechar"], "primary", 110)
   close:SetPoint("BOTTOMRIGHT", -PAD, 14)
   close:SetScript("OnClick", function() frame:Hide() end)
 

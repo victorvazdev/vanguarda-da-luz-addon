@@ -6,7 +6,7 @@ local _, ns = ...
 local Professions = ns.Professions
 local GuildProfessions = {}
 
-local response = nil  -- resposta agendada a um pedido de níveis
+local response = {}   -- [com IDs] = resposta agendada a um pedido de níveis
 local announcing = false
 
 local function Store()
@@ -32,6 +32,8 @@ function GuildProfessions.Announce()
   local at = GetServerTime()
   if current and current.t >= at then at = current.t + 1 end
   if not Professions.Set(Store(), me, list, at) then return end
+  -- Com IDs para as versões novas; sem IDs (F) para as antigas.
+  ns.Comm.SendProfessions(ns.Protocol.ProfessionIds(at, Professions.EncodeOwn(list, true)), "professionIds")
   ns.Comm.SendProfessions(ns.Protocol.Professions(at, Professions.EncodeOwn(list)))
   Changed()
 end
@@ -48,28 +50,36 @@ end
 
 -- Profissões anunciadas pelo próprio remetente.
 function GuildProfessions.OnOwn(message, sender)
-  local list = Professions.DecodeOwn(message.payload)
+  local list = Professions.DecodeOwn(message.payload, message.withIds)
   if list and Professions.Set(Store(), sender, list, message.at) then Changed() end
 end
 
 -- Alguém pediu os níveis: responde depois de uma espera aleatória, se ninguém
 -- responder antes.
-function GuildProfessions.OnRequest()
-  if response or not next(Store()) then return end
-  response = true
+-- `withIds`: o pedido veio de uma versão nova (Y), que recebe a lista com IDs
+-- (X); as antigas (G) recebem a lista só com nomes (K).
+function GuildProfessions.OnRequest(withIds)
+  local key = withIds and true or false
+  if response[key] or not next(Store()) then return end
+  response[key] = true
   local delay = ns.Protocol.RandomDelay(ns.Config.RESPONSE_DELAY_MIN, ns.Config.RESPONSE_DELAY_MAX)
   C_Timer.After(delay, function()
-    if response then
-      ns.Comm.SendProfessionsList(ns.Protocol.ProfessionsList(Professions.EncodeStore(Store())))
+    if response[key] then
+      if withIds then
+        ns.Comm.SendProfessionsList(ns.Protocol.ProfessionIdsList(Professions.EncodeStore(Store(), true)),
+          "professionIdsList")
+      else
+        ns.Comm.SendProfessionsList(ns.Protocol.ProfessionsList(Professions.EncodeStore(Store())))
+      end
     end
-    response = nil
+    response[key] = nil
   end)
 end
 
--- Níveis repassados por outro membro.
+-- Níveis repassados por outro membro (a resposta vale para o pedido do mesmo formato).
 function GuildProfessions.OnList(message)
-  response = nil
-  local other = Professions.DecodeStore(message.payload)
+  response[message.withIds and true or false] = nil
+  local other = Professions.DecodeStore(message.payload, message.withIds)
   if other and Professions.Merge(Store(), other) > 0 then Changed() end
 end
 

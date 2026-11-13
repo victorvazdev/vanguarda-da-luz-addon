@@ -2,13 +2,15 @@
 -- O protocolo está em logic/Protocol.lua.
 local _, ns = ...
 
+local L = ns.L
+
 local Comm = {}
 LibStub("AceComm-3.0"):Embed(Comm)
 
 local queue = {}          -- mensagens adiadas: [kind] = { message, prio }
 local response = nil      -- resposta agendada: { number }
 local sendingData = nil   -- envio de dados em andamento: { number }
-local status = "Aguardando."
+local status = L["Aguardando."]
 
 local function SetStatus(text)
   status = text
@@ -33,17 +35,17 @@ local function Send(kind, message, prio)
   if not ns.Guild.IsMember() then return end
   if Locked() then
     queue[kind] = { message = message, prio = prio }
-    SetStatus("Comunicação restrita no momento. O envio será feito quando for permitido.")
+    SetStatus(L["Comunicação restrita no momento. O envio será feito quando for permitido."])
     return
   end
   if kind == "data" then
     local number = ns.Store.ExportNumber()
     sendingData = { number = number, message = message, startedAt = GetTime() }
-    SetStatus("Enviando a exportação para a guilda…")
+    SetStatus(L["Enviando a exportação para a guilda…"])
     RawSend(message, prio, function(_, sent, total)
       if sent >= total and sendingData and sendingData.message == message then
         sendingData = nil
-        SetStatus("Exportação enviada para a guilda.")
+        SetStatus(L["Exportação enviada para a guilda."])
       end
     end)
   else
@@ -80,10 +82,12 @@ end
 -- Pergunta à guilda se há exportação mais nova.
 function Comm.RequestLatest()
   if not ns.Guild.IsMember() then return end
-  SetStatus("Perguntando à guilda pela exportação mais recente…")
+  SetStatus(L["Perguntando à guilda pela exportação mais recente…"])
   Send("query", ns.Protocol.Query(ns.Store.ExportNumber()), "NORMAL")
   Send("presenceRequest", ns.Protocol.PresenceRequest(), "NORMAL")
-  Send("professionsRequest", ns.Protocol.ProfessionsRequest(), "NORMAL")
+  Send("professionsRequest", ns.Protocol.ProfessionIdsRequest(), "NORMAL")
+  Send("membersRequest", ns.Protocol.MembersRequest(), "NORMAL")
+  Send("togetherRequest", ns.Protocol.TogetherRequest(), "NORMAL")
 end
 
 -- Presença do próprio jogador num evento (só a última de cada evento fica na
@@ -96,13 +100,32 @@ function Comm.SendPresenceList(message)
   Send("presenceList", message, "BULK")
 end
 
--- Profissões do próprio jogador e níveis conhecidos repassados.
-function Comm.SendProfessions(message)
-  Send("professions", message, "NORMAL")
+-- Profissões do próprio jogador e níveis conhecidos repassados. `kind`
+-- separa os formatos na fila (com e sem IDs).
+function Comm.SendProfessions(message, kind)
+  Send(kind or "professions", message, "NORMAL")
 end
 
-function Comm.SendProfessionsList(message)
-  Send("professionsList", message, "BULK")
+function Comm.SendProfessionsList(message, kind)
+  Send(kind or "professionsList", message, "BULK")
+end
+
+-- Item level e main do próprio jogador e dados conhecidos repassados.
+function Comm.SendMember(message)
+  Send("member", message, "NORMAL")
+end
+
+function Comm.SendMembersList(message)
+  Send("membersList", message, "BULK")
+end
+
+-- Tempo com a guilda do próprio jogador e totais conhecidos repassados.
+function Comm.SendTogether(message)
+  Send("together", message, "NORMAL")
+end
+
+function Comm.SendTogetherList(message)
+  Send("togetherList", message, "BULK")
 end
 
 -- Envia a exportação atual para a guilda (cargos aceitos).
@@ -150,9 +173,9 @@ local function OnData(message, sender)
     if not prepared or prepared.export.exportNumber ~= message.number then return end
     local diff = ns.Store.Commit(prepared, "guild", sender)
     local changes = ns.Snapshot.CountChanges(diff)
-    SetStatus("Eventos atualizados por " .. Ambiguate(sender, "short") .. ".")
+    SetStatus(string.format(L["Eventos atualizados por %s."], Ambiguate(sender, "short")))
     if changes > 0 then
-      ns.Print(string.format("Calendário atualizado por %s: %d alteração(ões).",
+      ns.Print(string.format(L["Calendário atualizado por %s: %d alteração(ões)."],
         Ambiguate(sender, "short"), changes))
     end
   end)
@@ -169,7 +192,7 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
   elseif message.kind == "have" then
     CancelResponseIfCovered(message.number)
     if ns.Protocol.IsNewer(message.number, ns.Store.ExportNumber()) then
-      SetStatus("Recebendo eventos de " .. Ambiguate(sender, "short") .. "…")
+      SetStatus(string.format(L["Recebendo eventos de %s…"], Ambiguate(sender, "short")))
     end
   elseif message.kind == "data" then
     CancelResponseIfCovered(message.number)
@@ -185,9 +208,21 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
   elseif message.kind == "professions" then
     ns.GuildProfessions.OnOwn(message, sender)
   elseif message.kind == "professionsRequest" then
-    ns.GuildProfessions.OnRequest()
+    ns.GuildProfessions.OnRequest(message.withIds)
   elseif message.kind == "professionsList" then
     ns.GuildProfessions.OnList(message)
+  elseif message.kind == "member" then
+    ns.GuildMembers.OnOwn(message, sender)
+  elseif message.kind == "membersRequest" then
+    ns.GuildMembers.OnRequest()
+  elseif message.kind == "membersList" then
+    ns.GuildMembers.OnList(message)
+  elseif message.kind == "together" then
+    ns.GuildTogether.OnOwn(message, sender)
+  elseif message.kind == "togetherRequest" then
+    ns.GuildTogether.OnRequest()
+  elseif message.kind == "togetherList" then
+    ns.GuildTogether.OnList(message)
   end
 end
 

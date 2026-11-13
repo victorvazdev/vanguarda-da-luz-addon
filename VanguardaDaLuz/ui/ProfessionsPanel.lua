@@ -3,6 +3,8 @@
 -- Profissões e na aba Profissões da janela da guilda.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme, Text = ns.Theme, ns.Text
 local ProfessionsPanel = {}
 
@@ -41,7 +43,7 @@ function Panel:CreateRow(i)
     fs:SetWordWrap(false)
     row[key] = fs
   end
-  row.whisper = Theme.Button(row, "Sussurrar", "outline", BUTTON_W)
+  row.whisper = Theme.Button(row, L["Sussurrar"], "outline", BUTTON_W)
   row.whisper:SetHeight(24)
   row.whisper:SetPoint("RIGHT", -6, 0)
   row.whisper:SetScript("OnClick", function(b)
@@ -54,16 +56,16 @@ end
 function Panel:ShowRow(i, data)
   local row = self.rows[i] or self:CreateRow(i)
   Theme.Backdrop(row, i % 2 == 1 and "surface" or "bg", i % 2 == 1 and "surface" or "bg")
-  row.dot:SetColorTexture(unpack(Theme.colors[data.online and "success" or "border"]))
+  row.dot:SetColorTexture(unpack(Theme.PresenceColor(data.online, data.status)))
   local isMe = ns.Guild.IsPlayer(data.name)
   local name = Text.Escape(data.name)
-  if isMe then name = name .. Theme.Code("textMuted") .. "  (você)|r" end
+  if isMe then name = name .. Theme.Code("textMuted") .. L["  (você)"] .. "|r" end
   row.name:SetText(name)
   row.name:SetTextColor(unpack(Theme.colors[data.online and "text" or "textMuted"]))
   row.first:SetText(self:ProfessionText(data.professions[1]))
   row.second:SetText(self:ProfessionText(data.professions[2]))
   if #data.professions == 0 then
-    row.first:SetText(Theme.Code("textMuted") .. "Sem profissão|r")
+    row.first:SetText(Theme.Code("textMuted") .. L["Sem profissão"] .. "|r")
   end
   row.whisper.target = data.name
   row.whisper:SetShown(not isMe)
@@ -76,7 +78,8 @@ end
 ---------------------------------------------------------------------------
 
 function Panel:FilterLabel()
-  return "Profissão: " .. (self.options.profession and Text.Escape(self.options.profession) or "Todas")
+  return string.format(L["Profissão: %s"],
+    self.options.profession and Text.Escape(self.options.profession) or L["Todas"])
 end
 
 function Panel:CloseMenu()
@@ -103,7 +106,7 @@ function Panel:OpenMenu()
       self.menuButtons[i] = button
     end
     button.choice = choice
-    button:SetText(choice and Text.Escape(choice) or "Todas")
+    button:SetText(choice and Text.Escape(choice) or L["Todas"])
     button:Show()
   end
   for i = #choices + 1, #self.menuButtons do self.menuButtons[i]:Hide() end
@@ -123,7 +126,7 @@ function Panel:Refresh()
   for _, name in ipairs(names) do known = known or name == options.profession end
   if not known then options.profession = nil end
   self.filter:SetText(self:FilterLabel())
-  self.online:SetText(options.onlineOnly and "Mostrar: só online" or "Mostrar: todos")
+  self.online:SetText(options.onlineOnly and L["Mostrar: só online"] or L["Mostrar: todos"])
   self.names = names
 
   local list = all and ns.Professions.Filter(all, options) or {}
@@ -132,14 +135,14 @@ function Panel:Refresh()
   self.list:SetHeight(math.max(1, #list * ROW_H))
 
   if not all then
-    self.empty:SetText("A lista da guilda ainda não carregou. Tente de novo em alguns segundos.")
+    self.empty:SetText(L["A lista da guilda ainda não carregou. Tente de novo em alguns segundos."])
     self.count:SetText("")
     ns.Guild.RequestRoster()
   else
-    self.empty:SetText(#list == 0 and "Nenhum membro encontrado com esse filtro." or "")
+    self.empty:SetText(#list == 0 and L["Nenhum membro encontrado com esse filtro."] or "")
     local online = 0
     for _, data in ipairs(all) do if data.online then online = online + 1 end end
-    self.count:SetText(string.format("%d membro(s)  ·  %d online", #all, online))
+    self.count:SetText(string.format(L["%d membro(s)"], #all) .. "  ·  " .. string.format(L["%d online"], online))
   end
 end
 
@@ -176,7 +179,7 @@ function ProfessionsPanel.Create(parent, width, height)
   end)
   self.filter = filter
 
-  local online = Theme.Button(frame, "Mostrar: só online", "outline", 150)
+  local online = Theme.Button(frame, L["Mostrar: só online"], "outline", 150)
   online:SetPoint("LEFT", filter, "RIGHT", 8, 0)
   online:SetScript("OnClick", function()
     self.options.onlineOnly = not self.options.onlineOnly
@@ -190,7 +193,7 @@ function ProfessionsPanel.Create(parent, width, height)
   self.count = count
 
   -- Cabeçalho da lista
-  for key, label in pairs({ name = "MEMBRO", first = "PROFISSÃO 1", second = "PROFISSÃO 2" }) do
+  for key, label in pairs({ name = L["MEMBRO"], first = L["PROFISSÃO 1"], second = L["PROFISSÃO 2"] }) do
     local header = Theme.Text(frame, "smallStrong", "goldDeep")
     header:SetPoint("TOPLEFT", self.columns[key][1], -TOOLBAR_H - 6)
     header:SetText(label)

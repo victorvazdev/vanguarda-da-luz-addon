@@ -28,7 +28,7 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 ```markdown
 **Vanguarda da Luz Guild Hub** is the companion addon of the **Vanguarda da Luz** guild on WoW Forever. It brings the guild's event calendar into the game, lets members confirm attendance, shows everyone's professions and lets officers send raid alerts.
 
-> **Guild members only.** Every feature requires being in the guild named *Vanguarda da Luz*. Players outside the guild only see a welcome window with the guild's Discord invite. The interface is in **Brazilian Portuguese**.
+> **Guild members only.** Every feature requires being in the guild named *Vanguarda da Luz*. Players outside the guild only see a welcome window with the guild's Discord invite. The interface is in **English** or **Brazilian Portuguese**, following the game language.
 
 ## Features
 
@@ -53,12 +53,29 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Professions come from the game's guild roster. Skill levels are shared by members who run the addon. Members without it show the profession without the level.
 - Filter by profession (sorted from highest to lowest level), show online members only (the default) and **whisper** a member with one click.
 
+### Item level and main/alt in the member list
+- The guild window's **Members** list shows each member's equipped item level and whether the character is a main or an alt (for example, "231 · Alt"). The row tooltip shows the full text ("Item level 231 · Alt de Victor Vaz").
+- Set your main once with `/vdl main`. Your other characters in the guild are marked as its alts automatically when you log in.
+- Item levels are shared by members who run the addon.
+
 ### Raid alerts
 - Officers send an alert that appears in the center of the screen of every online member, with the raid warning sound, and is also posted once in guild chat.
 - Rate-limited, and never sent during encounters where addon communication is restricted.
 
+### Members
+- A **Members** list with each member's name in class color, level, item level, main/alt, zone and rank. Click a column title to sort; show everyone or online members only; right-click a member to whisper or invite to your group.
+- It also replaces the guild window's Members tab, with a button to open Blizzard's original list (for promoting, demoting, removing and notes).
+
+### Time with the guild
+- Counts how long each member plays grouped with guildmates (same zone, nobody away). Alts add up to the main.
+- Shown in the Members list and as a "most time playing with the guild" ranking on the Home tab.
+
+### Settings
+- A **Settings** tab to set your main, show or hide the minimap button and turn each guild window feature on or off.
+
 ### Guild window integration
 - Adds **Events**, **Professions** and **Administration** tabs to the *Guild & Communities* window (J), below Blizzard's own tabs.
+- The **Guild Information** tab shows the addon's Home, with a button to open Blizzard's original (to edit the Message of the Day and Guild Information, and see news and the event log).
 
 ## Permissions
 - **Guild Master** and the **"Lorde"** rank: import events, export attendance and send raid alerts. Other members only accept data and alerts from these ranks, verified against the guild roster.
@@ -72,6 +89,7 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 | `/vdl sincronizar` | Asks the guild for the latest events |
 | `/vdl presencas` | Generates the attendance string for the website (officers) |
 | `/vdl profissoes` | Opens the professions list |
+| `/vdl main` | Sets the current character as your main (your other characters become alts) |
 | `/vdl alerta [text]` | Sends a raid alert (officers) |
 | `/vdl minimapa` | Shows or hides the minimap button |
 
@@ -102,9 +120,35 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 - **Presença:** confirme ou cancele com um clique; os oficiais geram a string de presenças para o site.
 - **Profissões:** profissões primárias e nível de cada membro, com filtro, só online e botão de sussurrar.
 - **Alerta de raide:** aviso no centro da tela de todos os membros online e no chat da guilda (Grão Lorde e Lordes).
-- **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J).
+- **Item level e main/alt:** na lista de Membros da janela da guilda, com `/vdl main` para definir o main.
+- **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J), e o Início do addon na aba Informações.
 
-Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl alerta [texto]`, `/vdl minimapa`.
+Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
+```
+
+## Changelog da versão 0.2.0
+
+```markdown
+### New
+- **English interface.** The addon uses English when the game is not in Brazilian Portuguese. Commands also accept English names in any language (`/vdl import`, `/vdl sync`, `/vdl attendance`, `/vdl professions`, `/vdl members`, `/vdl alert`, `/vdl minimap`).
+- **Members tab.** A guild member list with the name in class color, level, item level, main/alt, zone, rank and time played with the guild. Click a column title to sort; show everyone or online members only; right-click a member to whisper or invite to your group. Default order: online first, then rank, then level (highest first).
+- **Item level and main/alt.** Each member's addon shares their equipped item level. Use `/vdl main` (or Settings) once to set your main; your other characters in the guild are marked as its alts automatically when you log in.
+- **Time played with the guild.** The addon counts how long each member plays grouped with guildmates (same zone, nobody away). Alts add up to the main. Shown in the Members tab and as a "most time playing with the guild" ranking on the Home tab.
+- **Guild window.** The Information and Members tabs of the Guild & Communities window now show the addon's Home and member list, each with a "View Blizzard's original" button (to edit the Message of the Day, see news and the log, or manage members).
+- **Settings tab.** Set your main, show or hide the minimap button, and turn each guild window feature on or off.
+
+### Changes
+- Profession levels are matched by profession ID, so members playing in different languages see each other's levels. Members still on 0.1.x keep working.
+- Away members show a yellow dot and busy members a red dot in the Members and Professions lists.
+- The original Blizzard Members list also shows each member's item level and main/alt.
+- Long Message of the Day and Guild Information texts scroll instead of overlapping, and clicking a link opens the copy box over the text (click outside to close it).
+- The Members list in the guild window hides the time column to save space.
+
+### Fixes
+- Tabs no longer leave an empty space for members without an officer rank.
+- Officer-only hints and the Administration option in Settings are only shown to the Grão Lorde and the Lordes.
+- Button borders no longer disappear at some interface scales.
+- The first line of the Message of the Day is no longer clipped.
 ```
 
 ## Changelog da versão 0.1.1

@@ -3,6 +3,8 @@
 -- sincronização. Usado na aba Administração da janela da guilda.
 local _, ns = ...
 
+local L = ns.L
+
 local Theme = ns.Theme
 local AdminPanel = {}
 
@@ -13,22 +15,22 @@ Panel.__index = Panel
 
 local CARDS = {
   {
-    title = "Importar eventos",
-    text = "Cole a string gerada no site em \"Exportar para o addon\". "
-      .. "Os eventos vão para o calendário e são enviados à guilda.",
-    button = "Importar",
+    title = L["Importar eventos"],
+    text = L["Cole a string gerada no site em \"Exportar para o addon\". "
+      .. "Os eventos vão para o calendário e são enviados à guilda."],
+    button = L["Importar"],
     action = function() ns.ImportDialog.Show() end,
   },
   {
-    title = "Exportar presenças",
-    text = "Gera a string com as confirmações e os cancelamentos do jogo, para colar no site.",
-    button = "Gerar string",
+    title = L["Exportar presenças"],
+    text = L["Gera a string com as confirmações e os cancelamentos do jogo, para colar no site."],
+    button = L["Gerar string"],
     action = function() ns.PresenceExport.Show() end,
   },
   {
-    title = "Alerta de raide",
-    text = "Mostra um aviso no centro da tela dos membros online e publica no chat da guilda.",
-    button = "Enviar alerta",
+    title = L["Alerta de raide"],
+    text = L["Mostra um aviso no centro da tela dos membros online e publica no chat da guilda."],
+    button = L["Enviar alerta"],
     action = function() ns.AlertDialog.Show() end,
   },
 }
@@ -57,8 +59,8 @@ function AdminPanel.Create(parent, width, height)
 
   local label = Theme.Text(status, "smallStrong", "goldDeep")
   label:SetPoint("TOPLEFT", 14, -12)
-  label:SetText("SINCRONIZAÇÃO")
-  local syncButton = Theme.Button(status, "Sincronizar", "outline", 110)
+  label:SetText(L["SINCRONIZAÇÃO"])
+  local syncButton = Theme.Button(status, L["Sincronizar"], "outline", 110)
   syncButton:SetPoint("RIGHT", -14, 0)
   syncButton:SetScript("OnClick", function() ns.Comm.RequestLatest() end)
   local info = Theme.Text(status, "small")
@@ -95,7 +97,7 @@ function AdminPanel.Create(parent, width, height)
 
   local denied = Theme.Text(frame, "small", "cancel")
   denied:SetPoint("BOTTOMLEFT", 0, 4)
-  denied:SetText("Somente o Grão Lorde e os Lordes podem usar estas ações.")
+  denied:SetText(L["Somente o Grão Lorde e os Lordes podem usar estas ações."])
   self.denied = denied
 
   return self
