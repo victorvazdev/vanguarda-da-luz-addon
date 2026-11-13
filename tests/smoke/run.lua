@@ -321,6 +321,32 @@ gt.events._scripts.OnClick(gt.events)
 cf.GuildInfoTab:Hide() -- outra comunidade selecionada
 print("outra comunidade:", gt.events._shown, GT.overlay._shown, cf.RosterTab._checked)
 cf.GuildInfoTab:Show()
+-- menu de atalhos do minimapa (clique direito)
+local mb, mainFrame = _G.VanguardaDaLuzMinimapButton, _G.VanguardaDaLuzMainFrame
+local function MenuLabels(menu)
+  local labels = {}
+  for _, b in ipairs(menu.buttons) do if b._shown then labels[#labels + 1] = b._text end end
+  return table.concat(labels, ",")
+end
+mainFrame:Hide()
+mb._scripts.OnClick(mb, "RightButton")
+local mm = _G.VanguardaDaLuzMinimapMenu
+print("menu minimapa:", mm._shown, MenuLabels(mm))
+mm.buttons[2]._scripts.OnClick(mm.buttons[2])
+print("atalho eventos:", mm._shown, mainFrame._shown, mainFrame.panels.events.frame._shown)
+mb._scripts.OnClick(mb, "RightButton")
+mm._scripts.OnUpdate(mm, 3)
+print("menu fecha sozinho:", mm._shown)
+local trustedInfo = _G.GetGuildInfo
+_G.GetGuildInfo = function() return "Vanguarda da Luz", "Membro", 5 end
+mb._scripts.OnClick(mb, "RightButton")
+print("menu sem cargo:", MenuLabels(mm))
+mm:Hide()
+dialog:Hide()
+SlashCmdList.VANGUARDADALUZ("importar")
+print("importar sem cargo abre:", dialog._shown)
+_G.GetGuildInfo = trustedInfo
+mainFrame:Hide()
 -- alerta de raide
 local before = #comms
 SlashCmdList.VANGUARDADALUZ("alerta   ")             -- sem texto: abre o modal

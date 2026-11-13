@@ -54,6 +54,14 @@ describe("Teste de fumaça do addon", function()
     assert.is_truthy(text:find("admin abre presenças: true", 1, true))
     assert.is_truthy(text:find("aba da Blizzard fecha o painel: false false", 1, true))
     assert.is_truthy(text:find("outra comunidade: false false true", 1, true))
+    -- menu de atalhos do minimapa
+    assert.is_truthy(text:find("menu minimapa: true Início,Eventos,Profissões,Sincronizar,Administração,"
+      .. "Esconder botão do minimapa", 1, true))
+    assert.is_truthy(text:find("atalho eventos: false true true", 1, true))
+    assert.is_truthy(text:find("menu fecha sozinho: false", 1, true))
+    assert.is_truthy(text:find("menu sem cargo: Início,Eventos,Profissões,Sincronizar,Esconder", 1, true))
+    assert.is_truthy(text:find("Somente o Grão Lorde e os Lordes podem importar eventos.", 1, true))
+    assert.is_truthy(text:find("importar sem cargo abre: false", 1, true))
     -- alerta de raide
     assert.is_truthy(text:find("prévia: |cff%x+No chat da guilda:|r %[Alerta%] Raide / Núcleo às 20h"))
     assert.is_truthy(text:find("Aguarde 30 s para enviar outro alerta.", 1, true))

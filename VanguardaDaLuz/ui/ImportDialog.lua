@@ -152,6 +152,10 @@ function ImportDialog.Show()
     ns.WelcomeFrame.Show()
     return
   end
+  if not ns.Guild.IsPlayerTrusted() then
+    ns.Print("Somente o Grão Lorde e os Lordes podem importar eventos.")
+    return
+  end
   if not frame then Build() end
   frame:Show()
 end

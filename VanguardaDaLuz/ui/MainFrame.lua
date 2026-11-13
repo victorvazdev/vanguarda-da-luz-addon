@@ -121,6 +121,17 @@ function MainFrame.Hide()
   if frame then frame:Hide() end
 end
 
+-- Abre (ou mantém aberta) direto numa aba.
+function MainFrame.Open(key)
+  if not ns.Guild.IsMember() then
+    ns.WelcomeFrame.Show()
+    return
+  end
+  if not frame then Build() end
+  if not frame:IsShown() then frame:Show() end
+  MainFrame.ShowTab(key)
+end
+
 -- Abre no Início; se já estiver aberta, fecha.
 function MainFrame.Toggle()
   if not ns.Guild.IsMember() then

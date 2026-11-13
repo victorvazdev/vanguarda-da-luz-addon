@@ -2,7 +2,7 @@
 ## Title: |cfff2c94cVanguarda da Luz|r
 ## Notes: Calendário de eventos da guilda Vanguarda da Luz, importado do site.
 ## Author: Vanguarda da Luz
-## Version: 0.1.0
+## Version: 0.1.1
 ## Category: Guilda
 ## IconTexture: Interface\AddOns\VanguardaDaLuz\assets\logo-64
 ## SavedVariables: VanguardaDaLuzDB

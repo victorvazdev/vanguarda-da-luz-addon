@@ -31,7 +31,7 @@ Os eventos são criados no [site da guilda](https://vanguarda-da-luz.web.app/). 
 | `/vdl minimapa` | Mostra ou esconde o botão no minimapa |
 | `/vdl ajuda` | Lista os comandos |
 
-O botão no minimapa e a entrada no compartimento de addons também abrem a janela no Início. Com o clique direito, abrem a importação.
+O botão no minimapa e a entrada no compartimento de addons também abrem a janela no Início. O clique direito abre um menu de atalhos: Início, Eventos, Profissões, Sincronizar, Administração (só para o Grão Lorde e os Lordes) e Esconder botão do minimapa.
 
 A janela tem as abas **Início**, **Eventos**, **Profissões** e **Administração** (só Grão Lorde e Lordes). O rodapé mostra a última exportação recebida, o estado da sincronização e o botão **Sincronizar**.
 
@@ -272,6 +272,14 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. **Próximo evento** mostra o evento futuro mais próximo. **Ver no calendário** abre a aba Eventos com o dia e o evento selecionados.
 4. Mude a mensagem do dia na janela da guilda: o Início atualiza.
 5. Feche e abra a janela em outra aba: ela volta ao Início.
+
+### Menu do minimapa
+
+1. Clique direito no botão do minimapa: o menu abre junto ao botão com Início, Eventos, Profissões, Sincronizar, Administração e Esconder botão do minimapa. Cada atalho abre a janela na aba certa e fecha o menu.
+2. Com um personagem sem cargo, o menu não mostra Administração, e `/vdl importar` só mostra a mensagem "Somente o Grão Lorde e os Lordes podem importar eventos.".
+3. Tire o mouse do menu: ele fecha em cerca de 2 s. Esc também fecha.
+4. Clique direito na entrada do compartimento de addons: o menu abre junto do cursor.
+5. **Esconder botão do minimapa** some com o botão e avisa no chat. `/vdl minimapa` traz de volta.
 
 ### Lista de presença
 
