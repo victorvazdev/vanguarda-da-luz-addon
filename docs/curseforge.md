@@ -70,12 +70,15 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Counts how long each member plays grouped with guildmates (same zone, nobody away). Alts add up to the main.
 - Shown in the Members list and as a "most time playing with the guild" ranking on the Home tab.
 
+### Guild chat
+- A **Chat** tab with the guild chat, including recent messages from before you logged in: names in class color, "(alt of …)" for alts, clickable links to copy, item and quest tooltips on mouseover, and a click on a name to whisper or invite. Write to the guild from the tab (Shift+click items and quests to link them). Officers also get the officer channel.
+
 ### Settings
 - A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon and turn each guild window feature on or off.
 
 ### Guild window integration
 - Adds **Events**, **Professions** and **Administration** tabs to the *Guild & Communities* window (J), below Blizzard's own tabs.
-- The **Guild Information** tab shows the addon's Home, with a button to open Blizzard's original (to edit the Message of the Day and Guild Information, and see news and the event log).
+- The **Chat** tab shows the addon's chat, and the **Guild Information** tab shows the addon's Home, each with a button to open Blizzard's original (news and the event log are there). Officers click the Message of the Day or the Guild Information to edit it.
 
 ## Permissions
 - **Guild Master** and the **"Lorde"** rank: import events, export attendance and send raid alerts. Other members only accept data and alerts from these ranks, verified against the guild roster.
@@ -119,12 +122,25 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 - **Calendário:** eventos criados no site; um oficial importa a string e o addon envia para todos os membros da guilda. Horários de Brasília.
 - **Presença:** confirme ou cancele com um clique; os oficiais geram a string de presenças para o site.
 - **Profissões:** profissões primárias e nível de cada membro, com filtro, só online e botão de sussurrar.
+- **Bate-papo:** o chat da guilda no addon, com as mensagens de antes de entrar no jogo, nomes na cor da classe, main/alt, links para copiar e tooltip de itens; escreva para a guilda (e para os oficiais, Grão Lorde e Lordes) direto da aba.
 - **Alerta de raide:** aviso no centro da tela de todos os membros online e no chat da guilda (Grão Lorde e Lordes).
 - **Item level e main/alt:** na lista de Membros da janela da guilda, com `/vdl main` (ou o aviso ao entrar no jogo) para definir o main.
 - **Configurações:** main, botão do minimapa, atalho de teclado para abrir o addon e cada funcionalidade da janela da guilda.
-- **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J), e o Início do addon na aba Informações.
+- **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J), e o bate-papo, o Início e a lista de membros do addon nas abas Bate-papo, Informações e Membros. Os oficiais editam a mensagem do dia e as informações clicando no texto.
 
 Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
+```
+
+## Changelog da versão 0.3.0
+
+```markdown
+### New
+- **Chat tab.** The guild chat inside the addon window, right after Home. It opens with the recent messages from before you logged in and shows new ones as they arrive: time, names in class color and "(alt of …)" for alts. Click a name to whisper or invite to your group, click a web link to copy it, and hover item and quest links to see their tooltip (click works like Blizzard's chat). Write to the guild from the box at the bottom, and Shift+click items and quests to link them. The Guild Master and the "Lorde" rank also get the officer channel.
+- **Chat in the guild window.** The Chat tab of the Guild & Communities window now shows the addon's chat, with a "View Blizzard's original" button. It can be turned off in Settings.
+- **Edit the Message of the Day and Guild Information.** In the Guild & Communities window, the Guild Master and the "Lorde" rank click the Message of the Day or the Guild Information on the Home tab (outside a link) to open Blizzard's edit window, already filled with the current text. In the addon window's Home tab, clicking the text opens the guild window to edit it there. A hint shows this only to them. Not available during combat.
+
+### Fixes
+- Card borders no longer fade or disappear at the top inside the guild window.
 ```
 
 ## Changelog da versão 0.2.1

@@ -23,6 +23,14 @@ local function Mock(name)
         self._scripts[n] = function(...) if old then old(...) end fn(...) end
       end,
       SetChecked = function(self, v) self._checked = v and true or false end,
+      SetAttribute = function(self, key, v) rawset(self, "_attr", rawget(self, "_attr") or {}); self._attr[key] = v end,
+      SetPropagateMouseClicks = function(self, v) self._propagate = v end,
+      AddMessage = function(self, text)
+        rawset(self, "_lines", rawget(self, "_lines") or {})
+        table.insert(self._lines, text)
+      end,
+      Clear = function(self) rawset(self, "_lines", {}) end,
+      HasFocus = function() return false end,
       SetPoint = function(self, _, rel) if type(rel) == "table" then self._rel = rel end end,
       GetChecked = function(self) return self._checked end,
       IsShown = function(self) return self._shown end,
@@ -34,6 +42,9 @@ local function Mock(name)
       Disable = function(self) self._enabled = false end,
       SetEnabled = function(self, v) self._enabled = v and true or false end,
       GetWidth = function() return 140 end,
+      GetHeight = function() return 60 end,
+      GetLeft = function() return 100 end,
+      GetTop = function() return 500 end,
       GetStringHeight = function() return 20 end,
       GetCenter = function() return 0, 0 end,
       GetEffectiveScale = function() return 1 end,
@@ -103,7 +114,30 @@ _G.C_Club = {
   GetGuildClubId = function() return "clube" end,
   GetClubMembers = function() local ids = {} for i = 1, #club do ids[i] = i end return ids end,
   GetMemberInfo = function(_, id) return club[id] end,
+  -- Bate-papo: canais da guilda e de oficiais, com o histórico carregado.
+  GetStreams = function() return { { streamId = "g", streamType = 1, name = "Guilda" },
+    { streamId = "o", streamType = 2, name = "Oficial" } } end,
+  GetMessageRanges = function() return { { oldestMessageId = 1, newestMessageId = 2 } } end,
+  GetMessagesInRange = function(_, stream)
+    if stream == "o" then return { { messageId = { epoch = 1794410000000000, position = 1 },
+      author = { name = "Maren", guid = "Player-2" }, content = "só oficiais" } } end
+    return {
+      { messageId = { epoch = 1794410000000000, position = 1 }, author = { name = "Tester", guid = "Player-1" },
+        content = "vejam www.site.app agora" },
+      { messageId = { epoch = 1794410060000000, position = 2 }, author = { name = "Ana Clara" },
+        content = "mensagem-destruida-xyz", destroyed = true },
+      { messageId = { epoch = 1794410120000000, position = 3 }, author = { name = "Maren-Forever", guid = "Player-2" },
+        content = "oi | tudo" },
+      -- texto protegido, como o histórico entrega; o jogo mostra o texto
+      { messageId = { epoch = 1794409000000000, position = 4 }, author = { name = "Ana Clara" },
+        content = "|Kw774|k" },
+      -- protegido, mas recebido ao vivo nesta sessão: vale o texto normal
+      { messageId = { epoch = now * 1000000, position = 5 }, author = { name = "Maren-Forever", guid = "Player-2" },
+        content = "|Kw775|k" },
+    }
+  end,
 }
+_G.date = function() return "20:33" end
 _G.GetProfessions = function() return 6, 8 end
 _G.GetProfessionInfo = function(index)
   if index == 6 then return "Ferraria", 136241, 88, 150 end
@@ -132,10 +166,20 @@ _G.CommunitiesFrame.GetChildren = function()
   for _, key in ipairs(sideTabs) do list[#list + 1] = _G.CommunitiesFrame[key] end
   return unpack(list)
 end
+-- Aba Informações da Blizzard: botões "Editar" e a janela de edição.
+_G.CommunitiesFrame.GuildDetailsFrame = { Info = { EditMOTDButton = Mock("EditMOTDButton"),
+  EditDetailsButton = Mock("EditDetailsButton") } }
+_G.CommunitiesGuildTextEditFrame = Mock("CommunitiesGuildTextEditFrame")
+_G.GuildMicroButton = Mock("GuildMicroButton")
+local canEdit = true
+_G.CanEditMOTD = function() return canEdit end
+_G.CanEditGuildInfo = function() return canEdit end
 _G.GetGuildRosterMOTD = function() return "Raide sexta | tragam poções" end
 _G.GetGuildInfoText = function() return "Site: https://vanguarda-da-luz.web.app\nDiscord: www.discord.gg/abc." end
 local tells = {}
 _G.ChatFrame_SendTell = function(name) tells[#tells + 1] = name end
+-- Shift+clique num item chama esta função (o addon observa).
+_G.ChatFrameUtil = { InsertLink = function() return false end }
 local timers = {}
 _G.C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end, NewTicker = function() end }
 _G.C_AddOns = { GetAddOnMetadata = function() return "0.1.0" end,
@@ -255,6 +299,15 @@ print("info:", main.info._text)
 -- Início: mensagem do dia, informações com links e próximo evento
 local home = main.panels.home
 print("abre no início:", home.frame._shown, main.panels.events.frame._shown, main.tabs.admin._shown)
+-- no Início do addon, o clique no texto abre a janela da guilda (botão Guilda)
+local openEditor
+for _, e in ipairs(ns.GuildTextEdit.editors) do if e.mode == "open" and e.kind == "info" then openEditor = e end end
+print("editar pelo addon:", openEditor.button._shown, openEditor.button._attr.clickbutton == _G.GuildMicroButton,
+  home.motd.hint._shown, home.motd.hint._text)
+openEditor.button._scripts.PostClick(openEditor.button, "LeftButton", true)
+openEditor.button._scripts.PostClick(openEditor.button, "LeftButton", false)
+print("abriu a guilda:", main._shown)
+main:Show()
 print("mdd:", home.motd.holder.text._text)
 print("info guilda:", home.info.holder.text._text)
 home.info.holder._scripts.OnHyperlinkClick(home.info.holder, "vdlurl:www.discord.gg/abc", "x")
@@ -376,11 +429,51 @@ RunTimers()
 local infoPanel = GT.panels.info
 print("informações:", GT.overlay._shown, infoPanel and infoPanel.frame._shown, cf.GuildInfoTab._checked)
 print("dica informações:", infoPanel.hint._text)
+-- clique no texto abre a edição da Blizzard por um botão seguro
+local function Editor(kind, mode)
+  for _, e in ipairs(ns.GuildTextEdit.editors) do if e.kind == kind and e.mode == mode then return e end end
+end
+local motdEditor, infoEditor = Editor("motd", "edit"), Editor("info", "edit")
+print("edição:", motdEditor.button._shown, motdEditor.button._attr.type,
+  motdEditor.button._attr.clickbutton == _G.CommunitiesFrame.GuildDetailsFrame.Info.EditMOTDButton,
+  infoEditor.button._attr.clickbutton == _G.CommunitiesFrame.GuildDetailsFrame.Info.EditDetailsButton,
+  motdEditor.holder._propagate)
+infoEditor.holder._scripts.OnHyperlinkEnter(infoEditor.holder)
+print("em cima do link:", infoEditor.holder._propagate)
+infoEditor.holder._scripts.OnHyperlinkLeave(infoEditor.holder)
+print("fora do link:", infoEditor.holder._propagate)
+-- em combate o botão seguro sai do painel; ao sair do combate, volta
+ns.GuildTextEdit.OnCombatStart()
+print("edição em combate:", motdEditor.button._shown, motdEditor.holder._propagate)
+ns.GuildTextEdit.Refresh()
+print("edição depois do combate:", motdEditor.button._shown, motdEditor.holder._propagate)
+canEdit = false
+infoPanel:Refresh()
+print("sem permissão no jogo:", motdEditor.button._shown, motdEditor.holder._propagate, infoPanel.hint._text)
+canEdit = true
+infoPanel:Refresh()
 infoPanel.original._scripts.OnClick(infoPanel.original)
 print("original da Blizzard:", GT.overlay._shown)
 cf.GuildInfoTab._scripts.OnClick(cf.GuildInfoTab)
 RunTimers()
 print("informações de novo:", GT.overlay._shown)
+-- aba Bate-papo da Blizzard: o bate-papo do addon por cima, com o botão para a original
+cf.GuildInfoTab:SetChecked(false)
+cf.ChatTab:SetChecked(true)
+cf.ChatTab._scripts.OnClick(cf.ChatTab)
+RunTimers()
+local chatCover = GT.panels.chat
+print("bate-papo na guilda:", GT.overlay._shown, chatCover and chatCover.frame._shown,
+  #chatCover.inner.messages._lines > 0)
+chatCover.original._scripts.OnClick(chatCover.original)
+print("bate-papo original:", GT.overlay._shown)
+cf.ChatTab._scripts.OnClick(cf.ChatTab)
+RunTimers()
+print("bate-papo de novo:", GT.overlay._shown)
+cf.ChatTab:SetChecked(false)
+cf.GuildInfoTab:SetChecked(true)
+cf.GuildInfoTab._scripts.OnClick(cf.GuildInfoTab)
+RunTimers()
 gt.events._scripts.OnClick(gt.events)
 print("eventos a partir de informações:", GT.overlay._shown, gt.events._checked, cf.GuildInfoTab._checked,
   infoPanel.frame._shown)
@@ -527,6 +620,47 @@ print("ordem nível desc:", mp.rows[1].level._text, mp.rows[2].level._text, mp.r
 mp.headers.level._scripts.OnClick(mp.headers.level)
 mp.online._scripts.OnClick(mp.online)
 print("membros só online:", mp.online._text, mp.rows[3]._shown)
+-- Bate-papo: histórico da guilda com nome, alt e links; canal de oficiais
+ns.GuildChat.OnEvent(nil, "CHAT_MSG_GUILD", "ao vivo www.ao.vivo", "Maren-Forever",
+  nil, nil, nil, nil, nil, nil, nil, nil, nil, "Player-2")
+ns.MainFrame.Open("chat")
+local cp = _G.VanguardaDaLuzMainFrame.panels.chat
+print("bate-papo:", cp.frame._shown, cp.officerTab._shown, #cp.messages._lines)
+for _, line in ipairs(cp.messages._lines) do print("linha:", line) end
+cp.messages._scripts.OnHyperlinkClick(cp.messages, "vdlurl:www.site.app", "", "LeftButton")
+print("copiar do chat:", cp.copy._shown, cp.copy.edit._text)
+cp.messages._scripts.OnHyperlinkClick(cp.messages, "vdlplayer:Maren-Forever", "", "RightButton")
+print("menu no nome:", _G.VanguardaDaLuzMemberMenu._shown)
+local itemRefs = {}
+_G.SetItemRef = function(link, _, button) itemRefs[#itemRefs + 1] = link .. " " .. button end
+cp.messages._scripts.OnHyperlinkClick(cp.messages, "quest:123:30", "[A noiva]", "LeftButton")
+print("link do jogo:", itemRefs[1])
+local hyperlinks = {}
+_G.GameTooltip.SetHyperlink = function(_, link) hyperlinks[#hyperlinks + 1] = link end
+cp.messages._scripts.OnHyperlinkEnter(cp.messages, "item:6219")
+print("tooltip do link:", hyperlinks[1], _G.GameTooltip._shown)
+cp.messages._scripts.OnHyperlinkLeave(cp.messages)
+_G.VanguardaDaLuzMemberMenu:Hide()
+-- Shift+clique num item com a caixa do addon em foco: o link entra nela
+cp.input.HasFocus = function() return true end
+cp.input.Insert = function(self, t) self._text = self._text .. t end
+cp.input:SetText("vendo ")
+_G.ChatFrameUtil.InsertLink("|cnIQ3:|Hitem:6219|h[Chave]|h|r")
+print("link na caixa:", cp.input._text)
+cp.input._scripts.OnEnterPressed(cp.input)
+print("enviado com link:", chat[#chat])
+cp.input.HasFocus = function() return false end
+local chatBefore = #chat
+cp.input:SetText("  olá | guilda ")
+cp.input._scripts.OnEnterPressed(cp.input)
+print("enviado no chat:", chat[#chat], #chat - chatBefore, "|" .. cp.input._text .. "|")
+cp.officerTab._scripts.OnClick(cp.officerTab)
+print("oficiais:", cp:Channel(), cp.messages._lines[1])
+cp.input:SetText("reunião")
+cp.input._scripts.OnEnterPressed(cp.input)
+print("enviado aos oficiais:", chat[#chat])
+cp.guildTab._scripts.OnClick(cp.guildTab)
+for i = #chat, 1, -1 do chat[i] = nil end -- o alerta de raide confere o chat sozinho
 _G.VanguardaDaLuzMainFrame:Hide()
 -- Configurações
 ns.MainFrame.Open("settings")
@@ -619,12 +753,15 @@ mb._scripts.OnClick(mb, "RightButton")
 print("menu sem cargo:", MenuLabels(mm))
 ns.MainFrame.Open("settings")
 print("abas sem cargo:", mainFrame.tabs.admin._shown, mainFrame.tabs.settings._rel == mainFrame.tabs.members)
+ns.MainFrame.Open("chat")
+local chatSemCargo = mainFrame.panels.chat
+print("bate-papo sem cargo:", chatSemCargo.officerTab._shown, chatSemCargo:Channel())
 GT.panels.members:Refresh()
 print("dica membros sem cargo:", GT.panels.members.hint._shown, GT.panels.members.hint._text)
 GT.panels.info:Refresh()
 print("dica informações sem cargo:", GT.panels.info.hint._text)
 local sf = mainFrame.panels.settings.features
-print("opção administração sem cargo:", sf.admin._shown, sf.info._rel == sf.professions)
+print("opção administração sem cargo:", sf.admin._shown, sf.chat._rel == sf.professions)
 mainFrame:Hide()
 mm:Hide()
 dialog:Hide()

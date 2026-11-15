@@ -37,9 +37,9 @@ Os comandos também aceitam os nomes em inglês, em qualquer idioma do jogo: `im
 
 O botão no minimapa e a entrada no compartimento de addons também abrem a janela no Início. O clique direito abre um menu de atalhos: Início, Eventos, Profissões, Membros, Sincronizar, Administração (só para o Grão Lorde e os Lordes), Configurações e Esconder botão do minimapa.
 
-A janela tem as abas **Início**, **Eventos**, **Profissões**, **Membros**, **Administração** (só Grão Lorde e Lordes) e **Configurações**. O rodapé mostra a última exportação recebida, o estado da sincronização e o botão **Sincronizar**.
+A janela tem as abas **Início**, **Bate-papo**, **Eventos**, **Profissões**, **Membros**, **Administração** (só Grão Lorde e Lordes) e **Configurações**. O rodapé mostra a última exportação recebida, o estado da sincronização e o botão **Sincronizar**.
 
-Na janela **Guilda e comunidades** do jogo (J), com a guilda selecionada, o addon acrescenta três botões abaixo dos botões laterais da Blizzard: **Eventos**, **Profissões** e **Administração** (só Grão Lorde e Lordes). As abas **Informações** e **Membros** mostram o Início e a lista de membros do addon, com um botão para ver as originais da Blizzard.
+Na janela **Guilda e comunidades** do jogo (J), com a guilda selecionada, o addon acrescenta três botões abaixo dos botões laterais da Blizzard: **Eventos**, **Profissões** e **Administração** (só Grão Lorde e Lordes). As abas **Bate-papo**, **Informações** e **Membros** mostram o bate-papo, o Início e a lista de membros do addon, com um botão para ver as originais da Blizzard.
 
 ## Permissões
 
@@ -163,6 +163,16 @@ A aba **Membros** (na janela do addon e por cima da aba Membros da janela da gui
 - O clique direito num membro abre um menu com **Sussurrar** (abre o chat com `/w Nome Sobrenome`) e **Convidar para o grupo** (`C_PartyInfo.InviteUnit`). As duas opções ficam desativadas para quem está offline e na linha do próprio jogador. O menu fecha ao escolher, ao clicar fora ou com Esc.
 - Promover, rebaixar, remover e editar notas ficam na lista original da Blizzard (**Ver original da Blizzard**), porque são ações protegidas. Na original, cada linha continua mostrando o item level e o main/alt.
 
+### Bate-papo
+
+A aba **Bate-papo** mostra o bate-papo da guilda com o tema do addon: hora, nome na cor da classe, "(alt de Fulano)" para quem é alt e links clicáveis, que abrem a caixa de copiar. Clicar num nome abre o menu Sussurrar / Convidar para o grupo (o mesmo da aba Membros), e passar o mouse mostra o item level e o main/alt. Links de item, missão e outros do jogo mostram o tooltip junto do mouse ao passar por cima (`GameTooltip:SetHyperlink`) e, ao clicar, fazem o mesmo que no chat da Blizzard (`SetItemRef`; com Shift, o link vai para a caixa do chat). A caixa embaixo envia para a guilda (Enter ou **Enviar**). O Grão Lorde e os Lordes têm também o canal **Oficiais**, se o jogo deixar ler.
+
+- As mensagens vêm do histórico do clube da guilda (`C_Club.GetStreams`, `GetMessageRanges` e `GetMessagesInRange`): o bate-papo da guilda e o de oficiais são "streams" do clube (tipos 1 e 2). Com isso a aba já abre com as mensagens de antes do login (confirmado no jogo: as últimas 100). Os eventos `CHAT_MSG_GUILD`, `CHAT_MSG_OFFICER` e `CLUB_MESSAGE_ADDED` só avisam que chegou algo, e a aba relê o histórico.
+- O envio usa `C_ChatInfo.SendChatMessage(texto, "GUILD" ou "OFFICER")`, o mesmo do alerta de raide. O texto vira uma linha, "|" vira "/" (menos dentro de links do jogo) e o que passa de 255 bytes é cortado; um link que não cabe inteiro fica de fora.
+- Com a caixa do addon em foco, Shift+clique num item, missão etc. põe o link nela, como na caixa do chat da Blizzard: o addon observa a função do jogo que insere links (`ChatFrameUtil.InsertLink` / `ChatEdit_InsertLink`, com `hooksecurefunc`). Com a comunicação restrita (encontro, Mítica+, JxJ), a mensagem não é enviada e o chat avisa.
+- O histórico entrega o texto de cada mensagem protegido (`|Kw774|k`): uma referência que o jogo troca pelo texto na hora de desenhar, sem o addon conseguir ler. Por isso o addon não escapa essas referências, e nas mensagens antigas não dá para achar links. As que chegam com o jogo aberto vêm em texto normal pelos eventos de chat; o addon guarda esse texto na sessão e usa no lugar do protegido (mesmo autor pelo GUID e horário com até 5 s de diferença), então os links dessas mensagens funcionam.
+- Durante encontros o jogo pode entregar o texto como valor secreto (`issecretvalue`). Essas mensagens aparecem como vieram, sem cor no nome, alt ou links.
+
 ### Tempo de jogo com a guilda
 
 O addon soma quanto tempo cada pessoa joga junto com a guilda.
@@ -181,7 +191,7 @@ A aba **Configurações** da janela do addon reúne as opções, salvas por cont
 - **Este personagem é o meu main:** o mesmo que `/vdl main`. Desmarcar tira o main da conta (os personagens deixam de aparecer como main ou alt).
 - **Mostrar o botão no minimapa:** o mesmo que `/vdl minimapa`.
 - **Atalho:** clique no botão e pressione a tecla (pode combinar com Shift, Ctrl ou Alt) para abrir e fechar a janela do addon, como `/vdl`. Esc cancela e **Limpar** remove o atalho. O atalho é do addon (`SetOverrideBindingClick`): não altera os atalhos da Blizzard e tem prioridade sobre eles; se a tecla já estiver em uso no jogo, a tela avisa qual ação ela substitui. Em combate o jogo não deixa trocar atalhos, então a troca é aplicada ao sair do combate.
-- **Janela da guilda:** liga e desliga, uma por uma, as abas Eventos, Profissões e Administração (esta opção só aparece para o Grão Lorde e os Lordes), o Início do addon na aba Informações, a lista de membros do addon na aba Membros e o item level e main/alt na lista original de Membros. Os botões que continuam ligados se juntam, sem deixar espaço vazio.
+- **Janela da guilda:** liga e desliga, uma por uma, as abas Eventos, Profissões e Administração (esta opção só aparece para o Grão Lorde e os Lordes), o bate-papo do addon na aba Bate-papo, o Início do addon na aba Informações, a lista de membros do addon na aba Membros e o item level e main/alt na lista original de Membros. Os botões que continuam ligados se juntam, sem deixar espaço vazio.
 
 ### Item level e main/alt
 
@@ -202,7 +212,9 @@ O addon espera a janela "Guilda e comunidades" carregar (`Blizzard_Communities`)
 - **Profissões:** a mesma lista da janela Profissões.
 - **Administração:** estado da sincronização e cartões para importar a string, exportar as presenças e enviar o alerta (abrem os mesmos modais da janela do addon).
 - Os botões só aparecem com a guilda Vanguarda da Luz selecionada (junto com o botão de Informações da guilda) e com a janela no tamanho normal (não minimizada).
-- **Informações:** a aba Informações da Blizzard mostra o Início do addon (mensagem do dia e informações com links para copiar, próximo evento e membros). O botão **Ver original da Blizzard** mostra a original, onde ficam a edição da mensagem do dia e das informações, as notícias e o registro. Addons não podem editar as informações da guilda no WoW Forever (`SetGuildInfoText` é bloqueado). Clicar de novo em Informações volta ao Início do addon.
+- **Informações:** a aba Informações da Blizzard mostra o Início do addon (mensagem do dia e informações com links para copiar, próximo evento e membros). O botão **Ver original da Blizzard** mostra a original, com as notícias e o registro. Clicar de novo em Informações volta ao Início do addon.
+- **Editar a mensagem do dia e as informações:** o Grão Lorde e os Lordes que o jogo deixa editar (`CanEditMOTD` / `CanEditGuildInfo`) clicam no texto, fora dos links, e abre a janela de edição da própria Blizzard, já com o texto atual. A dica ao lado de **Ver original da Blizzard** avisa disso só para eles. Addons não podem gravar esses textos no WoW Forever: `SetGuildInfoText` é bloqueado (ForceTaint_Strong), e abrir a janela de edição pelo código do addon faz o jogo bloquear o Aceitar. Por isso o clique cai num botão seguro do addon (`SecureActionButtonTemplate`, `type = "click"`) que aciona o botão "Editar" da Blizzard (`ui/GuildTextEdit.lua`); assim o código da Blizzard roda limpo e grava (confirmado no jogo). O texto deixa o clique passar para esse botão (`SetPropagateMouseClicks`), menos em cima de um link. Em combate o clique para editar fica desligado (botões seguros não podem ser mexidos), e volta ao sair. O jogo também não deixa ancorar o botão seguro em quadros do addon, então ele é posicionado pela tela no lugar do texto e acompanha a janela.
+- **Editar pelo Início da janela do addon:** para quem pode editar, a dica "Clique no texto para editar na janela da guilda" aparece no cartão da mensagem do dia. O clique no texto abre a janela da guilda por outro botão seguro, que aciona o botão **Guilda** do menu do jogo (`GuildMicroButton`), fecha a janela do addon e avisa no chat para abrir Informações e clicar no texto. Abrir a janela da guilda pelo código do addon (`ToggleGuildFrame`) faz o jogo bloquear a gravação depois (confirmado no jogo); pelo botão Guilda, grava. A janela da guilda abre na última aba usada, porque o addon não pode escolher a aba. Com a janela da guilda já aberta, o clique não faz nada (o botão Guilda a fecharia).
 - O painel do addon fica por cima da área de conteúdo. O addon não esconde nem altera os quadros da Blizzard: só acrescenta os botões e "escuta" os cliques nos botões dela (`HookScript`), que fecham o painel.
 
 ### Alerta de raide
@@ -241,12 +253,12 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
            Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8 e links), Alert (alerta de raide),
            Attendance e PresenceCodec (lista de presença e string VDLP1), Professions,
            Members (item level e main/alt), Roster (lista de membros), Together (tempo com a guilda),
-           Keys (combinação do atalho de teclado)
+           Keys (combinação do atalho de teclado), Chat (linhas e canais do bate-papo)
   game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide),
            Presence (lista de presença), GuildProfessions (profissões), GuildMembers (item level e main/alt),
-           GuildTogether (tempo com a guilda), Keybind (atalho para abrir o addon)
+           GuildTogether (tempo com a guilda), Keybind (atalho para abrir o addon), GuildChat (bate-papo)
   ui/      Theme (identidade do site), painéis reaproveitáveis HomePanel, CalendarPanel, ProfessionsPanel e AdminPanel,
-           MembersPanel, SettingsPanel, MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, MainPrompt, PresenceExport,
+           MembersPanel, ChatPanel, SettingsPanel, MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, MainPrompt, PresenceExport,
            ProfessionsFrame, GuildTabs (abas e Informações na janela da guilda),
            GuildRoster (texto na lista de membros), MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
@@ -255,7 +267,7 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
 assets/    logo original do site
 docs/      formato da string, critérios de aceite e exemplos
 tests/     testes busted (Lua 5.1) e teste de fumaça com a API do jogo simulada
-scripts/   setup-dev.sh, check.sh, package.sh
+scripts/   setup-dev.sh, check.sh, package.sh, install.sh
 ```
 
 ### SavedVariables
@@ -274,7 +286,7 @@ scripts/   setup-dev.sh, check.sh, package.sh
   settings = { minimap = { angle, hide }, main = "Nome Sobrenome",
                mainAsked = { ["Nome Sobrenome"] = true }, mainPromptOff = true, -- popup do main
                keybind = "SHIFT-V",                                           -- atalho do addon
-               guildWindow = { events|professions|admin|info|roster = false } }, -- desligadas
+               guildWindow = { events|professions|admin|chat|info|members|roster = false } }, -- desligadas
 }
 ```
 
@@ -386,7 +398,12 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 8. Feche e abra a janela, troque de aba várias vezes e entre em combate com a janela aberta: não deve aparecer o erro "ação bloqueada" (`/console taintLog 1` registra a causa, se aparecer).
 9. Os ícones de ferraria e de chave aparecem. Se aparecer um quadrado verde, o ícone não existe no WoW Forever e precisa ser trocado em `Flavor.guildWindow.icons`.
 10. Clique em **Informações**: aparece o Início do addon, com a mensagem do dia, as informações e o próximo evento. Uma mensagem do dia longa ganha barra de rolagem, sem cobrir as informações. A dica "Clique num link para copiar" não aparece aqui. **Ver no calendário** abre a aba Eventos no dia do evento.
-11. **Ver original da Blizzard** mostra a aba original, onde o Lorde consegue editar a mensagem do dia e as informações. Clique em Informações de novo: volta o Início do addon. Feche e abra a janela: volta o Início do addon.
+11. **Ver original da Blizzard** mostra a aba original. Clique em Informações de novo: volta o Início do addon. Feche e abra a janela: volta o Início do addon.
+12. No Lorde, no Início da aba Informações: a dica diz para clicar na mensagem do dia ou nas informações para editar. Clique na mensagem do dia, fora de um link: abre a janela de edição da Blizzard com o texto atual. Mude e clique em Aceitar: grava, sem aviso de bloqueio, e o Início mostra o texto novo em cerca de 1 s. Repita nas informações da guilda.
+13. Clique num link das informações: abre só a caixa de copiar, sem a janela de edição.
+14. Entre em combate com a aba Informações aberta e troque de aba e volte: nenhum aviso de bloqueio; clicar no texto não abre a edição. Saia do combate: o clique volta a abrir.
+15. No membro sem cargo: a dica é só a de notícias e registro, e clicar no texto não abre nada.
+16. No Lorde, com a janela da guilda fechada, abra o addon (`/vdl`): no Início, a dica "Clique no texto para editar na janela da guilda" aparece. Clique nas informações, fora de um link: a janela do addon fecha, a da guilda abre e o chat avisa uma vez para abrir Informações. Abra Informações, clique no texto, edite e aceite: grava.
 
 ### Configurações
 
@@ -406,6 +423,18 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. **Mostrar: todos** alterna para só online. Clique direito num membro online: o menu mostra o nome, **Sussurrar** abre o chat e **Convidar para o grupo** envia o convite (confirme que não aparece "ação bloqueada" e que o convite chega com o nome "Nome Sobrenome"). Num membro offline ou em você, as opções ficam desativadas. Clicar fora ou Esc fecha o menu.
 4. Na janela da guilda (J), clique em **Membros**: aparece a lista do addon. **Ver original da Blizzard** mostra a original, com o "27 · Main" nas linhas. Clique em Membros de novo: volta a lista do addon.
 5. Em Configurações, desligue **Lista de membros do addon na aba Membros**: a aba Membros da guilda volta a ser só a da Blizzard.
+
+### Bate-papo
+
+1. Abra a aba **Bate-papo**: aparecem as mensagens recentes da guilda, inclusive as de antes de entrar no jogo, com a hora, o nome na cor da classe e "(alt de …)" para alts.
+2. Peça para alguém escrever no chat da guilda: a mensagem aparece na aba em menos de 1 s, sem precisar reabrir.
+3. Escreva na caixa e aperte Enter: a mensagem sai no chat da guilda (e aparece na aba). Uma mensagem com "|" sai com "/". Com a caixa em foco, Shift+clique num item da bolsa ou numa missão: o link entra na caixa e sai como link no chat.
+4. As mensagens antigas aparecem com o texto normal, sem `|Kw…|k`. Links só ficam clicáveis nas mensagens que chegaram com o addon aberto.
+5. Passe o mouse num link de item ou de missão: o tooltip aparece junto do mouse e some ao sair. Clique: abre o tooltip da Blizzard, como no chat. Clique num nome: abre o menu Sussurrar / Convidar. Passe o mouse: o tooltip mostra o item level e o main/alt. Clique num link: abre a caixa de copiar.
+6. No Lorde: os botões **Guilda** e **Oficiais** aparecem; em Oficiais, as mensagens e o envio são do canal de oficiais. No membro sem cargo, só a guilda.
+7. Na janela da guilda (J), a aba **Bate-papo** mostra o bate-papo do addon, sem a dica do topo. **Ver original da Blizzard** mostra o chat e a lista de membros da Blizzard; clicar em Bate-papo de novo volta ao do addon. Em Configurações, **Bate-papo do addon na aba Bate-papo** desliga a cobertura.
+8. Role com a roda do mouse até mensagens antigas: a rolagem não volta sozinha para o fim enquanto ninguém escreve.
+9. Numa masmorra ou raide, durante um encontro: as mensagens continuam aparecendo (talvez sem cor e sem links), e enviar mostra o aviso de comunicação restrita.
 
 ### Tempo de jogo com a guilda
 

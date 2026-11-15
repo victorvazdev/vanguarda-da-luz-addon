@@ -70,6 +70,9 @@ function Panel:Refresh()
     self.copy:Hide()
   end
 
+  ns.GuildTextEdit.Refresh()
+  self.motd.hint:SetShown(not self.compact and ns.GuildTextEdit.CanEditAny("open"))
+
   -- Próximo evento
   local now = GetServerTime()
   local event = ns.Store.NextEvent(now)
@@ -163,8 +166,13 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
 
   -- Mensagem do dia
   local motd = Card(frame, L["Mensagem do dia"])
-  motd:SetPoint("TOPLEFT")
-  motd:SetSize(leftW, 140)
+  -- Cartões em pixels inteiros: a borda de cima não some (ver Theme.PixelSize).
+  Theme.PixelPoint(motd, "TOPLEFT", frame, "TOPLEFT")
+  Theme.PixelSize(motd, leftW, 140)
+  motd.hint = Theme.Text(motd, "small", "textMuted")
+  motd.hint:SetPoint("TOPRIGHT", -PAD, -18)
+  motd.hint:SetText(L["Clique no texto para editar na janela da guilda"])
+  motd.hint:Hide()
   motd.holder = LinkedText(motd)
   motd.holder.scroll:SetPoint("TOPLEFT", motd.title, "BOTTOMLEFT", 0, -10 + TEXT_TOP)
   motd.holder.scroll:SetPoint("BOTTOMRIGHT", -PAD - SCROLLBAR_W, PAD)
@@ -172,8 +180,8 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
 
   -- Informações da guilda
   local info = Card(frame, L["Informações da guilda"])
-  info:SetPoint("TOPLEFT", motd, "BOTTOMLEFT", 0, -GAP)
-  info:SetSize(leftW, height - 140 - GAP)
+  Theme.PixelPoint(info, "TOPLEFT", motd, "BOTTOMLEFT", 0, -GAP)
+  Theme.PixelSize(info, leftW, height - 140 - GAP)
   info.hint = Theme.Text(info, "small", "textMuted")
   info.hint:SetPoint("TOPRIGHT", -PAD, -18)
   info.hint:SetText(L["Clique num link para copiar"])
@@ -198,6 +206,12 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
     end)
     holder:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
   end
+
+  -- O Grão Lorde e os Lordes editam clicando no texto: na janela da guilda,
+  -- abre a edição; na janela do addon, abre a janela da guilda.
+  local mode = compact and "edit" or "open"
+  ns.GuildTextEdit.Attach(motd, motd.holder, "motd", mode)
+  ns.GuildTextEdit.Attach(info, info.holder, "info", mode)
 
   -- Caixa de cópia por cima do texto, no pé do cartão. Fecha ao clicar fora
   -- dela (a caixa perde o foco), com Esc ou Enter.
@@ -249,8 +263,8 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
 
   -- Próximo evento
   local nextEvent = Card(frame, L["Próximo evento"])
-  nextEvent:SetPoint("TOPRIGHT")
-  nextEvent:SetSize(RIGHT_W, 200)
+  Theme.PixelPoint(nextEvent, "TOPRIGHT", frame, "TOPRIGHT")
+  Theme.PixelSize(nextEvent, RIGHT_W, 200)
   nextEvent.name = Theme.Text(nextEvent, "bodyStrong", "heading")
   nextEvent.name:SetPoint("TOPLEFT", nextEvent.title, "BOTTOMLEFT", 0, -10)
   nextEvent.name:SetPoint("RIGHT", -PAD, 0)
@@ -269,8 +283,8 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
 
   -- Guilda
   local guild = Card(frame, L["Guilda"])
-  guild:SetPoint("TOPRIGHT", nextEvent, "BOTTOMRIGHT", 0, -GAP)
-  guild:SetSize(RIGHT_W, height - 200 - GAP)
+  Theme.PixelPoint(guild, "TOPRIGHT", nextEvent, "BOTTOMRIGHT", 0, -GAP)
+  Theme.PixelSize(guild, RIGHT_W, height - 200 - GAP)
   guild.counts = Theme.Text(guild, "body")
   guild.counts:SetPoint("TOPLEFT", guild.title, "BOTTOMLEFT", 0, -10)
   guild.player = Theme.Text(guild, "body")

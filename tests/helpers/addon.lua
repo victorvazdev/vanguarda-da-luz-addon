@@ -24,6 +24,7 @@ local FILES = {
   "logic/Roster.lua",
   "logic/Together.lua",
   "logic/Keys.lua",
+  "logic/Chat.lua",
 }
 
 local LibDeflate

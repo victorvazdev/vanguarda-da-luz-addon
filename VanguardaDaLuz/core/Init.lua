@@ -13,6 +13,7 @@ ns.version = (C_AddOns and C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")) or 
 --   PROFESSIONS_UPDATED níveis de profissão ou lista da guilda mudaram
 --   MEMBERS_UPDATED     item level ou main/alt de algum membro mudou
 --   SETTINGS_UPDATED    uma opção da tela de Configurações mudou
+--   CHAT_UPDATED        chegou mensagem no bate-papo da guilda ou de oficiais
 --   TOGETHER_UPDATED    tempo de jogo com a guilda de algum membro mudou
 --   GUILD_UPDATED       mensagem do dia, informações ou membros online mudaram
 local listeners = {}

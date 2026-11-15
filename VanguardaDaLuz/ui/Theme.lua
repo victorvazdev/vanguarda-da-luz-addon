@@ -82,11 +82,72 @@ local function EdgeSize(frame)
   return math.max(1, PixelUtil.GetNearestPixelSize(1, scale, 1))
 end
 
+-- Textura lisa alinhada à grade de pixels da tela.
+local function Solid(frame, layer, sublevel)
+  local texture = frame:CreateTexture(nil, layer, nil, sublevel)
+  texture:SetTexture(WHITE)
+  if texture.SetSnapToPixelGrid then texture:SetSnapToPixelGrid(true) end
+  return texture
+end
+
+-- Fundo e as quatro linhas da borda, criados uma vez por quadro.
+--
+-- Não usa o BackdropTemplate: ele desliga o alinhamento à grade de pixels das
+-- bordas (e volta a desligar quando o quadro muda de tamanho). Um quadro que
+-- começa no meio de um pixel, comum dentro da janela da guilda, ficava com a
+-- linha de 1 pixel repartida em duas, quase apagada.
+local function Parts(frame)
+  local parts = rawget(frame, "vdlBackdrop")
+  if parts then return parts end
+  parts = { bg = Solid(frame, "BACKGROUND", -8) }
+  parts.bg:SetAllPoints()
+  parts.top = Solid(frame, "BORDER", 7)
+  parts.top:SetPoint("TOPLEFT")
+  parts.top:SetPoint("TOPRIGHT")
+  parts.bottom = Solid(frame, "BORDER", 7)
+  parts.bottom:SetPoint("BOTTOMLEFT")
+  parts.bottom:SetPoint("BOTTOMRIGHT")
+  -- As laterais ficam entre as linhas de cima e de baixo: sem sobrepor nos
+  -- cantos (cores com transparência escureceriam ali).
+  parts.left = Solid(frame, "BORDER", 7)
+  parts.left:SetPoint("TOPLEFT", parts.top, "BOTTOMLEFT")
+  parts.left:SetPoint("BOTTOMLEFT", parts.bottom, "TOPLEFT")
+  parts.right = Solid(frame, "BORDER", 7)
+  parts.right:SetPoint("TOPRIGHT", parts.top, "BOTTOMRIGHT")
+  parts.right:SetPoint("BOTTOMRIGHT", parts.bottom, "TOPRIGHT")
+  rawset(frame, "vdlBackdrop", parts)
+  return parts
+end
+
 function Theme.Backdrop(frame, bg, border)
-  if not frame.SetBackdrop then Mixin(frame, BackdropTemplateMixin) end
-  frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = EdgeSize(frame) })
-  frame:SetBackdropColor(unpack(Theme.colors[bg or "surface"]))
-  frame:SetBackdropBorderColor(unpack(Theme.colors[border or "border"]))
+  local parts = Parts(frame)
+  local edge = EdgeSize(frame)
+  parts.top:SetHeight(edge)
+  parts.bottom:SetHeight(edge)
+  parts.left:SetWidth(edge)
+  parts.right:SetWidth(edge)
+  parts.bg:SetVertexColor(unpack(Theme.colors[bg or "surface"]))
+  local color = Theme.colors[border or "border"]
+  for _, key in ipairs({ "top", "bottom", "left", "right" }) do parts[key]:SetVertexColor(unpack(color)) end
+end
+
+-- Tamanho e posição arredondados para pixels inteiros da tela. Com a escala
+-- da interface, medidas em unidades (140 + 16, por exemplo) podem cair no meio
+-- de um pixel, e a borda de 1 pixel do quadro fica quase apagada.
+function Theme.PixelSize(frame, width, height)
+  if PixelUtil and PixelUtil.SetSize then
+    PixelUtil.SetSize(frame, width, height)
+  else
+    frame:SetSize(width, height)
+  end
+end
+
+function Theme.PixelPoint(frame, point, relativeTo, relativePoint, x, y)
+  if PixelUtil and PixelUtil.SetPoint then
+    PixelUtil.SetPoint(frame, point, relativeTo, relativePoint, x or 0, y or 0)
+  else
+    frame:SetPoint(point, relativeTo, relativePoint, x or 0, y or 0)
+  end
 end
 
 function Theme.Text(parent, font, color, layer)

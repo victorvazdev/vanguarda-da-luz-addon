@@ -1,9 +1,9 @@
 -- Abas do addon na janela "Guilda e comunidades" da interface padrão: Eventos,
 -- Profissões e Administração (só Grão Lorde e Lordes), abaixo dos botões
--- laterais da Blizzard. Nas abas Informações e Membros da Blizzard, o painel
--- mostra o Início e a lista de membros do addon, com um botão para ver a
--- original (edição da mensagem do dia e das informações, notícias, registro e
--- gestão dos membros, que addons não podem fazer).
+-- laterais da Blizzard. Nas abas Bate-papo, Informações e Membros da Blizzard,
+-- o painel mostra o bate-papo, o Início e a lista de membros do addon, com um
+-- botão para ver a original (notícias, registro e gestão dos membros, que
+-- addons não podem fazer).
 --
 -- Para não interferir na janela da Blizzard, o addon só acrescenta: os botões
 -- são próprios, e o painel do addon fica por cima da área de conteúdo, sem
@@ -31,10 +31,11 @@ local showOriginal = {}    -- [aba coberta] = true: o jogador pediu a da Blizzar
 -- Abas da Blizzard cobertas por um painel do addon: chave do painel (e da opção
 -- em Configurações) e o nome do botão em Flavor.guildWindow.
 local COVERS = {
+  { key = "chat", tab = "chatTab" },
   { key = "info", tab = "infoTab" },
   { key = "members", tab = "rosterTab" },
 }
-local covered = { info = true, members = true }
+local covered = { chat = true, info = true, members = true }
 
 local TABS = {
   { key = "events", tooltip = L["Eventos da guilda"] },
@@ -131,9 +132,10 @@ local function Activate() end -- definida abaixo
 -- (que podem editar) e `member` para os outros.
 local HINTS = {
   info = {
-    trusted = L["Para editar a mensagem do dia e as informações, ou ver notícias e registro, use a original."],
+    trusted = L["Clique na mensagem do dia ou nas informações para editar. Notícias e registro ficam na original."],
     member = L["Para ver notícias e registro, use a original."],
   },
+  chat = {},
   members = {
     trusted = L["Para promover, rebaixar, remover ou editar notas, use a original."],
     member = L["Para alterar a nota, use a original."],
@@ -151,6 +153,8 @@ local function CreateCoverPanel(key, w, h)
       Activate("events")
       panels.events:ShowDate(f.year, f.month, f.day, event.id)
     end, true)
+  elseif key == "chat" then
+    inner = ns.ChatPanel.Create(frame, w, h - 36, true)
   else
     inner = ns.MembersPanel.Create(frame, w, h - 36, { time = true })
   end
@@ -166,7 +170,10 @@ local function CreateCoverPanel(key, w, h)
   hint:SetPoint("RIGHT", original, "LEFT", -12, 0)
   return { frame = frame, inner = inner, home = key == "info" and inner or nil, original = original, hint = hint,
     Refresh = function()
-      local text = HINTS[key][ns.Guild.IsPlayerTrusted() and "trusted" or "member"]
+      -- Em Informações, a dica de editar só aparece para quem consegue editar.
+      local trusted = ns.Guild.IsPlayerTrusted()
+      if key == "info" then trusted = ns.GuildTextEdit.CanEditAny() end
+      local text = HINTS[key][trusted and "trusted" or "member"]
       hint:SetText(text or "")
       hint:SetShown(text ~= nil)
       inner:Refresh()
@@ -185,7 +192,7 @@ local function CreatePanel(key)
   else
     panel = ns.AdminPanel.Create(overlay, w, h)
   end
-  panel.frame:SetPoint("TOPLEFT", INSET, -INSET)
+  Theme.PixelPoint(panel.frame, "TOPLEFT", overlay, "TOPLEFT", INSET, -INSET)
   panels[key] = panel
   return panel
 end
@@ -379,7 +386,7 @@ local function Setup()
   -- Clique num botão da Blizzard: ela troca o conteúdo e o painel do addon sai
   -- (BlizzardTabs observa o clique de cada botão que encontra).
   BlizzardTabs()
-  -- Clicar em Informações ou Membros volta a mostrar o painel do addon.
+  -- Clicar em Bate-papo, Informações ou Membros volta a mostrar o painel do addon.
   for _, cover in ipairs(COVERS) do
     local tab = host[spec[cover.tab]]
     if tab then
@@ -410,6 +417,7 @@ local function Setup()
   ns.On("GUILD_UPDATED", GuildTabs.Refresh)
   ns.On("MEMBERS_UPDATED", GuildTabs.Refresh)
   ns.On("TOGETHER_UPDATED", GuildTabs.Refresh)
+  ns.On("CHAT_UPDATED", GuildTabs.Refresh)
   ns.On("SETTINGS_UPDATED", GuildTabs.Update)
   ns.On("PROFESSIONS_UPDATED", function()
     GuildTabs.Update()

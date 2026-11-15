@@ -40,6 +40,7 @@ Store.GUILD_FEATURES = {
   { key = "events", label = L["Aba Eventos"] },
   { key = "professions", label = L["Aba Profissões"] },
   { key = "admin", label = L["Aba Administração"], trusted = true }, -- só Grão Lorde e Lordes
+  { key = "chat", label = L["Bate-papo do addon na aba Bate-papo"] },
   { key = "info", label = L["Início do addon na aba Informações"] },
   { key = "members", label = L["Lista de membros do addon na aba Membros"] },
   { key = "roster", label = L["Item level e main/alt na lista original de Membros"] },

@@ -5,6 +5,9 @@
 # Pacotes gerados (scripts/package.sh)
 dist/
 
+# Pasta AddOns do jogo, de cada pessoa (scripts/install.sh)
+scripts/.addons-dir
+
 # Sistema
 .DS_Store
 *.swp

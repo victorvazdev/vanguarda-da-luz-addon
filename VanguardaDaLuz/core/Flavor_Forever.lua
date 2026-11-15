@@ -21,8 +21,18 @@ Flavor.guildWindow = {
   lastTab = "GuildInfoTab",   -- as abas do addon ficam abaixo deste botão
   infoTab = "GuildInfoTab",   -- aba Informações, coberta pelo Início do addon
   rosterTab = "RosterTab",    -- aba Membros, coberta pela lista do addon
+  chatTab = "ChatTab",        -- aba Bate-papo, coberta pelo bate-papo do addon
   memberList = "MemberList",  -- lista de membros (linhas com SetMember)
   memberEntryMixin = "CommunitiesMemberListEntryMixin",
+  -- Botões "Editar" da aba Informações (host.GuildDetailsFrame.Info) e a
+  -- janela de edição da Blizzard. Confirmados no jogo: acionados por um botão
+  -- seguro do addon (type "click"), gravam; chamados pelo addon, são bloqueados.
+  details = { "GuildDetailsFrame", "Info" },
+  editButtons = { motd = "EditMOTDButton", info = "EditDetailsButton" },
+  textEditFrame = "CommunitiesGuildTextEditFrame",
+  -- Botão Guilda do menu do jogo: acionado por um botão seguro, abre a janela
+  -- da guilda sem bloquear a edição depois (confirmado no jogo).
+  openButton = "GuildMicroButton",
   tabs = { "ChatTab", "RosterTab", "GuildBenefitsTab", "GuildInfoTab" },
   tabGap = 20,
   minWidth = 700,             -- largura normal: 814; minimizada é bem menor
@@ -55,6 +65,100 @@ function Flavor.SendGuildChat(text)
     return false
   end
   return true
+end
+
+-- Envia uma mensagem no chat da guilda ("GUILD") ou de oficiais ("OFFICER").
+-- Retorna true, ou false e o erro do jogo.
+function Flavor.SendChat(text, channel)
+  local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or SendChatMessage
+  if not send then return false, "SendChatMessage" end
+  local ok, err = pcall(send, text, channel)
+  if ok then return true end
+  return false, tostring(err)
+end
+
+-- Canais do bate-papo da guilda no clube da guilda (C_Club): o bate-papo da
+-- guilda e o de oficiais são "streams" (tipos 1 e 2, confirmado no jogo).
+-- Retorna o clube e { guild = streamId, officer = streamId }, ou nil.
+function Flavor.GuildChatStreams()
+  if not (C_Club and C_Club.GetGuildClubId and C_Club.GetStreams) then return nil end
+  local club = C_Club.GetGuildClubId()
+  if not club then return nil end
+  local types = Enum and Enum.ClubStreamType or {}
+  return club, ns.Chat.Streams(C_Club.GetStreams(club), { guild = types.Guild or 1, officer = types.Officer or 2 })
+end
+
+-- Mensagens já carregadas de um canal, da mais antiga para a mais nova:
+-- { { id, time, name, guid, content, secret }, ... }. Inclui as de antes do
+-- login (histórico do clube, confirmado no jogo: as últimas 100).
+function Flavor.GuildChatMessages(club, stream)
+  local list = {}
+  if not (club and stream and C_Club.GetMessageRanges and C_Club.GetMessagesInRange) then return list end
+  local ranges = C_Club.GetMessageRanges(club, stream)
+  local range = ranges and ranges[#ranges]
+  if not range then return list end
+  local messages = C_Club.GetMessagesInRange(club, stream, range.oldestMessageId, range.newestMessageId) or {}
+  for _, m in ipairs(messages) do
+    if not m.destroyed then
+      local author = m.author or {}
+      local id = m.messageId or {}
+      list[#list + 1] = {
+        id = (id.epoch or 0) .. ":" .. (id.position or 0),
+        time = math.floor((id.epoch or 0) / 1000000),
+        name = author.name, guid = author.guid,
+        content = m.content,
+        secret = Flavor.IsSecret(m.content) or Flavor.IsSecret(author.name),
+      }
+    end
+  end
+  return list
+end
+
+-- Valor secreto (Midnight: em encontros, alguns textos chegam ilegíveis para
+-- addons; dá para exibir, mas não ler nem comparar)?
+function Flavor.IsSecret(value)
+  return issecretvalue ~= nil and value ~= nil and issecretvalue(value) and true or false
+end
+
+-- Clique num link do jogo (item, missão, feitiço, conquista...): faz o mesmo
+-- que no chat da Blizzard (SetItemRef abre o tooltip do item ou da missão;
+-- com Shift, põe o link na caixa do chat).
+function Flavor.OpenGameLink(link, text, button, owner)
+  if not SetItemRef then return false end
+  return pcall(SetItemRef, link, text, button, owner) and true or false
+end
+
+-- Tooltip de um link do jogo (item, missão, feitiço...) junto do mouse.
+-- Links que o tooltip não conhece não mostram nada.
+function Flavor.ShowLinkTooltip(owner, link)
+  GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
+  if pcall(GameTooltip.SetHyperlink, GameTooltip, link) then
+    GameTooltip:Show()
+  else
+    GameTooltip:Hide()
+  end
+end
+
+-- Shift+clique num item, missão etc. chama a função do jogo que põe o link na
+-- caixa do chat aberta. `callback(link)` é chamado depois dela, para o addon
+-- pôr o link na própria caixa quando ela está com o foco. Observa os dois
+-- nomes da função (o antigo pode só repassar para o novo): o mesmo link no
+-- mesmo instante só conta uma vez.
+function Flavor.OnChatLinkInsert(callback)
+  local lastLink, lastTime
+  local function Hook(link)
+    local now = GetTime()
+    if link == lastLink and now == lastTime then return end
+    lastLink, lastTime = link, now
+    callback(link)
+  end
+  if ChatFrameUtil and ChatFrameUtil.InsertLink then hooksecurefunc(ChatFrameUtil, "InsertLink", Hook) end
+  if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", Hook) end
+end
+
+-- Hora local ("20:31") de um horário Unix.
+function Flavor.Clock(seconds)
+  return date("%H:%M", seconds)
 end
 
 -- Mostra o texto no quadro do aviso de raide da interface padrão.
@@ -191,6 +295,32 @@ function Flavor.GroupState()
 end
 
 -- O clube selecionado na janela da guilda é a guilda do jogador?
+-- Botão "Editar" da Blizzard para a mensagem do dia ("motd") ou as
+-- informações ("info"), ou nil se a janela da guilda não carregou.
+function Flavor.GuildTextEditButton(kind)
+  local spec = Flavor.guildWindow
+  local frame = _G[spec.frame]
+  for _, key in ipairs(spec.details) do frame = frame and frame[key] end
+  return frame and frame[spec.editButtons[kind]] or nil
+end
+
+-- Botão Guilda do menu do jogo (abre a janela da guilda), ou nil.
+function Flavor.GuildOpenButton()
+  return _G[Flavor.guildWindow.openButton]
+end
+
+-- A janela da guilda está aberta?
+function Flavor.IsGuildWindowShown()
+  local frame = _G[Flavor.guildWindow.frame]
+  return frame ~= nil and frame:IsShown() and true or false
+end
+
+-- O jogo deixa este personagem editar a mensagem do dia ou as informações?
+function Flavor.CanEditGuildText(kind)
+  local fn = kind == "motd" and CanEditMOTD or CanEditGuildInfo
+  return fn ~= nil and fn() and true or false
+end
+
 function Flavor.IsGuildClubSelected(host)
   if not (host and host.GetSelectedClubId and C_Club and C_Club.GetGuildClubId) then return false end
   local guild = C_Club.GetGuildClubId()

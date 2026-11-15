@@ -177,8 +177,8 @@ EN["Item level %d"] = "Item level %d"
 EN["Eventos da guilda"] = "Guild events"
 EN["Administração do addon"] = "Addon administration"
 EN["Ver original da Blizzard"] = "View Blizzard's original"
-EN["Para editar a mensagem do dia e as informações, ou ver notícias e registro, use a original."] =
-  "To edit the Message of the Day and the information, or to see news and the log, use the original."
+EN["Clique na mensagem do dia ou nas informações para editar. Notícias e registro ficam na original."] =
+  "Click the Message of the Day or the Guild Information to edit it. News and the event log are in the original."
 EN["Para ver notícias e registro, use a original."] = "To see news and the log, use the original."
 EN["Para promover, rebaixar, remover ou editar notas, use a original."] =
   "To promote, demote, remove or edit notes, use the original."
@@ -280,3 +280,22 @@ EN["Será aplicado ao sair do combate."] = "It will be applied when you leave co
 EN["Esta tecla também está em \"%s\" nos atalhos do jogo; o addon tem prioridade."] =
   "This key is also bound to \"%s\" in the game's key bindings; the addon takes priority."
 EN["Clique no botão e pressione a tecla."] = "Click the button and press the key."
+EN["Clique no texto para editar na janela da guilda"] = "Click the text to edit it in the guild window"
+EN["Na janela da guilda, abra Informações e clique no texto para editar."] =
+  "In the guild window, open Guild Information and click the text to edit it."
+
+-- Bate-papo da guilda
+EN["Bate-papo"] = "Chat"
+EN["Oficiais"] = "Officers"
+EN["Escreva para a guilda…"] = "Write to the guild…"
+EN["Escreva para os oficiais…"] = "Write to the officers…"
+EN["Nenhuma mensagem ainda."] = "No messages yet."
+EN["alt de %s"] = "alt of %s"
+EN["Clique: sussurrar ou convidar"] = "Click: whisper or invite"
+EN["Clique num nome: sussurrar ou convidar · clique num link para copiar"] =
+  "Click a name: whisper or invite · click a link to copy it"
+EN["Enviar"] = "Send"
+EN["Não foi possível enviar a mensagem."] = "The message could not be sent."
+EN["Comunicação restrita no momento (encontro, Mítica+ ou JxJ). A mensagem não foi enviada."] =
+  "Communication is restricted right now (encounter, Mythic+ or PvP). The message was not sent."
+EN["Bate-papo do addon na aba Bate-papo"] = "Addon chat on the Chat tab"

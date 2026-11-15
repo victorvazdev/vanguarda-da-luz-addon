@@ -1,6 +1,6 @@
 -- Janela principal do addon, com abas: Início (mensagem do dia e informações
--- da guilda), Eventos (calendário), Profissões, Membros, Administração (Grão
--- Lorde e Lordes) e Configurações. Abre sempre no Início.
+-- da guilda), Bate-papo, Eventos (calendário), Profissões, Membros,
+-- Administração (Grão Lorde e Lordes) e Configurações. Abre sempre no Início.
 local _, ns = ...
 
 local L = ns.L
@@ -15,6 +15,7 @@ local FOOTER_H = 62
 
 local TABS = {
   { key = "home", label = L["Início"], width = 100 },
+  { key = "chat", label = L["Bate-papo"], width = 110 },
   { key = "events", label = L["Eventos"], width = 100 },
   { key = "professions", label = L["Profissões"], width = 116 },
   { key = "members", label = L["Membros"], width = 110 },
@@ -53,7 +54,7 @@ function MainFrame.Refresh()
   frame.sync:SetText(Theme.Code("textMuted") .. ns.Comm.Status() .. "|r")
 end
 
--- Abre uma aba ("home", "events", "professions", "members", "admin" ou "settings").
+-- Abre uma aba ("home", "events", "professions", "members", "chat", "admin" ou "settings").
 function MainFrame.ShowTab(key)
   active = key
   if key == "professions" or key == "members" then ns.Guild.RequestRoster() end
@@ -88,6 +89,7 @@ local function Build()
     events = ns.CalendarPanel.Create(frame, w, "wide", h),
     professions = ns.ProfessionsPanel.Create(frame, w, h),
     members = ns.MembersPanel.Create(frame, w, h),
+    chat = ns.ChatPanel.Create(frame, w, h),
     admin = ns.AdminPanel.Create(frame, w, h),
     settings = ns.SettingsPanel.Create(frame, w, h),
   }
@@ -128,6 +130,7 @@ local function Build()
   ns.On("SETTINGS_UPDATED", MainFrame.Refresh)
   ns.On("MEMBERS_UPDATED", MainFrame.Refresh)
   ns.On("TOGETHER_UPDATED", MainFrame.Refresh)
+  ns.On("CHAT_UPDATED", MainFrame.Refresh)
 end
 
 function MainFrame.Hide()

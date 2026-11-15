@@ -3,7 +3,7 @@
 ## Notes: Event calendar, attendance, professions and members of the Vanguarda da Luz guild.
 ## Notes-ptBR: Calendário de eventos, presença, profissões e membros da guilda Vanguarda da Luz.
 ## Author: Vanguarda da Luz
-## Version: 0.2.1
+## Version: 0.3.0
 ## Category: Guild
 ## Category-ptBR: Guilda
 ## IconTexture: Interface\AddOns\VanguardaDaLuz\assets\logo-64
@@ -37,6 +37,7 @@ logic\Members.lua
 logic\Roster.lua
 logic\Together.lua
 logic\Keys.lua
+logic\Chat.lua
 
 game\Store.lua
 game\Guild.lua
@@ -47,14 +48,17 @@ game\GuildProfessions.lua
 game\GuildMembers.lua
 game\GuildTogether.lua
 game\Keybind.lua
+game\GuildChat.lua
 
 ui\Theme.lua
 ui\CalendarPanel.lua
 ui\ProfessionsPanel.lua
 ui\MembersPanel.lua
 ui\AdminPanel.lua
+ui\GuildTextEdit.lua
 ui\HomePanel.lua
 ui\SettingsPanel.lua
+ui\ChatPanel.lua
 ui\MainFrame.lua
 ui\ImportDialog.lua
 ui\AlertBanner.lua

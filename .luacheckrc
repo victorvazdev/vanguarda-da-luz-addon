@@ -29,7 +29,7 @@ read_globals = {
   "ChatFrameUtil", "ChatFrame_SendTell", "hooksecurefunc",
   "GetGuildRosterMOTD", "GetGuildInfoText",
   "SetOverrideBindingClick", "ClearOverrideBindings", "GetBindingText", "GetBindingAction",
-  "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsMetaKeyDown",
+  "issecretvalue", "SetItemRef", "ChatEdit_InsertLink", "date", "CanEditMOTD", "CanEditGuildInfo", "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsMetaKeyDown",
 }
 
 files["tests/"] = { std = "+busted" }
