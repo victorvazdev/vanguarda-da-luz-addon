@@ -131,6 +131,13 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
 ```
 
+## Changelog da versão 0.3.1
+
+```markdown
+### Fixes
+- The **Officers** channel of the Chat tab now shows its message history. Before, it stayed empty until someone wrote, because the game only loads a channel's history when asked.
+```
+
 ## Changelog da versão 0.3.0
 
 ```markdown

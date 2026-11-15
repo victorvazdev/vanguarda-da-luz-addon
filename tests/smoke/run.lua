@@ -110,6 +110,7 @@ local club = {
   { name = "Aelin Ashryvrr", presence = 3, profession1Name = "Esfolamento", profession1Rank = 1,
     profession2Name = "Couraria", profession2Rank = 1 },
 }
+local officerLoaded, historyRequests = false, {}
 _G.C_Club = {
   GetGuildClubId = function() return "clube" end,
   GetClubMembers = function() local ids = {} for i = 1, #club do ids[i] = i end return ids end,
@@ -117,7 +118,12 @@ _G.C_Club = {
   -- Bate-papo: canais da guilda e de oficiais, com o histórico carregado.
   GetStreams = function() return { { streamId = "g", streamType = 1, name = "Guilda" },
     { streamId = "o", streamType = 2, name = "Oficial" } } end,
-  GetMessageRanges = function() return { { oldestMessageId = 1, newestMessageId = 2 } } end,
+  -- O canal de oficiais só tem histórico depois de pedido ao servidor.
+  GetMessageRanges = function(_, stream)
+    if stream == "o" and not officerLoaded then return {} end
+    return { { oldestMessageId = 1, newestMessageId = 2 } }
+  end,
+  RequestMoreMessagesBefore = function(_, stream) historyRequests[#historyRequests + 1] = stream end,
   GetMessagesInRange = function(_, stream)
     if stream == "o" then return { { messageId = { epoch = 1794410000000000, position = 1 },
       author = { name = "Maren", guid = "Player-2" }, content = "só oficiais" } } end
@@ -655,6 +661,11 @@ cp.input:SetText("  olá | guilda ")
 cp.input._scripts.OnEnterPressed(cp.input)
 print("enviado no chat:", chat[#chat], #chat - chatBefore, "|" .. cp.input._text .. "|")
 cp.officerTab._scripts.OnClick(cp.officerTab)
+print("oficiais sem histórico:", cp.messages._lines[1], table.concat(historyRequests, ","))
+officerLoaded = true
+ns.GuildChat.OnEvent(nil, "CLUB_MESSAGE_HISTORY_RECEIVED")
+RunTimers()
+cp:Refresh()
 print("oficiais:", cp:Channel(), cp.messages._lines[1])
 cp.input:SetText("reunião")
 cp.input._scripts.OnEnterPressed(cp.input)

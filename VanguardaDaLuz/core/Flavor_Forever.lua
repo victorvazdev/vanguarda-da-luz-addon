@@ -156,6 +156,15 @@ function Flavor.OnChatLinkInsert(callback)
   if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", Hook) end
 end
 
+-- Pede ao servidor o histórico de um canal do clube (as `count` mensagens mais
+-- recentes). O jogo só carrega o histórico de um canal quando alguém pede: o
+-- da guilda já vem pelo chat da Blizzard, o de oficiais não. A resposta chega
+-- no evento CLUB_MESSAGE_HISTORY_RECEIVED.
+function Flavor.RequestChatHistory(club, stream, count)
+  if not (club and stream and C_Club and C_Club.RequestMoreMessagesBefore) then return false end
+  return pcall(C_Club.RequestMoreMessagesBefore, club, stream, nil, count) and true or false
+end
+
 -- Hora local ("20:31") de um horário Unix.
 function Flavor.Clock(seconds)
   return date("%H:%M", seconds)

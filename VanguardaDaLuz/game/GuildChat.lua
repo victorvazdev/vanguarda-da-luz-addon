@@ -23,6 +23,8 @@ local EVENT_CHANNEL = { CHAT_MSG_GUILD = "guild", CHAT_MSG_OFFICER = "officer" }
 
 local pending = false
 local recent = { guild = {}, officer = {} } -- texto normal recebido nesta sessão
+local requested = {} -- [stream] = true: histórico já pedido ao servidor
+local HISTORY_COUNT = 100
 
 local function Changed()
   if pending then return end
@@ -49,7 +51,7 @@ end
 function GuildChat.Init()
   local events = CreateFrame("Frame")
   for _, name in ipairs({ "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CLUB_MESSAGE_ADDED", "CLUB_MESSAGE_UPDATED",
-    "CLUB_STREAMS_LOADED" }) do
+    "CLUB_STREAMS_LOADED", "CLUB_MESSAGE_HISTORY_RECEIVED" }) do
     pcall(events.RegisterEvent, events, name)
   end
   events:SetScript("OnEvent", GuildChat.OnEvent)
@@ -68,7 +70,14 @@ end
 function GuildChat.Entries(channel)
   local club, streams = ns.Flavor.GuildChatStreams()
   if not club then return {} end
-  local raw = ns.Flavor.GuildChatMessages(club, streams[channel])
+  local stream = streams[channel]
+  local raw = ns.Flavor.GuildChatMessages(club, stream)
+  -- Canal sem histórico carregado (o de oficiais, em geral): pede uma vez; a
+  -- resposta chega por evento e o painel relê.
+  if #raw == 0 and stream and not requested[stream] then
+    requested[stream] = true
+    ns.Flavor.RequestChatHistory(club, stream, HISTORY_COUNT)
+  end
   local byGuid, byName = {}, {}
   for _, entry in ipairs(ns.Flavor.GuildRoster()) do
     if entry.guid then byGuid[entry.guid] = entry end
