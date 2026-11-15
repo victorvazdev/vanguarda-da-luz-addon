@@ -1,5 +1,5 @@
--- Painel Configurações da janela do addon: main da conta, botão do minimapa e
--- funcionalidades do addon na janela da guilda.
+-- Painel Configurações da janela do addon: main da conta, botão do minimapa,
+-- atalho de teclado e funcionalidades do addon na janela da guilda.
 local _, ns = ...
 
 local L = ns.L
@@ -42,6 +42,7 @@ function Panel:Refresh()
     self.mainNote:SetText(L["Nenhum main definido nesta conta."])
   end
   self.minimap:SetValue(ns.MinimapButton.IsShown())
+  self:RefreshKey()
   -- Opções visíveis, uma abaixo da outra (Administração só para Grão Lorde e Lordes).
   local trusted = ns.Guild.IsPlayerTrusted()
   local previous, count = self.guild.text, 0
@@ -57,6 +58,34 @@ function Panel:Refresh()
     end
   end
   self.guild:SetHeight(96 + count * ROW)
+end
+
+-- Botão do atalho e a nota abaixo dele.
+function Panel:RefreshKey()
+  local combo = ns.Keybind.Get()
+  self.clearKey:SetEnabled(combo ~= nil and not self.capturing)
+  if self.capturing then
+    self.key:SetText(L["Pressione uma tecla…"])
+    self.keyNote:SetText(L["Esc cancela. Pode combinar com Shift, Ctrl ou Alt."])
+    return
+  end
+  self.key:SetText(combo and ns.Keybind.Text(combo) or L["Nenhum"])
+  local conflict = ns.Keybind.Conflict(combo)
+  if ns.Keybind.IsPending() then
+    self.keyNote:SetText(L["Será aplicado ao sair do combate."])
+  elseif conflict then
+    self.keyNote:SetText(string.format(L["Esta tecla também está em \"%s\" nos atalhos do jogo; "
+      .. "o addon tem prioridade."], conflict))
+  else
+    self.keyNote:SetText(L["Clique no botão e pressione a tecla."])
+  end
+end
+
+-- Liga ou desliga a captura da próxima tecla.
+function Panel:Capture(on)
+  self.capturing = on
+  self.key:EnableKeyboard(on)
+  self:RefreshKey()
 end
 
 -- Cria o painel dentro de `parent`, com `width` x `height`.
@@ -89,6 +118,37 @@ function SettingsPanel.Create(parent, width, height)
     ns.MinimapButton.SetShown(value)
   end)
   self.minimap:SetPoint("TOPLEFT", minimap.text, "BOTTOMLEFT", 0, -12)
+
+  -- Atalho de teclado
+  local shortcut = Card(frame, L["Atalho"], L["Tecla para abrir e fechar a janela do addon. Fica salva na conta."])
+  shortcut:SetPoint("TOPLEFT", minimap, "BOTTOMLEFT", 0, -GAP)
+  shortcut:SetSize(colW, 130)
+  self.key = Theme.Button(shortcut, L["Nenhum"], "outline", 180)
+  self.key:SetPoint("TOPLEFT", shortcut.text, "BOTTOMLEFT", 0, -12)
+  self.key:SetScript("OnClick", function() self:Capture(not self.capturing) end)
+  self.key:SetScript("OnKeyDown", function(_, key)
+    if key == "ESCAPE" then
+      self:Capture(false)
+      return
+    end
+    local combo = ns.Keys.Build(key, {
+      alt = IsAltKeyDown(), ctrl = IsControlKeyDown(), shift = IsShiftKeyDown(),
+      meta = IsMetaKeyDown and IsMetaKeyDown(),
+    })
+    if not combo then return end -- só o modificador: espera a tecla
+    self.capturing = false
+    self.key:EnableKeyboard(false)
+    ns.Keybind.Set(combo)
+    self:RefreshKey()
+  end)
+  self.clearKey = Theme.Button(shortcut, L["Limpar"], "ghost", 80)
+  self.clearKey:SetPoint("LEFT", self.key, "RIGHT", 8, 0)
+  self.clearKey:SetScript("OnClick", function() ns.Keybind.Set(nil) end)
+  self.keyNote = Theme.Text(shortcut, "small", "textMuted")
+  self.keyNote:SetPoint("TOPLEFT", self.key, "BOTTOMLEFT", 0, -8)
+  self.keyNote:SetPoint("RIGHT", -PAD, 0)
+  -- Sair da tela cancela a captura.
+  frame:SetScript("OnHide", function() if self.capturing then self:Capture(false) end end)
 
   -- Janela da guilda
   local guild = Card(frame, L["Janela da guilda"],

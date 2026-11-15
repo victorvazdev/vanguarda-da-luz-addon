@@ -111,6 +111,27 @@ describe("Teste de fumaça do addon", function()
     assert.is_truthy(text:find("minimapa de volta: true false", 1, true))
     assert.is_truthy(text:find("main pela tela: Tester Vaz true Os outros personagens", 1, true))
     assert.is_truthy(text:find("main desmarcado: nil false nil", 1, true))
+    assert.is_truthy(text:find("bate-papo: false Item level 231 · Alt de Aelin Ashryvrr", 1, true))
+    assert.is_truthy(text:find("membros com texto: true", 1, true))
+    -- popup "é o seu main?"
+    assert.is_truthy(text:find("popup main: true Tester Vaz é o seu main?", 1, true))
+    assert.is_truthy(text:find("popup não: false true", 1, true))
+    assert.is_truthy(text:find("popup de novo: false", 1, true))
+    assert.is_truthy(text:find("popup desligado: false true", 1, true))
+    assert.is_truthy(text:find("popup sim: false Tester Vaz", 1, true))
+    assert.is_truthy(text:find("popup com main: false", 1, true))
+    assert.is_truthy(text:find("popup main fora da guilda: true", 1, true))
+    -- atalho de teclado
+    assert.is_truthy(text:find("atalho: Nenhum Clique no botão", 1, true))
+    assert.is_truthy(text:find("capturando: Pressione uma tecla…", 1, true))
+    assert.is_truthy(text:find("atalho definido: SHIFT-M VanguardaDaLuzToggleButton Shift-M Esta tecla também "
+      .. "está em \"Abrir mapa\"", 1, true))
+    assert.is_truthy(text:find("atalho abre: true", 1, true))
+    assert.is_truthy(text:find("captura cancelada: Shift-M SHIFT-M", 1, true))
+    assert.is_truthy(text:find("em combate: F7 nil VanguardaDaLuzToggleButton Será aplicado ao sair do combate.",
+      1, true))
+    assert.is_truthy(text:find("fim do combate: VanguardaDaLuzToggleButton nil Clique no botão", 1, true))
+    assert.is_truthy(text:find("atalho limpo: nil nil Nenhum", 1, true))
     -- menu de atalhos do minimapa
     assert.is_truthy(text:find("menu minimapa: true Início,Eventos,Profissões,Membros,Sincronizar,Administração,"
       .. "Configurações,Esconder botão do minimapa", 1, true))

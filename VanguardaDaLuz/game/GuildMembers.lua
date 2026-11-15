@@ -83,6 +83,33 @@ function GuildMembers.ClearMain()
   GuildMembers.Announce()
 end
 
+-- Perguntar ao logar se este personagem é o main? Só quando a conta não tem
+-- main na guilda, a pessoa não respondeu "Não" neste personagem e não pediu
+-- para parar de perguntar.
+function GuildMembers.ShouldAskMain()
+  local settings = ns.db.settings
+  if settings.mainPromptOff or not ns.Guild.IsMember() then return false end
+  local me = ns.Guild.PlayerName()
+  local members = ns.Flavor.GuildMembers()
+  if not (me and members) or (settings.mainAsked and settings.mainAsked[me]) then return false end
+  local names = {}
+  for _, member in ipairs(members) do names[member.name] = true end
+  return Members.MainFor(settings.main, names) == nil
+end
+
+-- Resposta "Não" ao popup: não pergunta mais neste personagem.
+function GuildMembers.DeclineMain()
+  local me = ns.Guild.PlayerName()
+  if not me then return end
+  ns.db.settings.mainAsked = ns.db.settings.mainAsked or {}
+  ns.db.settings.mainAsked[me] = true
+end
+
+-- "Não perguntar mais": desliga o popup na conta toda.
+function GuildMembers.StopAskingMain()
+  ns.db.settings.mainPromptOff = true
+end
+
 -- O personagem atual é o main da conta?
 function GuildMembers.IsMain()
   local me = ns.Guild.PlayerName()

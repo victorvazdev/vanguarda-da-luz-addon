@@ -10,6 +10,9 @@
 --   members = { [personagem] = { t, i, m } },                   -- logic/Members.lua
 --   together = { [personagem] = segundos },                       -- logic/Together.lua
 --   settings = { minimap = { angle, hide }, main = personagem,
+--                mainAsked = { [personagem] = true },  -- responderam "Não" ao popup do main
+--                mainPromptOff = true,                 -- "Não perguntar mais"
+--                keybind = "SHIFT-V",                  -- atalho para abrir o addon
 --                guildWindow = { [funcionalidade] = false } },  -- desligadas
 -- }
 local _, ns = ...

@@ -56,7 +56,18 @@ local now = 1794410000
 _G.GetServerTime = function() return now end
 _G.GetTime = function() return 0 end
 _G.IsInGuild = function() return true end
-_G.InCombatLockdown = function() return false end
+local inCombat = false
+_G.InCombatLockdown = function() return inCombat end
+-- Atalhos de teclado: os do addon ficam em `bindings`.
+local bindings, shiftDown = {}, false
+_G.SetOverrideBindingClick = function(_, _, key, button) bindings[key] = button end
+_G.ClearOverrideBindings = function() for k in pairs(bindings) do bindings[k] = nil end end
+_G.GetBindingText = function(key) return (key:gsub("SHIFT%-", "Shift-")) end
+_G.GetBindingAction = function(key) return key == "SHIFT-M" and "TOGGLEWORLDMAP" or "" end
+_G.BINDING_NAME_TOGGLEWORLDMAP = "Abrir mapa"
+_G.IsShiftKeyDown = function() return shiftDown end
+_G.IsAltKeyDown = function() return false end
+_G.IsControlKeyDown = function() return false end
 _G.GetGuildInfo = function() return "Vanguarda da Luz", "Lorde", 1 end
 -- O nome do jogador no roster é diferente de UnitName("player").
 local roster = {
@@ -387,6 +398,20 @@ print("membros original:", GT.overlay._shown)
 cf.RosterTab._scripts.OnClick(cf.RosterTab)
 RunTimers()
 print("membros de novo:", GT.overlay._shown)
+-- popup "é o seu main?" ao logar (conta sem main)
+RunTimers()
+local prompt = _G.VanguardaDaLuzMainPrompt
+print("popup main:", prompt._shown, prompt.question._text)
+Click("Não")
+print("popup não:", prompt._shown, ns.db.settings.mainAsked["Tester Vaz"])
+ns.MainPrompt.ShowIfNeeded()
+print("popup de novo:", prompt._shown)
+ns.db.settings.mainAsked = nil
+ns.MainPrompt.ShowIfNeeded()
+Click("Não perguntar mais")
+ns.MainPrompt.ShowIfNeeded()
+print("popup desligado:", prompt._shown, ns.db.settings.mainPromptOff)
+ns.db.settings.mainPromptOff = nil
 -- item level e main/alt na lista de membros
 local beforeMembers = #comms
 SlashCmdList.VANGUARDADALUZ("main")
@@ -409,6 +434,18 @@ ns.db.settings.main = "Aelin Ashryvrr" -- outro personagem da conta é o main
 ns.GuildMembers.Announce()
 GR.Refresh()
 print("vira alt:", GR.labels[rosterRows[1]]._text, comms[#comms])
+-- no bate-papo a lista é estreita: sem texto na linha, só no tooltip
+cf.RosterTab:SetChecked(false)
+cf.ChatTab:SetChecked(true)
+cf.ChatTab._scripts.OnClick(cf.ChatTab)
+RunTimers()
+newRow._scripts.OnEnter(newRow)
+print("bate-papo:", GR.labels[rosterRows[1]]._shown, tipLines[#tipLines])
+cf.ChatTab:SetChecked(false)
+cf.RosterTab:SetChecked(true)
+cf.RosterTab._scripts.OnClick(cf.RosterTab)
+RunTimers()
+print("membros com texto:", GR.labels[rosterRows[1]]._shown)
 beforeMembers = #comms
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.MembersRequest(), "GUILD", "Dorvan")
 RunTimers()
@@ -524,6 +561,41 @@ Click("Este personagem é o meu main")
 print("main pela tela:", ns.db.settings.main, sp.main.value, sp.mainNote._text)
 Click("Este personagem é o meu main")
 print("main desmarcado:", ns.db.settings.main, sp.main.value, ns.db.members["Tester Vaz"].m)
+ns.MainPrompt.ShowIfNeeded()
+Click("Sim, é o meu main")
+print("popup sim:", prompt._shown, ns.db.settings.main)
+ns.MainPrompt.ShowIfNeeded()
+print("popup com main:", prompt._shown)
+ns.db.settings.main = "Fulano Saiu" -- main fora da guilda: pergunta de novo
+ns.MainPrompt.ShowIfNeeded()
+print("popup main fora da guilda:", prompt._shown)
+prompt:Hide()
+ns.db.settings.main = nil
+-- atalho de teclado
+print("atalho:", sp.key._text, sp.keyNote._text)
+sp.key._scripts.OnClick(sp.key)
+print("capturando:", sp.key._text)
+sp.key._scripts.OnKeyDown(sp.key, "LSHIFT")
+shiftDown = true
+sp.key._scripts.OnKeyDown(sp.key, "M")
+shiftDown = false
+print("atalho definido:", ns.db.settings.keybind, bindings["SHIFT-M"], sp.key._text, sp.keyNote._text)
+_G.VanguardaDaLuzMainFrame:Hide()
+_G.VanguardaDaLuzToggleButton._scripts.OnClick(_G.VanguardaDaLuzToggleButton)
+print("atalho abre:", _G.VanguardaDaLuzMainFrame._shown)
+ns.MainFrame.Open("settings")
+sp.key._scripts.OnClick(sp.key)
+sp.key._scripts.OnKeyDown(sp.key, "ESCAPE")
+print("captura cancelada:", sp.key._text, ns.db.settings.keybind)
+inCombat = true
+sp.key._scripts.OnClick(sp.key)
+sp.key._scripts.OnKeyDown(sp.key, "F7")
+print("em combate:", ns.db.settings.keybind, bindings.F7, bindings["SHIFT-M"], sp.keyNote._text)
+inCombat = false
+ns.Keybind.OnCombatEnd()
+print("fim do combate:", bindings.F7, bindings["SHIFT-M"], sp.keyNote._text)
+sp.clearKey._scripts.OnClick(sp.clearKey)
+print("atalho limpo:", ns.db.settings.keybind, next(bindings), sp.key._text)
 _G.VanguardaDaLuzMainFrame:Hide()
 -- menu de atalhos do minimapa (clique direito)
 local mb, mainFrame = _G.VanguardaDaLuzMinimapButton, _G.VanguardaDaLuzMainFrame

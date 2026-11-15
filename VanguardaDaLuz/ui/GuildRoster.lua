@@ -4,6 +4,9 @@
 -- ganha o texto completo ("Item level 231 · Alt de Victor Vaz"). O addon só
 -- acrescenta: observa SetMember das linhas com hooksecurefunc, cria o próprio
 -- texto e não altera os textos da Blizzard. Nomes em Flavor.guildWindow.
+--
+-- O texto na linha só aparece na aba Membros: no bate-papo a lista é estreita
+-- e ele ficaria por cima de nomes longos. O tooltip vale nas duas.
 local _, ns = ...
 
 local Theme = ns.Theme
@@ -20,10 +23,16 @@ local function GuildSelected()
   return ns.Store.GuildFeature("roster") and ns.Guild.IsMember() and ns.Flavor.IsGuildClubSelected(host)
 end
 
+-- A aba Membros (lista larga) está aberta?
+local function RosterShown()
+  local tab = host and host[Spec().rosterTab]
+  return tab ~= nil and tab:GetChecked() and true or false
+end
+
 local function Paint(row)
   local label = labels[row]
   if not label then return end
-  local name = GuildSelected() and names[row]
+  local name = GuildSelected() and RosterShown() and names[row]
   local text = name and ns.Members.Short(name, ns.GuildMembers.Get(name)) or nil
   label:SetText(text or "")
   label:SetShown(text ~= nil)
@@ -93,6 +102,11 @@ local function Setup()
   end
   GuildRoster.labels = labels -- para o teste de fumaça
   list:HookScript("OnShow", GuildRoster.Refresh)
+  -- Trocar entre bate-papo e Membros mostra ou esconde o texto.
+  for _, key in ipairs(Spec().tabs) do
+    local tab = host[key]
+    if tab and tab.HookScript then tab:HookScript("OnClick", GuildRoster.Refresh) end
+  end
   ns.On("MEMBERS_UPDATED", GuildRoster.Refresh)
   ns.On("SETTINGS_UPDATED", GuildRoster.Refresh)
   GuildRoster.Refresh()

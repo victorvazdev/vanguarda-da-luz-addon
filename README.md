@@ -180,13 +180,15 @@ A aba **Configurações** da janela do addon reúne as opções, salvas por cont
 
 - **Este personagem é o meu main:** o mesmo que `/vdl main`. Desmarcar tira o main da conta (os personagens deixam de aparecer como main ou alt).
 - **Mostrar o botão no minimapa:** o mesmo que `/vdl minimapa`.
+- **Atalho:** clique no botão e pressione a tecla (pode combinar com Shift, Ctrl ou Alt) para abrir e fechar a janela do addon, como `/vdl`. Esc cancela e **Limpar** remove o atalho. O atalho é do addon (`SetOverrideBindingClick`): não altera os atalhos da Blizzard e tem prioridade sobre eles; se a tecla já estiver em uso no jogo, a tela avisa qual ação ela substitui. Em combate o jogo não deixa trocar atalhos, então a troca é aplicada ao sair do combate.
 - **Janela da guilda:** liga e desliga, uma por uma, as abas Eventos, Profissões e Administração (esta opção só aparece para o Grão Lorde e os Lordes), o Início do addon na aba Informações, a lista de membros do addon na aba Membros e o item level e main/alt na lista original de Membros. Os botões que continuam ligados se juntam, sem deixar espaço vazio.
 
 ### Item level e main/alt
 
-Na lista de **Membros** da janela da guilda, cada linha mostra à direita o item level e se o personagem é main ou alt ("231 · Alt"). Passar o mouse na linha mostra o texto completo no tooltip ("Item level 231 · Alt de Victor Vaz").
+Na lista de **Membros** da janela da guilda, cada linha mostra à direita o item level e se o personagem é main ou alt ("231 · Alt"). Passar o mouse na linha mostra o texto completo no tooltip ("Item level 231 · Alt de Victor Vaz"). Na lista estreita ao lado do bate-papo da guilda, o texto não aparece na linha (ficaria por cima de nomes longos), só no tooltip.
 
 - O jogo só informa o item level do próprio personagem (`GetAverageItemLevel`, valor equipado, arredondado). Cada addon anuncia o seu (`M`) ao entrar no jogo e quando o equipamento muda (10 s depois, juntando várias peças num envio). Só anuncia se algo mudou.
+- Ao entrar no jogo, se a conta não tem main na guilda, um popup pergunta "<personagem> é o seu main?". **Sim** define o main; **Não** deixa de perguntar neste personagem (continua perguntando nos outros da conta até definir um main); **Não perguntar mais** desliga o popup na conta. Fechar no × pergunta de novo no próximo login.
 - `/vdl main` define o personagem atual como main. A escolha vale para a conta (as SavedVariables são por conta): ao logar, os outros personagens da conta que estão na guilda anunciam que são alts dele. Se o main sair da guilda, os alts deixam de mostrar o main.
 - Ao entrar no jogo ou em **Sincronizar**, o addon pede os dados (`N`), e qualquer membro online responde com os que conhece (`O`). Vale a leitura mais recente de cada personagem. Dados de quem saiu da guilda são apagados.
 - Quem não tem o addon fica sem texto na linha.
@@ -238,12 +240,13 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
            Codec (string), Snapshot (retrato completo), Import,
            Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8 e links), Alert (alerta de raide),
            Attendance e PresenceCodec (lista de presença e string VDLP1), Professions,
-           Members (item level e main/alt), Roster (lista de membros), Together (tempo com a guilda)
+           Members (item level e main/alt), Roster (lista de membros), Together (tempo com a guilda),
+           Keys (combinação do atalho de teclado)
   game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide),
            Presence (lista de presença), GuildProfessions (profissões), GuildMembers (item level e main/alt),
-           GuildTogether (tempo com a guilda)
+           GuildTogether (tempo com a guilda), Keybind (atalho para abrir o addon)
   ui/      Theme (identidade do site), painéis reaproveitáveis HomePanel, CalendarPanel, ProfessionsPanel e AdminPanel,
-           MembersPanel, SettingsPanel, MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, PresenceExport,
+           MembersPanel, SettingsPanel, MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, MainPrompt, PresenceExport,
            ProfessionsFrame, GuildTabs (abas e Informações na janela da guilda),
            GuildRoster (texto na lista de membros), MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
@@ -269,6 +272,8 @@ scripts/   setup-dev.sh, check.sh, package.sh
   members = { ["Nome Sobrenome"] = { t = horário, i = itemLevel, m = main } },
   together = { ["Nome Sobrenome"] = segundos },
   settings = { minimap = { angle, hide }, main = "Nome Sobrenome",
+               mainAsked = { ["Nome Sobrenome"] = true }, mainPromptOff = true, -- popup do main
+               keybind = "SHIFT-V",                                           -- atalho do addon
                guildWindow = { events|professions|admin|info|roster = false } }, -- desligadas
 }
 ```
@@ -390,7 +395,9 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. Desligue **Início do addon na aba Informações**: Informações mostra a original da Blizzard. Desligue **Item level e main/alt**: os textos somem da lista de Membros.
 4. Desmarque **Mostrar o botão no minimapa**: o botão some; marque de novo: volta.
 5. Marque **Este personagem é o meu main** num alt: a nota muda e a lista de Membros mostra "· Main" nele. Desmarque: some o main/alt.
-6. Faça `/reload`: as opções continuam como foram deixadas.
+6. Em **Atalho**, clique no botão e pressione Shift+V: o botão mostra a tecla. Feche a janela e aperte Shift+V: a janela abre; de novo, fecha. Escolha uma tecla já usada pelo jogo (ex.: M): a nota avisa qual ação ela substitui, e a tecla passa a abrir o addon. **Limpar** devolve a tecla ao jogo.
+7. Entre em combate, troque o atalho: a nota diz que será aplicado ao sair do combate; ao sair, o novo atalho funciona.
+8. Faça `/reload`: as opções e o atalho continuam como foram deixados.
 
 ### Membros
 
@@ -413,9 +420,11 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 1. Com o Lorde e o membro online, os dois com o addon, abra a lista de **Membros** (J). Na linha de cada um aparece o item level à direita, igual ao da ficha do personagem (arredondado). Quem não tem o addon fica sem texto.
 2. No membro, `/vdl main`. Em poucos segundos, a linha dele no Lorde mostra "· Main".
 3. Logue com outro personagem da mesma conta que esteja na guilda: a linha dele mostra "· Alt", e o tooltip mostra "Item level N · Alt de <main>".
-4. Troque uma peça de equipamento: cerca de 10 s depois, o item level muda no outro jogador.
-5. Role a lista e alterne "Mostrar Membros Desconectados": os textos acompanham as linhas certas (nenhum texto fica na linha de outro membro).
-6. Selecione outra comunidade: a lista dela não mostra os textos do addon.
+4. Numa conta sem main (apague `main` nas SavedVariables ou desmarque nas Configurações), entre no jogo: poucos segundos depois aparece "<personagem> é o seu main?". **Não**: some e não volta neste personagem após `/reload`, mas aparece num alt. **Sim**: vira main e o popup não aparece mais em nenhum personagem.
+5. Troque uma peça de equipamento: cerca de 10 s depois, o item level muda no outro jogador.
+6. Role a lista e alterne "Mostrar Membros Desconectados": os textos acompanham as linhas certas (nenhum texto fica na linha de outro membro).
+7. Selecione outra comunidade: a lista dela não mostra os textos do addon.
+8. Abra o **Bate-papo** da guilda: a lista de membros à direita não mostra o item level na linha, nem com nomes longos; o tooltip continua com "Item level N · …". Volte para **Membros** (original da Blizzard): o texto volta nas linhas.
 
 ### Idioma
 

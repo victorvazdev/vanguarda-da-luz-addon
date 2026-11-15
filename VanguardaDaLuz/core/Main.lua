@@ -17,6 +17,8 @@ local function RequestWhenMember()
     ns.GuildProfessions.Announce()
     ns.GuildMembers.Announce()
     ns.GuildTogether.Announce()
+    -- Conta sem main: pergunta depois de a tela do jogo assentar.
+    C_Timer.After(ns.Config.MAIN_PROMPT_DELAY, ns.MainPrompt.ShowIfNeeded)
   end
 end
 
@@ -49,6 +51,7 @@ local function Start()
   ns.GuildMembers.Init()
   ns.GuildTogether.Init()
   ns.MinimapButton.Init()
+  ns.Keybind.Init()
   ns.GuildTabs.Init()
   ns.GuildRoster.Init()
 

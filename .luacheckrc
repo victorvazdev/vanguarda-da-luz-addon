@@ -28,6 +28,8 @@ read_globals = {
   "GetLocale", "UnitIsAFK", "GetZoneText", "GetNumGroupMembers", "IsInRaid", "UnitExists", "UnitIsUnit", "UnitIsConnected",
   "ChatFrameUtil", "ChatFrame_SendTell", "hooksecurefunc",
   "GetGuildRosterMOTD", "GetGuildInfoText",
+  "SetOverrideBindingClick", "ClearOverrideBindings", "GetBindingText", "GetBindingAction",
+  "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsMetaKeyDown",
 }
 
 files["tests/"] = { std = "+busted" }

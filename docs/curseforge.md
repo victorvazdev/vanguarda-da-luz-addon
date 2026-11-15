@@ -54,8 +54,8 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Filter by profession (sorted from highest to lowest level), show online members only (the default) and **whisper** a member with one click.
 
 ### Item level and main/alt in the member list
-- The guild window's **Members** list shows each member's equipped item level and whether the character is a main or an alt (for example, "231 · Alt"). The row tooltip shows the full text ("Item level 231 · Alt de Victor Vaz").
-- Set your main once with `/vdl main`. Your other characters in the guild are marked as its alts automatically when you log in.
+- The guild window's **Members** list shows each member's equipped item level and whether the character is a main or an alt (for example, "231 · Alt"). The row tooltip shows the full text ("Item level 231 · Alt de Victor Vaz"), also in the member list beside the guild chat.
+- Set your main once with `/vdl main`, in Settings or when the addon asks at login. Your other characters in the guild are marked as its alts automatically when you log in.
 - Item levels are shared by members who run the addon.
 
 ### Raid alerts
@@ -71,7 +71,7 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Shown in the Members list and as a "most time playing with the guild" ranking on the Home tab.
 
 ### Settings
-- A **Settings** tab to set your main, show or hide the minimap button and turn each guild window feature on or off.
+- A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon and turn each guild window feature on or off.
 
 ### Guild window integration
 - Adds **Events**, **Professions** and **Administration** tabs to the *Guild & Communities* window (J), below Blizzard's own tabs.
@@ -120,10 +120,22 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 - **Presença:** confirme ou cancele com um clique; os oficiais geram a string de presenças para o site.
 - **Profissões:** profissões primárias e nível de cada membro, com filtro, só online e botão de sussurrar.
 - **Alerta de raide:** aviso no centro da tela de todos os membros online e no chat da guilda (Grão Lorde e Lordes).
-- **Item level e main/alt:** na lista de Membros da janela da guilda, com `/vdl main` para definir o main.
+- **Item level e main/alt:** na lista de Membros da janela da guilda, com `/vdl main` (ou o aviso ao entrar no jogo) para definir o main.
+- **Configurações:** main, botão do minimapa, atalho de teclado para abrir o addon e cada funcionalidade da janela da guilda.
 - **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J), e o Início do addon na aba Informações.
 
 Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
+```
+
+## Changelog da versão 0.2.1
+
+```markdown
+### New
+- **Main character prompt.** When your account has no main set, the addon asks at login whether the current character is your main. "Yes" sets it; "No" stops asking on that character (your other characters are still asked until a main is set); "Don't ask again" turns the prompt off for the whole account. You can still set your main anytime in Settings or with `/vdl main`.
+- **Key binding.** New **Key binding** option in Settings: click the button and press a key (Shift, Ctrl and Alt combinations work) to open and close the addon window. It is saved for the whole account and does not change Blizzard's key bindings. If the key is already used by the game, Settings tells you which action it replaces; **Clear** gives the key back. Changes made during combat are applied when combat ends.
+
+### Fixes
+- The item level next to member names no longer shows in the narrow member list beside the guild chat, where it covered long names. It still shows in the Members list, and the tooltip keeps the full text in both.
 ```
 
 ## Changelog da versão 0.2.0

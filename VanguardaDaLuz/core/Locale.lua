@@ -259,3 +259,24 @@ EN["Esconder botão do minimapa"] = "Hide minimap button"
 EN["Você ainda não faz parte da guilda %s. Entre no nosso Discord para conhecer a guilda:"] =
   "You are not part of the %s guild yet. Join our Discord to meet the guild:"
 EN["O link já está selecionado: use Ctrl+C para copiar."] = "The link is already selected: press Ctrl+C to copy."
+
+-- Popup do main e atalho de teclado
+EN["Seu main"] = "Your main"
+EN["%s é o seu main?"] = "Is %s your main?"
+EN["O main é o personagem principal da conta. Os outros personagens desta conta na guilda aparecem como alts dele na lista de membros e somam o tempo com a guilda."] =
+  "Your main is the account's main character. Your other characters in the guild appear as its alts on the members list and add to its time with the guild."
+EN["Sim, é o meu main"] = "Yes, it's my main"
+EN["Não"] = "No"
+EN["Não perguntar mais"] = "Don't ask again"
+EN["Você pode definir o main depois em Configurações ou com /vdl main."] =
+  "You can set your main later in Settings or with /vdl main."
+EN["Atalho"] = "Key binding"
+EN["Tecla para abrir e fechar a janela do addon. Fica salva na conta."] =
+  "Key to open and close the addon window. Saved for the whole account."
+EN["Nenhum"] = "None"
+EN["Pressione uma tecla…"] = "Press a key…"
+EN["Esc cancela. Pode combinar com Shift, Ctrl ou Alt."] = "Esc cancels. You can combine it with Shift, Ctrl or Alt."
+EN["Será aplicado ao sair do combate."] = "It will be applied when you leave combat."
+EN["Esta tecla também está em \"%s\" nos atalhos do jogo; o addon tem prioridade."] =
+  "This key is also bound to \"%s\" in the game's key bindings; the addon takes priority."
+EN["Clique no botão e pressione a tecla."] = "Click the button and press the key."

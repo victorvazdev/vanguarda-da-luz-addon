@@ -23,6 +23,7 @@ local FILES = {
   "logic/Members.lua",
   "logic/Roster.lua",
   "logic/Together.lua",
+  "logic/Keys.lua",
 }
 
 local LibDeflate

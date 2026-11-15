@@ -40,6 +40,9 @@ ns.Config = {
   -- em segundos (várias peças seguidas viram um anúncio só).
   MEMBERS_ANNOUNCE_DELAY = 10,
 
+  -- Popup "é o seu main?": espera depois do pedido do login, em segundos.
+  MAIN_PROMPT_DELAY = 3,
+
   -- Tempo com a guilda: intervalo da contagem e de anúncio do total, em segundos.
   TOGETHER_TICK = 60,
   TOGETHER_ANNOUNCE_INTERVAL = 600,
