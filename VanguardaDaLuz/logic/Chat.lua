@@ -27,26 +27,37 @@ end
 
 -- Link do jogo como o Shift+clique põe na caixa: "|cff…|Hitem:…|h[Nome]|h|r".
 -- A cor pode vir no formato antigo (|cffRRGGBB) ou no novo, por nome
--- (|cnIQ3: = qualidade do item; é o que o WoW Forever usa).
-local GAME_LINK = "|c[^|]+|H[^|]+|h[^|]*|h|r"
-local GAME_LINK_PLAIN = "|H[^|]+|h[^|]*|h"
+-- (|cnIQ3: = qualidade do item; é o que o WoW Forever usa). O nome pode ter
+-- ícones dentro (localização do mapa: "[|A:Waypoint-MapPin-ChatIcon…|a Local…]").
+local GAME_LINKS = { "|c[^|]+|H[^|]+|h.-|h|r", "|H[^|]+|h.-|h" }
+-- Ícones soltos no texto: atlas (|A…|a) e textura (|T…|t).
+local ICONS = { "|A[^|]*|a", "|T[^|]*|t" }
 
--- Próximo link do jogo a partir de `pos`: o que começa primeiro.
-local function NextLink(text, pos)
-  local first, last = string.find(text, GAME_LINK, pos)
-  local plainFirst, plainLast = string.find(text, GAME_LINK_PLAIN, pos)
-  if plainFirst and (not first or plainFirst < first) then return plainFirst, plainLast end
+-- O trecho que começa primeiro entre os padrões, a partir de `pos`.
+local function NextMatch(text, pos, patterns)
+  local first, last
+  for _, pattern in ipairs(patterns) do
+    local f, l = string.find(text, pattern, pos)
+    if f and (not first or f < first) then first, last = f, l end
+  end
   return first, last
 end
 
+-- Próximo link do jogo a partir de `pos`.
+local function NextLink(text, pos)
+  return NextMatch(text, pos, GAME_LINKS)
+end
+
+-- O que passa como veio nas mensagens recebidas: links, ícones e texto protegido.
+local KEEP = { GAME_LINKS[1], GAME_LINKS[2], ICONS[1], ICONS[2], PROTECTED }
+
 -- Corpo da mensagem: links clicáveis e "|" escapado, menos nas referências
--- protegidas e nos links do jogo (item, missão...), que passam como vieram.
+-- protegidas, nos links do jogo (item, missão, mapa...) e nos ícones, que
+-- passam como vieram.
 local function Body(content, linkColor)
   local parts, pos = {}, 1
   while true do
-    local first, last = NextLink(content, pos)
-    local kFirst, kLast = string.find(content, PROTECTED, pos)
-    if kFirst and (not first or kFirst < first) then first, last = kFirst, kLast end
+    local first, last = NextMatch(content, pos, KEEP)
     if not first then break end
     parts[#parts + 1] = Text.Linkify(string.sub(content, pos, first - 1), Chat.URL_LINK, linkColor)
     parts[#parts + 1] = string.sub(content, first, last)

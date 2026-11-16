@@ -45,6 +45,13 @@ describe("Bate-papo da guilda", function()
     assert.are.equal("|r  |Hvdlplayer:A|hA|h: teste " .. item .. " a||b", line)
   end)
 
+  it("mostra o link de localização do mapa e ícones", function()
+    local pin = "|cffffff00|Hworldmap:1439:3264:4274|h[|A:Waypoint-MapPin-ChatIcon:13:13:0:0|a Local]|h|r"
+    local line = Chat.Line({ clock = "", name = "A", content = pin .. " |T123:0|t a|b" }, "", "", "%s")
+    assert.are.equal("|r  |Hvdlplayer:A|hA|h: " .. pin .. " |T123:0|t a||b", line)
+    assert.are.equal("aqui " .. pin, Chat.Outgoing("aqui " .. pin))
+  end)
+
   it("acha o texto normal da mensagem recebida ao vivo", function()
     local recent = {
       { guid = "G1", name = "Ana", time = 100, text = "primeira" },

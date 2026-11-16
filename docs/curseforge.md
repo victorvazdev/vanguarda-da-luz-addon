@@ -131,6 +131,13 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
 ```
 
+## Changelog da versão 0.3.2
+
+```markdown
+### Fixes
+- Map location links (and other links or icons with an icon inside) no longer show as code in the Chat tab. They look and work like in Blizzard's chat: clicking a map location opens the map with the pin.
+```
+
 ## Changelog da versão 0.3.1
 
 ```markdown
