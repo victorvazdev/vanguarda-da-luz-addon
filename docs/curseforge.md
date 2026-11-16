@@ -131,6 +131,13 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
 ```
 
+## Changelog da versão 0.3.3
+
+```markdown
+### Fixes
+- No more Lua errors during boss fights. In encounters the game hides some guild data from addons (member list, roster, chat history); the addon now keeps showing what it had before the fight and reads again when it ends.
+```
+
 ## Changelog da versão 0.3.2
 
 ```markdown

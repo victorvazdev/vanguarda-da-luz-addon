@@ -191,6 +191,7 @@ describe("Teste de fumaça do addon", function()
     assert.are.same({ "GUILD [Alerta] Raide / Núcleo às 20h" }, alert.chat)
     assert.are.same({ "Tester Vaz: Raide / Núcleo às 20h", "Maren-Forever: Entrem já" }, alert.warnings)
     assert.are.equal(2, alert.sounds)
+    assert.is_truthy(text:find("em luta: 3 3 3 4 Tester Vaz", 1, true))
     -- fora da guilda
     assert.is_truthy(text:find("boas-vindas: true https://discord.gg/uGyPjtEsBw calendário: false", 1, true))
     assert.is_truthy(text:find("alerta fora da guilda abre boas-vindas: true", 1, true))

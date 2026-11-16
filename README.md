@@ -171,6 +171,7 @@ A aba **Bate-papo** mostra o bate-papo da guilda com o tema do addon: hora, nome
 - O envio usa `C_ChatInfo.SendChatMessage(texto, "GUILD" ou "OFFICER")`, o mesmo do alerta de raide. O texto vira uma linha, "|" vira "/" (menos dentro de links do jogo) e o que passa de 255 bytes é cortado; um link que não cabe inteiro fica de fora.
 - Com a caixa do addon em foco, Shift+clique num item, missão etc. põe o link nela, como na caixa do chat da Blizzard: o addon observa a função do jogo que insere links (`ChatFrameUtil.InsertLink` / `ChatEdit_InsertLink`, com `hooksecurefunc`). Com a comunicação restrita (encontro, Mítica+, JxJ), a mensagem não é enviada e o chat avisa.
 - O histórico entrega o texto de cada mensagem protegido (`|Kw774|k`): uma referência que o jogo troca pelo texto na hora de desenhar, sem o addon conseguir ler. Por isso o addon não escapa essas referências, e nas mensagens antigas não dá para achar links. As que chegam com o jogo aberto vêm em texto normal pelos eventos de chat; o addon guarda esse texto na sessão e usa no lugar do protegido (mesmo autor pelo GUID e horário com até 5 s de diferença), então os links dessas mensagens funcionam.
+- Em luta com chefe o jogo também pode entregar a lista de membros, o roster e o histórico do clube como secretos (não dá para ler o tamanho nem os campos). O addon usa a última leitura legível de cada um até a luta acabar, sem erro.
 - Durante encontros o jogo pode entregar o texto como valor secreto (`issecretvalue`). Essas mensagens aparecem como vieram, sem cor no nome, alt ou links.
 
 ### Tempo de jogo com a guilda
@@ -434,7 +435,8 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 6. No Lorde: os botões **Guilda** e **Oficiais** aparecem; em Oficiais, o histórico do canal de oficiais aparece em cerca de 1 s (mesmo sem ter aberto o canal na Blizzard), e o envio vai para ele. No membro sem cargo, só a guilda.
 7. Na janela da guilda (J), a aba **Bate-papo** mostra o bate-papo do addon, sem a dica do topo. **Ver original da Blizzard** mostra o chat e a lista de membros da Blizzard; clicar em Bate-papo de novo volta ao do addon. Em Configurações, **Bate-papo do addon na aba Bate-papo** desliga a cobertura.
 8. Role com a roda do mouse até mensagens antigas: a rolagem não volta sozinha para o fim enquanto ninguém escreve.
-9. Numa masmorra ou raide, durante um encontro: as mensagens continuam aparecendo (talvez sem cor e sem links), e enviar mostra o aviso de comunicação restrita.
+9. Numa masmorra ou raide, durante um encontro (com o roster atualizando): nenhum erro de Lua do addon; a lista de membros, o Início e o bate-papo continuam mostrando o que havia antes da luta.
+10. Numa masmorra ou raide, durante um encontro: as mensagens continuam aparecendo (talvez sem cor e sem links), e enviar mostra o aviso de comunicação restrita.
 
 ### Tempo de jogo com a guilda
 

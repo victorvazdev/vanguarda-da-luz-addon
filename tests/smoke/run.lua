@@ -780,6 +780,21 @@ SlashCmdList.VANGUARDADALUZ("importar")
 print("importar sem cargo abre:", dialog._shown)
 _G.GetGuildInfo = trustedInfo
 mainFrame:Hide()
+-- luta com chefe: o jogo entrega a lista de membros, o roster e o chat como
+-- secretos; o addon usa a última leitura, sem erro
+local SECRET = setmetatable({}, { __len = function() error("attempt to get length of a secret table") end })
+_G.issecretvalue = function(v) return v == SECRET end
+local realMembers, realStreams, realCount = _G.C_Club.GetClubMembers, _G.C_Club.GetStreams, _G.GetNumGuildMembers
+_G.C_Club.GetClubMembers = function() return SECRET end
+_G.C_Club.GetStreams = function() return SECRET end
+_G.GetNumGuildMembers = function() return SECRET end
+ev._scripts.OnEvent(ev, "GUILD_ROSTER_UPDATE")
+RunTimers()
+local secretMembers = ns.Flavor.GuildMembers()
+print("em luta:", secretMembers and #secretMembers, #ns.Flavor.GuildRoster(), ns.Guild.Counts(),
+  #ns.GuildChat.Entries("guild"), ns.Guild.PlayerName())
+_G.C_Club.GetClubMembers, _G.C_Club.GetStreams, _G.GetNumGuildMembers = realMembers, realStreams, realCount
+_G.issecretvalue = nil
 -- alerta de raide
 local before = #comms
 SlashCmdList.VANGUARDADALUZ("alerta   ")             -- sem texto: abre o modal

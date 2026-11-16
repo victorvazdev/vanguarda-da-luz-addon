@@ -4,10 +4,25 @@ local _, ns = ...
 local Guild = {}
 local waiting = {} -- callbacks esperando GUILD_ROSTER_UPDATE
 
+-- Em luta com chefe (e outras restrições) o jogo pode entregar os dados da
+-- guilda como secretos, que não dá para ler nem comparar: vale a última
+-- leitura legível.
+local last = { member = false, motd = "", info = "", total = 0, online = 0 }
+
+local function Secret(...) return ns.Flavor.AnySecret(...) end
+
 -- O jogador está na guilda do addon (ns.Config.GUILD_NAME)?
 function Guild.IsMember()
-  if not IsInGuild() then return false end
-  return ns.Trust.IsOurGuild((GetGuildInfo("player")), ns.Config)
+  local inGuild = IsInGuild()
+  if Secret(inGuild) then return last.member end
+  if not inGuild then
+    last.member = false
+    return false
+  end
+  local name = GetGuildInfo("player")
+  if Secret(name) then return last.member end
+  last.member = ns.Trust.IsOurGuild(name, ns.Config)
+  return last.member
 end
 
 function Guild.RequestRoster()
@@ -17,25 +32,32 @@ end
 
 -- Mensagem do dia e informações da guilda ("" se não houver).
 function Guild.Motd()
-  return GetGuildRosterMOTD and GetGuildRosterMOTD() or ""
+  local text = GetGuildRosterMOTD and GetGuildRosterMOTD() or ""
+  if Secret(text) then return last.motd end
+  last.motd = text
+  return text
 end
 
 function Guild.InfoText()
-  return GetGuildInfoText and GetGuildInfoText() or ""
+  local text = GetGuildInfoText and GetGuildInfoText() or ""
+  if Secret(text) then return last.info end
+  last.info = text
+  return text
 end
 
 -- Total de membros e quantos estão online.
 function Guild.Counts()
   local total, online = GetNumGuildMembers()
-  return total or 0, online or 0
+  if Secret(total, online) then return last.total, last.online end
+  last.total, last.online = total or 0, online or 0
+  return last.total, last.online
 end
 
 -- Lista de { name, rankName, rankIndex } do roster atual.
 function Guild.Roster()
   local roster = {}
-  for i = 1, GetNumGuildMembers() do
-    local name, rankName, rankIndex = GetGuildRosterInfo(i)
-    if name then roster[#roster + 1] = { name = name, rankName = rankName, rankIndex = rankIndex } end
+  for _, entry in ipairs(ns.Flavor.GuildRoster()) do
+    roster[#roster + 1] = { name = entry.name, rankName = entry.rank, rankIndex = entry.rankIndex }
   end
   return roster
 end
@@ -44,10 +66,9 @@ end
 -- ser diferente de UnitName("player"). Procura pelo GUID.
 function Guild.PlayerName()
   local guid = UnitGUID and UnitGUID("player")
-  if guid and IsInGuild() then
-    for i = 1, GetNumGuildMembers() do
-      local name = GetGuildRosterInfo(i)
-      if name and select(17, GetGuildRosterInfo(i)) == guid then return name end
+  if guid and not Secret(guid) then
+    for _, entry in ipairs(ns.Flavor.GuildRoster()) do
+      if entry.guid == guid then return entry.name end
     end
   end
   -- Sem roster: no WoW Forever, o segundo valor de UnitName é o sobrenome.
@@ -65,7 +86,9 @@ end
 function Guild.IsPlayerTrusted()
   if not Guild.IsMember() then return false end
   local _, rankName, rankIndex = GetGuildInfo("player")
-  return ns.Trust.IsTrustedRank(rankIndex, rankName, ns.Config)
+  if Secret(rankName, rankIndex) then return last.trusted or false end
+  last.trusted = ns.Trust.IsTrustedRank(rankIndex, rankName, ns.Config)
+  return last.trusted
 end
 
 -- Confere o cargo de quem enviou. Se o remetente ainda não estiver no roster,

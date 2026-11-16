@@ -44,6 +44,11 @@ Flavor.guildWindow = {
 
 -- As funções abaixo só rodam dentro do jogo.
 
+-- Últimas leituras legíveis, usadas enquanto o jogo entrega os dados como
+-- secretos (luta com chefe e outras restrições).
+local lastMembers, lastRoster, lastClub, lastStreams
+local lastMessages = {}
+
 -- Comunicação de addons bloqueada (encontros de chefe, M+, JxJ)?
 function Flavor.InMessagingLockdown()
   if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown then
@@ -83,9 +88,17 @@ end
 function Flavor.GuildChatStreams()
   if not (C_Club and C_Club.GetGuildClubId and C_Club.GetStreams) then return nil end
   local club = C_Club.GetGuildClubId()
+  if Flavor.IsSecret(club) then return lastClub, lastStreams end
   if not club then return nil end
+  local streams = C_Club.GetStreams(club)
+  if Flavor.IsSecret(streams) then return lastClub, lastStreams end
+  for _, stream in ipairs(streams or {}) do
+    if Flavor.AnySecret(stream, stream.streamId, stream.streamType) then return lastClub, lastStreams end
+  end
   local types = Enum and Enum.ClubStreamType or {}
-  return club, ns.Chat.Streams(C_Club.GetStreams(club), { guild = types.Guild or 1, officer = types.Officer or 2 })
+  lastClub = club
+  lastStreams = ns.Chat.Streams(streams, { guild = types.Guild or 1, officer = types.Officer or 2 })
+  return lastClub, lastStreams
 end
 
 -- Mensagens já carregadas de um canal, da mais antiga para a mais nova:
@@ -95,29 +108,52 @@ function Flavor.GuildChatMessages(club, stream)
   local list = {}
   if not (club and stream and C_Club.GetMessageRanges and C_Club.GetMessagesInRange) then return list end
   local ranges = C_Club.GetMessageRanges(club, stream)
+  if Flavor.IsSecret(ranges) then return lastMessages[stream] or list end
   local range = ranges and ranges[#ranges]
   if not range then return list end
+  if Flavor.IsSecret(range) then return lastMessages[stream] or list end
   local messages = C_Club.GetMessagesInRange(club, stream, range.oldestMessageId, range.newestMessageId) or {}
+  if Flavor.IsSecret(messages) then return lastMessages[stream] or list end
   for _, m in ipairs(messages) do
-    if not m.destroyed then
+    local id = not Flavor.IsSecret(m) and m.messageId or nil
+    -- Mensagem sem identificação legível (restrição do jogo): fica de fora.
+    if id and not Flavor.AnySecret(id, id.epoch, id.position, m.destroyed, m.author) and not m.destroyed then
       local author = m.author or {}
-      local id = m.messageId or {}
       list[#list + 1] = {
         id = (id.epoch or 0) .. ":" .. (id.position or 0),
         time = math.floor((id.epoch or 0) / 1000000),
         name = author.name, guid = author.guid,
         content = m.content,
-        secret = Flavor.IsSecret(m.content) or Flavor.IsSecret(author.name),
+        secret = Flavor.AnySecret(m.content, author.name, author.guid),
       }
     end
   end
+  lastMessages[stream] = list
   return list
 end
 
 -- Valor secreto (Midnight: em encontros, alguns textos chegam ilegíveis para
 -- addons; dá para exibir, mas não ler nem comparar)?
+--
+-- Em lutas com chefe (e outras restrições) o jogo também entrega tabelas
+-- secretas: a lista de membros do clube, por exemplo. Ler o tamanho ou os
+-- campos delas dá erro.
 function Flavor.IsSecret(value)
-  return issecretvalue ~= nil and value ~= nil and issecretvalue(value) and true or false
+  if value == nil then return false end
+  if issecretvalue and issecretvalue(value) then return true end
+  if type(value) == "table" then
+    if issecrettable and issecrettable(value) then return true end
+    if canaccesstable and not canaccesstable(value) then return true end
+  end
+  return false
+end
+
+-- Algum dos valores é secreto?
+function Flavor.AnySecret(...)
+  for i = 1, select("#", ...) do
+    if Flavor.IsSecret((select(i, ...))) then return true end
+  end
+  return false
 end
 
 -- Clique num link do jogo (item, missão, feitiço, conquista...): faz o mesmo
@@ -189,13 +225,20 @@ end
 function Flavor.GuildMembers()
   if not (C_Club and C_Club.GetGuildClubId) then return nil end
   local club = C_Club.GetGuildClubId()
+  if Flavor.IsSecret(club) then return lastMembers end
   if not club then return nil end
   local ids = C_Club.GetClubMembers(club)
+  -- Em luta com chefe a lista vem secreta: vale a última lida.
+  if Flavor.IsSecret(ids) then return lastMembers end
   if not ids or #ids == 0 then return nil end
   local presence = Enum and Enum.ClubMemberPresence or {}
   local members = {}
   for _, id in ipairs(ids) do
     local info = C_Club.GetMemberInfo(club, id)
+    if Flavor.IsSecret(info) or (info and Flavor.AnySecret(info.name, info.presence, info.profession1Name,
+      info.profession1ID, info.profession2Name, info.profession2ID)) then
+      return lastMembers
+    end
     if info and info.name then
       local state = info.presence
       local professions, professionIds = {}, {}
@@ -215,6 +258,7 @@ function Flavor.GuildMembers()
       }
     end
   end
+  lastMembers = members
   return members
 end
 
@@ -253,18 +297,28 @@ end
 -- Roster da guilda para a lista de membros: { { name, rank, rankIndex, level,
 -- class, classFile, zone, online, status, guid }, ... }. Conferido no WoW
 -- Forever: o nome vem como "Nome Sobrenome" e classFile como "ROGUE".
+--
+-- Com o roster secreto (restrição do jogo, como em luta com chefe), vale o
+-- último lido.
 function Flavor.GuildRoster()
   local entries = {}
   if not (GetNumGuildMembers and GetGuildRosterInfo) then return entries end
-  for i = 1, GetNumGuildMembers() do
+  local count = GetNumGuildMembers()
+  if Flavor.IsSecret(count) then return lastRoster or entries end
+  for i = 1, count or 0 do
     local name, rank, rankIndex, level, class, zone, _, _, online, status, classFile =
       GetGuildRosterInfo(i)
+    local guid = select(17, GetGuildRosterInfo(i))
+    if Flavor.AnySecret(name, rank, rankIndex, level, class, zone, online, status, classFile, guid) then
+      return lastRoster or {}
+    end
     if name then
       entries[#entries + 1] = { name = name, rank = rank, rankIndex = rankIndex, level = level,
         class = class, classFile = classFile, zone = zone, online = online and true or false,
-        status = RosterStatus(status), guid = select(17, GetGuildRosterInfo(i)) }
+        status = RosterStatus(status), guid = guid }
     end
   end
+  lastRoster = entries
   return entries
 end
 
@@ -291,7 +345,8 @@ function Flavor.GroupState()
   for i = 1, raid and count or count - 1 do
     local unit = (raid and "raid" or "party") .. i
     if UnitExists(unit) and not UnitIsUnit(unit, "player") then
-      local entry = byGuid[UnitGUID(unit)]
+      local guid = UnitGUID(unit)
+      local entry = not Flavor.IsSecret(guid) and byGuid[guid] or nil
       group[#group + 1] = {
         guild = entry ~= nil,
         connected = UnitIsConnected(unit) and true or false,
@@ -332,8 +387,9 @@ end
 
 function Flavor.IsGuildClubSelected(host)
   if not (host and host.GetSelectedClubId and C_Club and C_Club.GetGuildClubId) then return false end
-  local guild = C_Club.GetGuildClubId()
-  return guild ~= nil and host:GetSelectedClubId() == guild
+  local guild, selected = C_Club.GetGuildClubId(), host:GetSelectedClubId()
+  if Flavor.AnySecret(guild, selected) then return false end
+  return guild ~= nil and selected == guild
 end
 
 -- Convida para o grupo.
