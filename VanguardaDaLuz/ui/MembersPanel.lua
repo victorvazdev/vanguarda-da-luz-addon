@@ -1,6 +1,7 @@
 -- Painel Membros: lista da guilda com nome (na cor da classe), nível, item
 -- level, main/alt, zona e posto. Clicar no título de uma coluna ordena por ela;
 -- o clique direito num membro abre o menu (sussurrar e convidar para o grupo).
+-- Quem o jogo deixa convidar para a guilda vê o botão "Convidar para a guilda".
 -- Usado na janela do addon e por cima da aba Membros da janela da guilda.
 local _, ns = ...
 
@@ -103,6 +104,12 @@ end
 function Panel:Refresh()
   local options = self.options
   self.online:SetText(options.onlineOnly and L["Mostrar: só online"] or L["Mostrar: todos"])
+  -- Botão de convite só para quem tem a permissão; a dica ocupa o lugar dele.
+  ns.GuildInviteButton.Refresh()
+  local canInvite = self.invite:IsShown()
+  self.hint:ClearAllPoints()
+  self.hint:SetPoint("RIGHT", self.count, "LEFT", -12, 0)
+  self.hint:SetPoint("LEFT", canInvite and self.invite or self.online, "RIGHT", 12, 0)
   for _, column in ipairs(self.cols) do
     local header = self.headers[column.key]
     local active = options.sort == column.key
@@ -150,7 +157,9 @@ end
 -- chama panel:Refresh() quando ele está visível.
 -- `hidden` = { [coluna] = true }: colunas que não aparecem (a janela da guilda
 -- esconde o tempo); as outras dividem a largura.
-function MembersPanel.Create(parent, width, height, hidden)
+-- `inGuildWindow`: o painel cobre a aba Membros da janela da guilda (o botão
+-- de convite aciona o da Blizzard; na janela do addon, abre a da guilda).
+function MembersPanel.Create(parent, width, height, hidden, inGuildWindow)
   local self = setmetatable({ options = { onlineOnly = false }, rows = {}, headers = {}, cols = {} }, Panel)
   for _, column in ipairs(COLUMNS) do
     if not (hidden and hidden[column.key]) then self.cols[#self.cols + 1] = column end
@@ -179,6 +188,12 @@ function MembersPanel.Create(parent, width, height, hidden)
     self:Refresh()
   end)
   self.online = online
+
+  local invite = Theme.Button(frame, L["Convidar para a guilda"], "outline", 180)
+  invite:SetPoint("LEFT", online, "RIGHT", 8, 0)
+  invite:Hide()
+  self.invite = invite
+  self.inviteLink = ns.GuildInviteButton.Attach(invite, frame, inGuildWindow and "invite" or "open")
 
   local hint = Theme.Text(frame, "small", "textMuted")
   hint:SetPoint("LEFT", online, "RIGHT", 12, 0)

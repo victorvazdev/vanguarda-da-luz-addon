@@ -4,7 +4,8 @@
 -- Uma mensagem (`entry`) vem de game/GuildChat.lua:
 --   { id, clock = "20:31", name = "Nome Sobrenome", color = "|cffRRGGBB" ou nil,
 --     main = nome do main (só para alts) ou nil, content = texto,
---     secret = true quando o jogo entrega o texto como valor secreto }
+--     secret = true quando o jogo entrega o texto como valor secreto,
+--     time = segundos Unix, epoch = horário do jogo (marcador de leitura) }
 local _, ns = ...
 
 local Text = ns.Text
@@ -113,6 +114,65 @@ function Chat.MatchRecent(recent, guid, name, time, tolerance, used)
     end
   end
   return nil
+end
+
+-- Junta os blocos de mensagens que o jogo tem carregados de um canal. O
+-- histórico pode ter buracos (mensagens de quando o jogador estava offline
+-- formam um bloco à parte); cada bloco é uma lista de { id, epoch, position,
+-- ... }. Retorna as mensagens da mais antiga para a mais nova, sem repetir, e
+-- o índice do bloco mais novo.
+local function Before(a, b)
+  if a.epoch ~= b.epoch then return a.epoch < b.epoch end
+  return a.position < b.position
+end
+
+function Chat.MergeRanges(blocks)
+  local list, seen, newest, newestLast = {}, {}, nil, nil
+  for i, block in ipairs(blocks) do
+    for _, m in ipairs(block) do
+      if not seen[m.id] then
+        seen[m.id] = true
+        list[#list + 1] = m
+      end
+      if not newestLast or Before(newestLast, m) then newest, newestLast = i, m end
+    end
+  end
+  table.sort(list, Before)
+  return list, newest
+end
+
+-- Linhas do quadro com os separadores, como no chat da Blizzard:
+--   { entry = mensagem }
+--   { separator = "day", day = "today"|"yesterday"|"date", time = horário }
+--     antes da primeira mensagem de cada dia;
+--   { separator = "unread" } antes da primeira mensagem mais nova que o
+--     marcador de leitura do canal (`marker`, no mesmo formato de `epoch`; nil
+--     = sem separador).
+-- Cada mensagem precisa de `time` (segundos Unix) e `epoch`. `now` e
+-- `offset` (fuso local em segundos) definem hoje e ontem.
+local function DayKey(ts, offset)
+  local f = ns.Time.Fields(ts, offset)
+  return f.year * 10000 + f.month * 100 + f.day
+end
+
+function Chat.Rows(entries, now, offset, marker)
+  local rows = {}
+  local today, yesterday = DayKey(now, offset), DayKey(now - 86400, offset)
+  local lastDay, unread = nil, marker == nil
+  for _, entry in ipairs(entries) do
+    local key = DayKey(entry.time or 0, offset)
+    if key ~= lastDay then
+      lastDay = key
+      local day = key == today and "today" or key == yesterday and "yesterday" or "date"
+      rows[#rows + 1] = { separator = "day", day = day, time = entry.time or 0 }
+    end
+    if not unread and (entry.epoch or 0) > marker then
+      unread = true
+      rows[#rows + 1] = { separator = "unread" }
+    end
+    rows[#rows + 1] = { entry = entry }
+  end
+  return rows
 end
 
 -- Lê o destino de um link clicado: ("player", nome) ou ("url", endereço).

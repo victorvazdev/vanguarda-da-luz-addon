@@ -52,6 +52,8 @@ Na janela **Guilda e comunidades** do jogo (J), com a guilda selecionada, o addo
 | Receber dados da guilda | Os membros só aceitam dados de remetentes com cargo aceito, conferido no roster da guilda |
 | Confirmar ou cancelar presença | Qualquer membro, com o personagem logado, em eventos ativos que não começaram |
 | Exportar presenças para o site | Cargos aceitos (Grão Lorde e Lorde) |
+| Criar, editar e cancelar eventos no jogo | Cargos aceitos (Grão Lorde e Lorde). Os membros só aceitam alterações de remetentes com cargo aceito |
+| Gerar e restaurar o backup do addon | Cargos aceitos (Grão Lorde e Lorde) |
 | Ver as profissões e sussurrar | Qualquer membro |
 | Enviar alerta de raide | Cargos aceitos (Grão Lorde e Lorde). Os membros só mostram alertas de remetentes com cargo aceito |
 
@@ -115,6 +117,9 @@ As mensagens usam o canal `GUILD` com o prefixo `VanguardaDaLuz`. A AceComm divi
 | `T\|<total>` | Tempo de jogo com a guilda do próprio remetente, em segundos |
 | `U` | Pedido dos tempos com a guilda conhecidos, enviado junto com o `Q` |
 | `V\|<lista>` | Tempos com a guilda conhecidos de todos os membros |
+| `E\|<VDLB1>` | Eventos criados, editados ou cancelados no jogo pelo remetente (cargo aceito), numa string `VDLB1` só com eventos |
+| `B` | Pedido dos eventos do jogo que aguardam o site, enviado junto com o `Q` |
+| `C\|<VDLB1>` | Eventos do jogo que aguardam o site, conhecidos pelo remetente (só cargos aceitos respondem) |
 
 - Só responde quem tem cargo aceito e dados mais novos. A resposta sai depois de uma espera aleatória de 1 a 6 s e é cancelada se outro remetente avisar (`H`) ou enviar (`D`) a mesma exportação ou uma mais nova.
 - Ao confirmar uma importação, um Grão Lorde ou Lorde envia a exportação à guilda na hora.
@@ -141,6 +146,45 @@ No detalhe de um evento ativo que ainda não começou, o botão **Confirmar pres
 - Presenças de eventos que o addon não tem mais são apagadas.
 - O Grão Lorde e os Lordes geram em **Administração** > **Gerar string** (ou `/vdl presencas`) a string `VDLP1`, com as confirmações e os cancelamentos dos eventos que ainda não começaram, para um administrador colar no site. Formato: [`docs/formato-string-presencas.md`](docs/formato-string-presencas.md).
 
+### Eventos criados no jogo
+
+O Grão Lorde e os Lordes podem criar, editar, cancelar e excluir eventos no jogo. As alterações vão para a guilda na hora e para o site no próximo backup.
+
+- **Criar:** botão **+ Evento** no cartão do dia, na aba Eventos. O formulário pede:
+  - título, data e hora de Brasília;
+  - organizador, já preenchido com o personagem;
+  - vagas (padrão 40) e se aceita visitantes;
+  - descrição.
+
+  Os limites são os do site (`GameEvents.LIMITS`). O evento ganha um ID de 20 letras e dígitos, no formato dos IDs do site, e o site cria o evento com esse mesmo ID.
+- **Editar e cancelar:** botões **Editar** e **Cancelar evento** (que pede um segundo clique) no detalhe de um evento ativo que ainda não começou, do site ou do jogo. Nos eventos do site, vagas e visitantes não aparecem, porque a `VDL1` não traz esses dados; eles continuam como estão no site.
+- **Excluir:** botão **Excluir evento** (que pede um segundo clique) no detalhe de um evento cancelado, do site ou do jogo, como no site. O evento sai do calendário e das presenças. Fica um registro oculto da exclusão (`db.deleted`), que aguarda o site: uma `VDL1` mais antiga ou a mensagem de outro Lorde não trazem o evento de volta. O registro sai quando uma `VDL1` gerada depois da exclusão não traz mais o evento, ou quando o evento já passou.
+- **Guilda:** a alteração vai na hora pela mensagem `E`, e cada membro confere o cargo do remetente. Quem entra no jogo depois pede as alterações (`B`), e um Grão Lorde ou Lorde responde (`C`).
+- **Aguardando o site:** o evento alterado no jogo mostra "Criado no jogo por…" ou "Alterado no jogo por…" e "aguardando o site".
+  - Uma `VDL1` que não traz o evento não o remove. A exceção é o evento do site: se ele some de uma `VDL1` gerada depois da alteração no jogo, foi excluído no site, e o addon o remove.
+  - Uma versão do site mais antiga que a alteração do jogo não a desfaz.
+  - Quando o evento volta numa `VDL1` com `updatedAt` igual ou maior, ele passa a seguir o site.
+
+  Em cada evento vale a alteração mais recente, do jogo ou do site.
+
+### Backup do addon
+
+Em **Administração** > **Backup do addon**, o Grão Lorde e os Lordes geram uma string `VDLB1` com:
+- os eventos criados ou alterados no jogo que aguardam o site;
+- as presenças;
+- as profissões;
+- o item level e o main;
+- o tempo jogado junto.
+
+Um administrador cola essa string no site. O site cria e altera os eventos, aplica as presenças e guarda o restante. Formato: [`docs/formato-string-backup.md`](docs/formato-string-backup.md). O pedido de implementação no site está em [`docs/prompt-site-backup.md`](docs/prompt-site-backup.md).
+
+**Restaurar** recebe uma `VDLB1` copiada do site e só junta os dados:
+- vale o registro mais recente de cada personagem e evento;
+- no tempo junto, vale o maior total;
+- nada que o addon tem é apagado.
+
+Depois, o addon oferece os dados à guilda pela sincronização normal.
+
 ### Profissões
 
 A aba **Profissões** da janela (ou `/vdl profissoes`, que abre uma janela só com a lista) abre a lista dos membros da guilda com as profissões primárias e o nível, para todos os membros.
@@ -161,6 +205,7 @@ A aba **Membros** (na janela do addon e por cima da aba Membros da janela da gui
 - Abre com **todos** os membros; **Mostrar** alterna para só online. Offline aparece em cinza, com "Offline" na zona.
 - Ordem padrão: online primeiro, depois o posto (Grão Lorde primeiro), o nível (maior primeiro) e o nome. Clicar no título de uma coluna ordena por ela; de novo, inverte; uma terceira vez, volta à ordem padrão.
 - O clique direito num membro abre um menu com **Sussurrar** (abre o chat com `/w Nome Sobrenome`) e **Convidar para o grupo** (`C_PartyInfo.InviteUnit`). As duas opções ficam desativadas para quem está offline e na linha do próprio jogador. O menu fecha ao escolher, ao clicar fora ou com Esc.
+- **Convidar para a guilda:** quem tem a permissão de convidar no posto (configurada nos postos da guilda; o addon pergunta ao jogo com `CanGuildInvite`, sem olhar o nome do posto) vê o botão **Convidar para a guilda** na barra da aba. Na janela da guilda, ele abre a janela de convite da própria Blizzard, onde se digita o nome; o jogo avisa no chat se o convite foi enviado. Na janela do addon, ele abre a janela da guilda e avisa para clicar em Convidar na aba Membros dela. Para quem não tem a permissão o botão não aparece. Addons não podem convidar no WoW Forever: `C_GuildInfo.Invite` e até `/ginvite` num botão seguro de macro são bloqueados (confirmado no jogo). Por isso o clique cai num botão seguro do addon (`SecureActionButtonTemplate`, `type = "click"`, `ui/GuildInviteButton.lua`) que aciona o botão de convite da Blizzard (`CommunitiesFrame.InviteButton`, que ela só mostra no Bate-papo; acionado escondido, abre a janela de convite e convida — confirmado no jogo) ou, na janela do addon, o botão Guilda do menu do jogo, como na edição da mensagem do dia. O botão seguro é posicionado pela tela em cima do botão do addon; em combate ele sai, e volta ao sair do combate.
 - Promover, rebaixar, remover e editar notas ficam na lista original da Blizzard (**Ver original da Blizzard**), porque são ações protegidas. Na original, cada linha continua mostrando o item level e o main/alt.
 
 ### Bate-papo
@@ -168,6 +213,8 @@ A aba **Membros** (na janela do addon e por cima da aba Membros da janela da gui
 A aba **Bate-papo** mostra o bate-papo da guilda com o tema do addon: hora, nome na cor da classe, "(alt de Fulano)" para quem é alt e links clicáveis, que abrem a caixa de copiar. Clicar num nome abre o menu Sussurrar / Convidar para o grupo (o mesmo da aba Membros), e passar o mouse mostra o item level e o main/alt. Links de item, missão e outros do jogo mostram o tooltip junto do mouse ao passar por cima (`GameTooltip:SetHyperlink`) e, ao clicar, fazem o mesmo que no chat da Blizzard (`SetItemRef`; com Shift, o link vai para a caixa do chat). A caixa embaixo envia para a guilda (Enter ou **Enviar**). O Grão Lorde e os Lordes têm também o canal **Oficiais**, se o jogo deixar ler.
 
 - As mensagens vêm do histórico do clube da guilda (`C_Club.GetStreams`, `GetMessageRanges` e `GetMessagesInRange`): o bate-papo da guilda e o de oficiais são "streams" do clube (tipos 1 e 2). Com isso a aba já abre com as mensagens de antes do login (confirmado no jogo: as últimas 100). Os eventos `CHAT_MSG_GUILD`, `CHAT_MSG_OFFICER` e `CLUB_MESSAGE_ADDED` só avisam que chegou algo, e a aba relê o histórico. O jogo só carrega o histórico de um canal quando alguém pede: o da guilda já vem pelo chat da Blizzard, o de oficiais não. Quando um canal está vazio, o addon pede as últimas 100 mensagens (`C_Club.RequestMoreMessagesBefore`) uma vez por sessão, e relê quando chega `CLUB_MESSAGE_HISTORY_RECEIVED`.
+- O histórico carregado pode vir em vários blocos (`GetMessageRanges`), com buracos entre eles: as mensagens de quando o jogador estava offline formam um bloco à parte, que na Blizzard começa no separador "Mensagens não lidas" ou "Hoje". O addon junta todos os blocos em ordem (`Chat.MergeRanges`) e, quando há buraco, pede as mensagens anteriores ao bloco mais novo (`RequestMoreMessagesBefore` com o ID da mais antiga dele), uma vez por buraco e no máximo 5 vezes por canal na sessão.
+- Separadores como no chat da Blizzard (`Chat.Rows`): "Hoje", "Ontem" ou a data antes da primeira mensagem de cada dia, no fuso do computador; e "Mensagens não lidas" antes da primeira mensagem mais nova que o marcador de leitura do canal (`C_Club.GetStreamViewMarker`). O marcador é lido uma vez por canal enquanto a aba está aberta, e o addon marca o canal como lido (`C_Club.AdvanceStreamViewMarker`) ao mostrar mensagens novas, como a Blizzard. Se o jogo não informar o marcador, só os separadores de dia aparecem.
 - O envio usa `C_ChatInfo.SendChatMessage(texto, "GUILD" ou "OFFICER")`, o mesmo do alerta de raide. O texto vira uma linha, "|" vira "/" (menos dentro de links do jogo) e o que passa de 255 bytes é cortado; um link que não cabe inteiro fica de fora.
 - Com a caixa do addon em foco, Shift+clique num item, missão etc. põe o link nela, como na caixa do chat da Blizzard: o addon observa a função do jogo que insere links (`ChatFrameUtil.InsertLink` / `ChatEdit_InsertLink`, com `hooksecurefunc`). Com a comunicação restrita (encontro, Mítica+, JxJ), a mensagem não é enviada e o chat avisa.
 - O histórico entrega o texto de cada mensagem protegido (`|Kw774|k`): uma referência que o jogo troca pelo texto na hora de desenhar, sem o addon conseguir ler. Por isso o addon não escapa essas referências, e nas mensagens antigas não dá para achar links. As que chegam com o jogo aberto vêm em texto normal pelos eventos de chat; o addon guarda esse texto na sessão e usa no lugar do protegido (mesmo autor pelo GUID e horário com até 5 s de diferença), então os links dessas mensagens funcionam.
@@ -235,7 +282,7 @@ O addon fala português no jogo em português do Brasil (`ptBR`) e inglês em qu
 
 - No código, os textos são escritos em português dentro de `L["..."]`. A tradução para o inglês fica em `core/Locale.lua`; sem tradução, o texto aparece em português. O teste `tests/locale_spec.lua` falha se algum texto usado não tiver tradução, se sobrar tradução sem uso ou se os marcadores de formato (`%s`, `%d`) forem diferentes.
 - Datas em inglês: "Saturday, November 14, 2026" e "2026-11-14 20:00". O horário continua sendo o de Brasília.
-- Não são traduzidos: o que vem do site (títulos e descrições dos eventos), o que vem do jogo (zonas, classes, postos e profissões, que já chegam no idioma do jogo), o texto do alerta e o prefixo "[Alerta]" no chat da guilda, os nomes dos postos "Grão Lorde" e "Lorde" e o conteúdo das strings `VDL1` e `VDLP1`.
+- Não são traduzidos: o que vem do site (títulos e descrições dos eventos), o que vem do jogo (zonas, classes, postos e profissões, que já chegam no idioma do jogo), o texto do alerta e o prefixo "[Alerta]" no chat da guilda, os nomes dos postos "Grão Lorde" e "Lorde" e o conteúdo das strings `VDL1`, `VDLP1` e `VDLB1`.
 - Os comandos aceitam os nomes em português e em inglês em qualquer idioma.
 
 ### Horários
@@ -254,12 +301,15 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
            Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8 e links), Alert (alerta de raide),
            Attendance e PresenceCodec (lista de presença e string VDLP1), Professions,
            Members (item level e main/alt), Roster (lista de membros), Together (tempo com a guilda),
-           Keys (combinação do atalho de teclado), Chat (linhas e canais do bate-papo)
+           Keys (combinação do atalho de teclado), Chat (linhas e canais do bate-papo),
+           GameEvents (eventos criados no jogo), BackupCodec (string VDLB1)
   game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide),
            Presence (lista de presença), GuildProfessions (profissões), GuildMembers (item level e main/alt),
-           GuildTogether (tempo com a guilda), Keybind (atalho para abrir o addon), GuildChat (bate-papo)
+           GuildTogether (tempo com a guilda), Keybind (atalho para abrir o addon), GuildChat (bate-papo),
+           GuildEvents (eventos criados no jogo), Backup (backup e restauração)
   ui/      Theme (identidade do site), painéis reaproveitáveis HomePanel, CalendarPanel, ProfessionsPanel e AdminPanel,
            MembersPanel, ChatPanel, SettingsPanel, MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, MainPrompt, PresenceExport,
+           EventDialog (formulário de evento), BackupDialog (gerar e restaurar backup),
            ProfessionsFrame, GuildTabs (abas e Informações na janela da guilda),
            GuildRoster (texto na lista de membros), MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
@@ -279,7 +329,10 @@ scripts/   setup-dev.sh, check.sh, package.sh, install.sh
 {
   schema = 1,
   export = { raw, exportNumber, windowStart, windowEnd, count, receivedAt, source, sender },
-  events = { [idDoSite] = { id, title, startsAt, description, organizer, status, updatedAt } },
+  events = { [id] = { id, title, startsAt, description, organizer, status, updatedAt,
+                      -- só nos criados ou alterados no jogo que aguardam o site:
+                      pending = true, origin = "jogo"|"site", max, guests, by } },
+  deleted = { [id] = { ...os mesmos campos, status = "excluido", pending = true } },  -- excluídos no jogo
   attendance = { [idDoSite] = { ["Nome Sobrenome"] = { s = 1|0, t = horário } } },
   professions = { ["Nome Sobrenome"] = { t = horário, p = { { n, l, m } } } },
   members = { ["Nome Sobrenome"] = { t = horário, i = itemLevel, m = main } },
@@ -354,6 +407,19 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 7. No site, edite um evento, cancele outro e exclua um terceiro, que precisa estar cancelado antes. Exporte e importe. O resumo deve mostrar 1 alterado, 1 cancelado e 1 removido, e o calendário do addon deve refletir as três mudanças.
 8. O calendário da Blizzard não muda.
 
+### Eventos criados no jogo e backup
+
+1. Com um Lorde, abra **Eventos**, escolha um dia futuro e clique em **+ Evento**. Preencha e salve. O evento aparece no dia com "Criado no jogo por… · aguardando o site".
+2. Com o membro comum online, o evento aparece no calendário dele na hora. O membro comum não vê **+ Evento**, **Editar** nem **Cancelar evento**.
+3. Edite o evento (título e vagas) e um evento do site (só título e horário; vagas e visitantes não aparecem). Cancele outro com dois cliques.
+4. O membro comum sai e entra no jogo: as alterações chegam pelo pedido `B`.
+5. Importe uma `VDL1` mais nova que não tenha o evento criado: ele continua no calendário, e o resumo mostra "Alterações do jogo aguardando o site (mantidas)".
+6. **Administração** > **Gerar backup**: a string `VDLB1` aparece selecionada, com as quantidades.
+7. **Restaurar**: cole `abc` e valide (erro de prefixo). Cole a string do passo 6, valide e restaure. Quase nada deve mudar ("0 … atualizados").
+8. Edite no jogo um evento do site, exclua-o no site, gere uma `VDL1` nova e importe-a: o evento aparece em "Removidos" e sai do calendário, também para o membro comum.
+9. Exclua no jogo um evento cancelado (dois cliques): ele some do calendário, também para o membro comum. No site, sem aplicar o backup, gere uma `VDL1` nova (ela ainda traz o evento cancelado) e importe-a: ele continua excluído, e o resumo o conta em "Alterações do jogo aguardando o site".
+10. Depois de o site aplicar o backup e gerar uma `VDL1` nova, importe-a: o evento criado no jogo perde a marca "aguardando o site" e não fica duplicado, e o evento excluído no passo 9 não volta.
+
 ### Início
 
 1. Clique no botão do minimapa: a janela abre no **Início**, com a mensagem do dia e as informações da guilda iguais às da janela da guilda (J).
@@ -423,7 +489,8 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 2. Clique em **NV**: ordena do menor nível para o maior; de novo, do maior para o menor; uma terceira vez, volta à ordem padrão (online, posto, nível do maior para o menor, nome). Faça o mesmo com as outras colunas.
 3. **Mostrar: todos** alterna para só online. Clique direito num membro online: o menu mostra o nome, **Sussurrar** abre o chat e **Convidar para o grupo** envia o convite (confirme que não aparece "ação bloqueada" e que o convite chega com o nome "Nome Sobrenome"). Num membro offline ou em você, as opções ficam desativadas. Clicar fora ou Esc fecha o menu.
 4. Na janela da guilda (J), clique em **Membros**: aparece a lista do addon. **Ver original da Blizzard** mostra a original, com o "27 · Main" nas linhas. Clique em Membros de novo: volta a lista do addon.
-5. Em Configurações, desligue **Lista de membros do addon na aba Membros**: a aba Membros da guilda volta a ser só a da Blizzard.
+5. Com um personagem cujo posto pode convidar (Grão Lorde, Lorde, Cruzado...), abra a aba **Membros** da janela da guilda (J): aparece **Convidar para a guilda**. Clique: deve abrir a janela de convite da Blizzard, **sem** "ação bloqueada" (confirmado). Convide "Nome Sobrenome" de um personagem sem guilda e confira que o convite chega; teste também só o primeiro nome. Na janela do addon, **Convidar para a guilda** abre a janela da guilda e avisa no chat onde clicar. Em combate, o clique só avisa que não dá; ao sair, volta. Com um posto sem a permissão, o botão não aparece.
+6. Em Configurações, desligue **Lista de membros do addon na aba Membros**: a aba Membros da guilda volta a ser só a da Blizzard.
 
 ### Bate-papo
 
@@ -435,8 +502,10 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 6. No Lorde: os botões **Guilda** e **Oficiais** aparecem; em Oficiais, o histórico do canal de oficiais aparece em cerca de 1 s (mesmo sem ter aberto o canal na Blizzard), e o envio vai para ele. No membro sem cargo, só a guilda.
 7. Na janela da guilda (J), a aba **Bate-papo** mostra o bate-papo do addon, sem a dica do topo. **Ver original da Blizzard** mostra o chat e a lista de membros da Blizzard; clicar em Bate-papo de novo volta ao do addon. Em Configurações, **Bate-papo do addon na aba Bate-papo** desliga a cobertura.
 8. Role com a roda do mouse até mensagens antigas: a rolagem não volta sozinha para o fim enquanto ninguém escreve.
-9. Numa masmorra ou raide, durante um encontro (com o roster atualizando): nenhum erro de Lua do addon; a lista de membros, o Início e o bate-papo continuam mostrando o que havia antes da luta.
-10. Numa masmorra ou raide, durante um encontro: as mensagens continuam aparecendo (talvez sem cor e sem links), e enviar mostra o aviso de comunicação restrita.
+9. Quando o chat da Blizzard mostra o separador "Mensagens não lidas" ou "Hoje", o Bate-papo do addon mostra também as mensagens de antes dele, como a Blizzard ao rolar para cima. Se faltar alguma logo antes do separador, reabra a aba depois de 1 s: o pedido ao servidor deve preencher o buraco.
+10. Separadores no Bate-papo: "Hoje", "Ontem" e a data aparecem antes da primeira mensagem de cada dia. Com mensagens novas de quando você estava offline, "Mensagens não lidas" aparece antes delas. Feche e abra a aba: o separador de não lidas some, e na janela da Blizzard ("Ver original da Blizzard") essas mensagens também deixam de aparecer como não lidas. (Não confirmado no WoW Forever: se `GetStreamViewMarker` e `AdvanceStreamViewMarker` funcionam para addons; sem eles, só os separadores de dia aparecem.)
+11. Numa masmorra ou raide, durante um encontro (com o roster atualizando): nenhum erro de Lua do addon; a lista de membros, o Início e o bate-papo continuam mostrando o que havia antes da luta.
+12. Numa masmorra ou raide, durante um encontro: as mensagens continuam aparecendo (talvez sem cor e sem links), e enviar mostra o aviso de comunicação restrita.
 
 ### Tempo de jogo com a guilda
 

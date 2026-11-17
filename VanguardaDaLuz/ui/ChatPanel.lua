@@ -80,6 +80,17 @@ local function LinkTooltip(owner, link)
   GameTooltip:Show()
 end
 
+-- Texto de um separador de Chat.Rows: "Hoje", "Ontem", a data ou
+-- "Mensagens não lidas".
+local function SeparatorText(row, offset)
+  if row.separator == "unread" then
+    return Theme.Code("warning") .. "— " .. L["Mensagens não lidas"] .. " —|r"
+  end
+  local label = row.day == "today" and L["Hoje"] or row.day == "yesterday" and L["Ontem"]
+    or (string.gsub(ns.Time.FormatLongDate(row.time, offset), "^%l", string.upper))
+  return Theme.Code("gold") .. "— " .. label .. " —|r"
+end
+
 -- Canal mostrado: o de oficiais só enquanto estiver disponível.
 function Panel:Channel()
   if self.channel == "officer" and not self.channels.officer then self.channel = "guild" end
@@ -97,10 +108,16 @@ function Panel:Refresh()
   self.placeholder:SetText(channel == "officer" and L["Escreva para os oficiais…"] or L["Escreva para a guilda…"])
 
   local entries = ns.GuildChat.Entries(channel)
+  -- Marcador de leitura: lido uma vez por canal enquanto o painel está aberto,
+  -- para o separador "Mensagens não lidas" ficar no lugar até fechar.
+  if self.markers[channel] == nil then self.markers[channel] = ns.GuildChat.ViewMarker(channel) or false end
+  local marker = self.markers[channel] or nil
+  local now = time()
   local last = entries[#entries]
-  local signature = channel .. ":" .. #entries .. ":" .. (last and last.id or "")
+  local signature = channel .. ":" .. #entries .. ":" .. (last and last.id or "") .. ":" .. date("%Y%m%d", now)
   if signature == self.signature then return end
   self.signature = signature
+  ns.GuildChat.MarkRead(channel)
   local messages = self.messages
   messages:Clear()
   if #entries == 0 then
@@ -108,9 +125,14 @@ function Panel:Refresh()
     return
   end
   local muted, linkColor, alt = Theme.Code("textMuted"), Theme.Code("azure"), L["alt de %s"]
-  for _, entry in ipairs(entries) do
-    -- Texto secreto (encontros) pode recusar alguma operação: a linha é pulada.
-    pcall(function() messages:AddMessage(Chat.Line(entry, muted, linkColor, alt)) end)
+  local offset = ns.Flavor.LocalOffset(now)
+  for _, row in ipairs(Chat.Rows(entries, now, offset, marker)) do
+    if row.separator then
+      messages:AddMessage(SeparatorText(row, offset))
+    else
+      -- Texto secreto (encontros) pode recusar alguma operação: a linha é pulada.
+      pcall(function() messages:AddMessage(Chat.Line(row.entry, muted, linkColor, alt)) end)
+    end
   end
   messages:ScrollToBottom()
 end
@@ -132,7 +154,7 @@ end
 -- Cria o painel dentro de `parent`, com `width` x `height`. `compact` (janela
 -- da guilda) esconde a dica do topo, que não cabe ao lado dos canais.
 function ChatPanel.Create(parent, width, height, compact)
-  local self = setmetatable({ channel = "guild", channels = {} }, Panel)
+  local self = setmetatable({ channel = "guild", channels = {}, markers = {} }, Panel)
   local frame = CreateFrame("Frame", nil, parent)
   frame:SetSize(width, height)
   self.frame = frame
@@ -245,7 +267,10 @@ function ChatPanel.Create(parent, width, height, compact)
   inputs[#inputs + 1] = input
 
   -- Ao voltar para a aba, relê tudo (a posição de rolagem volta ao fim).
-  frame:SetScript("OnShow", function() self.signature = nil end)
+  frame:SetScript("OnShow", function()
+    self.signature = nil
+    self.markers = {}
+  end)
 
   return self
 end

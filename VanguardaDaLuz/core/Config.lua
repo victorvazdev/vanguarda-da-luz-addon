@@ -43,6 +43,9 @@ ns.Config = {
   -- Popup "é o seu main?": espera depois do pedido do login, em segundos.
   MAIN_PROMPT_DELAY = 3,
 
+  -- Novo evento criado no jogo: hora sugerida (Brasília).
+  NEW_EVENT_CLOCK = "21:00",
+
   -- Tempo com a guilda: intervalo da contagem e de anúncio do total, em segundos.
   TOGETHER_TICK = 60,
   TOGETHER_ANNOUNCE_INTERVAL = 600,

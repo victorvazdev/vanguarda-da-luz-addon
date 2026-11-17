@@ -156,7 +156,7 @@ local function CreateCoverPanel(key, w, h)
   elseif key == "chat" then
     inner = ns.ChatPanel.Create(frame, w, h - 36, true)
   else
-    inner = ns.MembersPanel.Create(frame, w, h - 36, { time = true })
+    inner = ns.MembersPanel.Create(frame, w, h - 36, { time = true }, true)
   end
   inner.frame:SetPoint("TOPLEFT")
   local original = Theme.Button(frame, L["Ver original da Blizzard"], "ghost", 190)

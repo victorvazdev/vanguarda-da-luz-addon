@@ -7,6 +7,42 @@ describe("Bate-papo da guilda", function()
     Chat = addon.Load().Chat
   end)
 
+  it("junta os blocos do histórico em ordem, sem repetir", function()
+    local function M(epoch, position) return { id = epoch .. ":" .. position, epoch = epoch, position = position } end
+    local new = { M(500, 1), M(600, 2) }
+    local old = { M(100, 3), M(200, 4), M(500, 1) }
+    local list, newest = Chat.MergeRanges({ new, old })
+    local ids = {}
+    for i, m in ipairs(list) do ids[i] = m.id end
+    assert.are.same({ "100:3", "200:4", "500:1", "600:2" }, ids)
+    assert.are.equal(1, newest)
+    -- Mesmo horário: vale a posição.
+    list = Chat.MergeRanges({ { M(100, 2) }, { M(100, 1) } })
+    assert.are.equal("100:1", list[1].id)
+    assert.are.same({}, (Chat.MergeRanges({})))
+  end)
+
+  it("põe os separadores de dia e de não lidas", function()
+    -- now = 16/11/2026 12:00 UTC; fuso -3h.
+    local now, offset = 1794830400, -3 * 3600
+    local function E(id, time) return { id = id, time = time, epoch = time * 1000000 } end
+    local entries = { E("a", now - 3 * 86400), E("b", now - 86400), E("c", now - 600), E("d", now - 60) }
+    local rows = Chat.Rows(entries, now, offset, (now - 300) * 1000000)
+    local kinds = {}
+    for i, r in ipairs(rows) do kinds[i] = r.separator and (r.day or r.separator) or r.entry.id end
+    assert.are.same({ "date", "a", "yesterday", "b", "today", "c", "unread", "d" }, kinds)
+    assert.are.equal(now - 3 * 86400, rows[1].time)
+    -- Virada do dia pelo fuso: 02:00 UTC de hoje ainda é ontem em UTC-3.
+    rows = Chat.Rows({ E("x", 1794794400) }, now, offset)
+    assert.are.equal("yesterday", rows[1].day)
+    -- Marcador antes de tudo: "não lidas" no começo, depois do dia; sem marcador ou já lido: nada.
+    rows = Chat.Rows({ E("c", now - 600) }, now, offset, 0)
+    assert.are.equal("unread", rows[2].separator)
+    assert.are.equal(2, #Chat.Rows({ E("c", now - 600) }, now, offset, now * 1000000))
+    assert.are.equal(2, #Chat.Rows({ E("c", now - 600) }, now, offset))
+    assert.are.same({}, Chat.Rows({}, now, offset))
+  end)
+
   it("acha os canais da guilda e de oficiais", function()
     local types = { guild = 1, officer = 2 }
     assert.are.same({ guild = 1, officer = 2 }, Chat.Streams({

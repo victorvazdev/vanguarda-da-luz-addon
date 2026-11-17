@@ -70,8 +70,21 @@ function Panel:ShowAttendance(event)
   d.attendance:SetText(line .. (#names > 0 and table.concat(escaped, ", ") or L["ninguém ainda"]))
   local open = ns.Presence.IsOpen(event)
   d.attend:SetShown(open)
-  -- Sem botão, a área com rolagem desce até o pé do cartão.
-  d.body:SetPoint("BOTTOMRIGHT", -Lay.cardPad - 18, open and (Lay.cardPad + 28 + 10) or Lay.cardPad)
+  -- Editar e cancelar (Grão Lorde e Lordes), numa linha acima da presença.
+  local editable = open and ns.GuildEvents.CanEdit() and ns.GuildEvents.IsChangeable(event)
+  d.edit:SetShown(editable)
+  d.cancel:SetShown(editable)
+  d.cancel.eventId, d.cancel.armed = event.id, false
+  d.cancel:SetText(L["Cancelar evento"])
+  d.edit.event = event
+  -- Excluir (evento cancelado), no lugar do botão de presença.
+  local deletable = not open and ns.GuildEvents.CanEdit() and ns.GuildEvents.IsDeletable(event)
+  d.delete:SetShown(deletable)
+  d.delete.eventId, d.delete.armed = event.id, false
+  d.delete:SetText(L["Excluir evento"])
+  -- Sem botões, a área com rolagem desce até o pé do cartão.
+  local bottom = Lay.cardPad + ((open or deletable) and (28 + 10) or 0) + (editable and (28 + 6) or 0)
+  d.body:SetPoint("BOTTOMRIGHT", -Lay.cardPad - 18, bottom)
   if open then
     d.attend.eventId = event.id
     d.attend:SetText(ns.Presence.Status(event.id) == 1 and L["Cancelar presença"] or L["Confirmar presença"])
@@ -89,7 +102,14 @@ function Panel:ShowDetail(event)
     d.status:SetText(Theme.Code("success") .. L["ATIVO"] .. "|r")
   end
   d.when:SetText(Time.FormatLongDate(event.startsAt, Brasilia()) .. "\n" .. TimesLine(event))
-  d.organizer:SetText(Text.Escape(event.organizer))
+  local organizer = Text.Escape(event.organizer)
+  if event.pending then
+    -- Criado ou alterado no jogo: ainda não está no site.
+    local note = event.origin == "jogo" and L["Criado no jogo por %s · aguardando o site"]
+      or L["Alterado no jogo por %s · aguardando o site"]
+    organizer = organizer .. "\n" .. Theme.Code("warning") .. string.format(note, Text.Escape(event.by or "?")) .. "|r"
+  end
+  d.organizer:SetText(organizer)
   self:ShowAttendance(event)
   local description = Text.Escape(event.description or "")
   d.description:SetText(description ~= "" and description
@@ -131,6 +151,7 @@ function Panel:RenderDay()
     Theme.Backdrop(self.eventButtons[1], "surfaceRaised", "gold")
   end
   self.noEvents:SetShown(#list == 0)
+  self.newEvent:SetShown(ns.GuildEvents.CanEdit())
   -- O cartão do dia só ocupa a altura dos eventos que o dia tem.
   local rows = math.min(#list, MAX_DAY_EVENTS)
   local top = Lay.cardPad + 30
@@ -213,6 +234,12 @@ function Panel:ShowDate(year, month, day, eventId)
   local s = self.selected
   s.year, s.month, s.day, s.eventId = year, month, day, eventId
   self:Refresh()
+end
+
+-- Mostra o dia de um evento, com ele selecionado.
+function Panel:ShowEvent(event)
+  local f = Time.Fields(event.startsAt, Brasilia())
+  self:ShowDate(f.year, f.month, f.day, event.id)
 end
 
 function Panel:ChangeMonth(delta)
@@ -343,9 +370,19 @@ function Panel:BuildSide(grid, sideW, height)
   Theme.Backdrop(dayCard, "surface", "border")
   self.dayCard = dayCard
 
+  -- Novo evento no dia selecionado (Grão Lorde e Lordes).
+  local newEvent = Theme.Button(dayCard, L["+ Evento"], "ghost", 80)
+  newEvent:SetHeight(22)
+  newEvent:SetPoint("TOPRIGHT", -(Lay.cardPad - 4), -Lay.cardPad + 6)
+  newEvent:SetScript("OnClick", function()
+    local s = self.selected
+    ns.EventDialog.ShowNew(s.year, s.month, s.day, function(event) self:ShowEvent(event) end)
+  end)
+  self.newEvent = newEvent
+
   local dayTitle = Theme.Text(dayCard, "heading", "heading")
   dayTitle:SetPoint("TOPLEFT", Lay.cardPad, -Lay.cardPad + 2)
-  dayTitle:SetPoint("TOPRIGHT", -Lay.cardPad, -Lay.cardPad + 2)
+  dayTitle:SetPoint("RIGHT", newEvent, "LEFT", -6, 0)
   dayTitle:SetWordWrap(false)
   self.dayTitle = dayTitle
 
@@ -406,6 +443,37 @@ function Panel:BuildSide(grid, sideW, height)
     local ok, err = ns.Presence.Toggle(b.eventId)
     if not ok then ns.Print(err) end
   end)
+
+  detail.edit = Theme.Button(detail, L["Editar"], "outline", 90)
+  detail.edit:SetPoint("BOTTOMLEFT", detail.attend, "TOPLEFT", 0, 6)
+  detail.edit:SetScript("OnClick", function(b)
+    ns.EventDialog.ShowEdit(b.event, function(event) self:ShowEvent(event) end)
+  end)
+  -- Cancelar e excluir pedem um segundo clique em até 5 segundos.
+  local function TwoClicks(button, label, action)
+    button:SetScript("OnClick", function(b)
+      if not b.armed then
+        b.armed = true
+        b:SetText(L["Clique de novo"])
+        C_Timer.After(5, function()
+          if b.armed then
+            b.armed = false
+            b:SetText(L[label])
+          end
+        end)
+        return
+      end
+      b.armed = false
+      local ok, err = action(b.eventId)
+      if not ok then ns.Print(err) end
+    end)
+  end
+  detail.cancel = Theme.Button(detail, L["Cancelar evento"], "ghost", 170)
+  detail.cancel:SetPoint("LEFT", detail.edit, "RIGHT", 8, 0)
+  TwoClicks(detail.cancel, "Cancelar evento", ns.GuildEvents.Cancel)
+  detail.delete = Theme.Button(detail, L["Excluir evento"], "ghost", 170)
+  detail.delete:SetPoint("BOTTOMLEFT", Lay.cardPad, Lay.cardPad)
+  TwoClicks(detail.delete, "Excluir evento", ns.GuildEvents.Delete)
 end
 
 -- Cria o painel dentro de `parent`, com a largura `width` e o layout "wide" ou

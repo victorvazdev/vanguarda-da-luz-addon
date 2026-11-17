@@ -42,6 +42,11 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Events are created on the guild website. An officer imports the website's export string once, and the addon **sends the events to every guild member** through the guild addon channel. Members who log in later receive them automatically.
 - Times are shown in Brasília time (UTC−3), with the server time next to them when it is different.
 - The import validates the string (format, checksum, version) and shows a summary of new, changed and cancelled events before applying anything.
+- Officers can also **create, edit and cancel events in game**. Changes reach every member right away and go to the website in the next backup.
+
+### Addon backup
+- Officers generate a backup string with events created in game, attendance, professions, item levels, mains and time played together, to keep on the guild website.
+- The website hands the data back as a restore string. Restoring only adds newer data; nothing is deleted.
 
 ### Attendance (RSVP)
 - Members confirm or cancel their attendance on upcoming events with one click.
@@ -63,7 +68,7 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Rate-limited, and never sent during encounters where addon communication is restricted.
 
 ### Members
-- A **Members** list with each member's name in class color, level, item level, main/alt, zone and rank. Click a column title to sort; show everyone or online members only; right-click a member to whisper or invite to your group.
+- A **Members** list with each member's name in class color, level, item level, main/alt, zone and rank. Click a column title to sort; show everyone or online members only; right-click a member to whisper or invite to your group. Members whose rank can invite also get an **Invite to guild** button.
 - It also replaces the guild window's Members tab, with a button to open Blizzard's original list (for promoting, demoting, removing and notes).
 
 ### Time with the guild
@@ -119,7 +124,8 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 > **Só para membros.** Todas as funções exigem estar na guilda *Vanguarda da Luz*. Quem não é da guilda vê apenas uma janela de boas-vindas com o convite do Discord.
 
 - **Início:** mensagem do dia e informações da guilda com links para copiar, próximo evento e membros online.
-- **Calendário:** eventos criados no site; um oficial importa a string e o addon envia para todos os membros da guilda. Horários de Brasília.
+- **Calendário:** eventos criados no site; um oficial importa a string e o addon envia para todos os membros da guilda. Horários de Brasília. Grão Lorde e Lordes também criam, editam e cancelam eventos no jogo.
+- **Backup:** string com eventos criados no jogo, presenças, profissões, item level e tempo junto para guardar no site, e restauração a partir do site.
 - **Presença:** confirme ou cancele com um clique; os oficiais geram a string de presenças para o site.
 - **Profissões:** profissões primárias e nível de cada membro, com filtro, só online e botão de sussurrar.
 - **Bate-papo:** o chat da guilda no addon, com as mensagens de antes de entrar no jogo, nomes na cor da classe, main/alt, links para copiar e tooltip de itens; escreva para a guilda (e para os oficiais, Grão Lorde e Lordes) direto da aba.
@@ -129,6 +135,23 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 - **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J), e o bate-papo, o Início e a lista de membros do addon nas abas Bate-papo, Informações e Membros. Os oficiais editam a mensagem do dia e as informações clicando no texto.
 
 Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
+```
+
+## Changelog da versão 0.4.0
+
+```markdown
+### New
+- **Create events in game.** The Guild Master and the Lords can create events from the Events tab (**+ Event** on the day card), edit or cancel any upcoming event, and delete cancelled events. Changes reach every guild member right away, are shown as "waiting for the website" and go to the website in the next backup.
+- **Addon backup.** Administration > Addon backup creates a string with events created or changed in game, attendance, professions, item levels, mains and time played together, to paste on the guild website. **Restore** pastes a string from the website back into the addon; it only adds newer data and never deletes anything.
+- **Invite to guild.** Members whose guild rank has the invite permission get an **Invite to guild** button in the Members tab. It opens Blizzard's own invite window (from the addon window, it opens the guild window first).
+- **Chat separators.** The Chat tab shows "Today", "Yesterday" or the date before each day's messages, and "Unread messages" before the messages you have not seen yet, like the Blizzard chat.
+
+### Changes
+- The Administration tab now shows one action per row, with the new backup buttons.
+- Importing events from the website keeps the events created in game that the website does not have yet. An event deleted on the website is still removed, even if it was edited in game before.
+
+### Fixes
+- The Chat tab now shows the whole guild chat history, including the messages before the "Unread messages" or "Today" separator.
 ```
 
 ## Changelog da versão 0.3.3

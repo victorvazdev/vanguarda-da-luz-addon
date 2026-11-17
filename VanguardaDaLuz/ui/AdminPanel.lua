@@ -1,5 +1,5 @@
 -- Painel de administração (Grão Lorde e Lordes): importar a string do site,
--- exportar as presenças e enviar o alerta de raide, com o estado da
+-- backup do addon, exportar as presenças e enviar o alerta de raide, com o estado da
 -- sincronização. Usado na aba Administração da janela da guilda.
 local _, ns = ...
 
@@ -13,33 +13,43 @@ local CARD_GAP = 12
 local Panel = {}
 Panel.__index = Panel
 
+-- Uma linha por ação: título e texto à esquerda, botões à direita.
 local CARDS = {
   {
     title = L["Importar eventos"],
-    text = L["Cole a string gerada no site em \"Exportar para o addon\". "
-      .. "Os eventos vão para o calendário e são enviados à guilda."],
-    button = L["Importar"],
-    action = function() ns.ImportDialog.Show() end,
+    text = L["Cole a string de \"Exportar para o addon\" do site. Os eventos vão para o calendário e para a guilda."],
+    buttons = { { label = L["Importar"], kind = "primary", action = function() ns.ImportDialog.Show() end } },
+  },
+  {
+    title = L["Backup do addon"],
+    text = L["Eventos criados no jogo, presenças, profissões, item level e tempo junto, para guardar no site "
+      .. "e restaurar depois."],
+    buttons = {
+      { label = L["Gerar backup"], kind = "outline", action = function() ns.BackupDialog.ShowExport() end },
+      { label = L["Restaurar"], kind = "ghost", action = function() ns.BackupDialog.ShowRestore() end },
+    },
   },
   {
     title = L["Exportar presenças"],
     text = L["Gera a string com as confirmações e os cancelamentos do jogo, para colar no site."],
-    button = L["Gerar string"],
-    action = function() ns.PresenceExport.Show() end,
+    buttons = { { label = L["Gerar string"], kind = "outline", action = function() ns.PresenceExport.Show() end } },
   },
   {
     title = L["Alerta de raide"],
     text = L["Mostra um aviso no centro da tela dos membros online e publica no chat da guilda."],
-    button = L["Enviar alerta"],
-    action = function() ns.AlertDialog.Show() end,
+    buttons = { { label = L["Enviar alerta"], kind = "outline", action = function() ns.AlertDialog.Show() end } },
   },
 }
+
+local BUTTON_W = 120
 
 function Panel:Refresh()
   local trusted = ns.Guild.IsPlayerTrusted()
   self.info:SetText(ns.CalendarPanel.InfoLine())
   self.sync:SetText(ns.Comm.Status())
-  for _, card in ipairs(self.cards) do card.button:SetEnabled(trusted) end
+  for _, card in ipairs(self.cards) do
+    for _, button in ipairs(card.buttons) do button:SetEnabled(trusted) end
+  end
   self.denied:SetShown(not trusted)
 end
 
@@ -73,26 +83,40 @@ function AdminPanel.Create(parent, width, height)
   sync:SetWordWrap(false)
   self.sync = sync
 
-  -- Ações, lado a lado
-  local cardW = math.floor((width - 2 * CARD_GAP) / #CARDS)
+  -- Ações, uma por linha
+  local cardH = math.floor((height - 76 - CARD_GAP - 26 - (#CARDS - 1) * 8) / #CARDS)
+  local previous = status
   for i, spec in ipairs(CARDS) do
     local card = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-    card:SetPoint("TOPLEFT", status, "BOTTOMLEFT", (i - 1) * (cardW + CARD_GAP), -CARD_GAP)
-    card:SetSize(cardW, height - 76 - CARD_GAP - 26)
+    card:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, i == 1 and -CARD_GAP or -8)
+    card:SetPoint("RIGHT", frame, "RIGHT")
+    card:SetHeight(cardH)
     Theme.Backdrop(card, "surface", "border")
+    card.buttons = {}
+    local right = nil
+    for k = #spec.buttons, 1, -1 do
+      local b = spec.buttons[k]
+      local button = Theme.Button(card, b.label, b.kind, BUTTON_W)
+      if right then
+        button:SetPoint("RIGHT", right, "LEFT", -8, 0)
+      else
+        button:SetPoint("RIGHT", -12, 0)
+      end
+      button:SetScript("OnClick", b.action)
+      card.buttons[#card.buttons + 1] = button
+      right = button
+    end
     local title = Theme.Text(card, "heading", "heading")
-    title:SetPoint("TOPLEFT", 14, -14)
-    title:SetPoint("RIGHT", -14, 0)
+    title:SetPoint("TOPLEFT", 14, -(cardH > 70 and 14 or 8))
+    title:SetPoint("RIGHT", right, "LEFT", -12, 0)
+    title:SetWordWrap(false)
     title:SetText(spec.title)
-    local text = Theme.Text(card, "body", "textMuted")
-    text:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    text:SetPoint("RIGHT", -14, 0)
-    text:SetSpacing(2)
+    local text = Theme.Text(card, "small", "textMuted")
+    text:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    text:SetPoint("RIGHT", right, "LEFT", -12, 0)
     text:SetText(spec.text)
-    card.button = Theme.Button(card, spec.button, i == 1 and "primary" or "outline", cardW - 28)
-    card.button:SetPoint("BOTTOMLEFT", 14, 14)
-    card.button:SetScript("OnClick", spec.action)
     self.cards[i] = card
+    previous = card
   end
 
   local denied = Theme.Text(frame, "small", "cancel")

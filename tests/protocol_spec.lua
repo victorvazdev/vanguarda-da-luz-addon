@@ -66,6 +66,16 @@ describe("Protocol", function()
     assert.is_true(Protocol.IsNewer(1, nil))
   end)
 
+  it("monta e lê as mensagens de eventos do jogo", function()
+    assert.are.same({ kind = "gameEvents", encoded = "VDLB1:1:abc", list = false },
+      Protocol.Parse(Protocol.GameEvents("VDLB1:1:abc")))
+    assert.are.same({ kind = "gameEvents", encoded = "VDLB1:1:abc", list = true },
+      Protocol.Parse(Protocol.GameEventsList("VDLB1:1:abc")))
+    assert.are.same({ kind = "gameEventsRequest" }, Protocol.Parse(Protocol.GameEventsRequest()))
+    assert.is_nil(Protocol.Parse("E|VDL1:1:abc"))
+    assert.is_nil(Protocol.Parse("C|"))
+  end)
+
   it("sorteia a espera dentro do intervalo", function()
     assert.are.equal(1, Protocol.RandomDelay(1, 6, function() return 0 end))
     assert.are.equal(6, Protocol.RandomDelay(1, 6, function() return 1 end))

@@ -19,6 +19,10 @@
 --   T|<total>   Tempo de jogo com a guilda do próprio remetente (logic/Together.lua)
 --   U           Pedido: "alguém me manda os tempos com a guilda que conhece?"
 --   V|<lista>   Tempos com a guilda conhecidos (logic/Together.lua)
+--   E|<VDLB1>   Eventos criados ou alterados no jogo pelo remetente (Grão Lorde
+--               e Lordes), numa string VDLB1 só com eventos
+--   B           Pedido: "alguém me manda os eventos do jogo que aguardam o site?"
+--   C|<VDLB1>   Eventos do jogo que aguardam o site, conhecidos pelo remetente
 --
 -- A AceComm divide e junta as mensagens grandes.
 local _, ns = ...
@@ -101,6 +105,18 @@ function Protocol.TogetherList(payload)
   return "V|" .. payload
 end
 
+function Protocol.GameEvents(encoded)
+  return "E|" .. encoded
+end
+
+function Protocol.GameEventsRequest()
+  return "B"
+end
+
+function Protocol.GameEventsList(encoded)
+  return "C|" .. encoded
+end
+
 -- Retorna { kind = "query"|"have"|"data", number, raw }, { kind = "alert", id,
 -- text }, { kind = "presence", eventId, status, at }, { kind = "presenceRequest" },
 -- { kind = "presenceList", encoded }, { kind = "professions", at, payload },
@@ -108,7 +124,9 @@ end
 -- `withIds` = true quando vêm de J, Y e X),
 -- { kind = "member", at, payload }, { kind = "membersRequest" },
 -- { kind = "membersList", payload }, { kind = "together", payload },
--- { kind = "togetherRequest" }, { kind = "togetherList", payload } ou nil.
+-- { kind = "togetherRequest" }, { kind = "togetherList", payload },
+-- { kind = "gameEvents", encoded, list }, { kind = "gameEventsRequest" } ou nil
+-- (`list` = true em C, a resposta a um pedido).
 function Protocol.Parse(message)
   if type(message) ~= "string" then return nil end
   if message == "R" then return { kind = "presenceRequest" } end
@@ -119,6 +137,9 @@ function Protocol.Parse(message)
   local idsList = string.match(message, "^X|(%d.*)$")
   if idsList then return { kind = "professionsList", payload = idsList, withIds = true } end
   if message == "N" then return { kind = "membersRequest" } end
+  if message == "B" then return { kind = "gameEventsRequest" } end
+  local gameKind, gameEvents = string.match(message, "^([EC])|(VDLB.+)$")
+  if gameKind then return { kind = "gameEvents", encoded = gameEvents, list = gameKind == "C" } end
   if message == "U" then return { kind = "togetherRequest" } end
   local together = string.match(message, "^T|(%d.*)$")
   if together then return { kind = "together", payload = together } end

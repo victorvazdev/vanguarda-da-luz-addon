@@ -48,6 +48,8 @@ local function UsedKeys()
     { "VanguardaDaLuz/logic/Codec.lua", "Codec%.ERRORS = (%b{})" },
     { "VanguardaDaLuz/logic/Alert.lua", "Alert%.ERRORS = (%b{})" },
     { "VanguardaDaLuz/core/Main.lua", "local HELP = (%b{})" },
+    { "VanguardaDaLuz/game/GuildEvents.lua", "GuildEvents%.ERRORS = (%b{})" },
+    { "VanguardaDaLuz/game/Backup.lua", "Backup%.ERRORS = (%b{})" },
   }) do
     local f = assert(io.open(spec[1]))
     local body = f:read("*a"):match(spec[2])

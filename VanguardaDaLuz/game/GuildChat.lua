@@ -24,6 +24,8 @@ local EVENT_CHANNEL = { CHAT_MSG_GUILD = "guild", CHAT_MSG_OFFICER = "officer" }
 local pending = false
 local recent = { guild = {}, officer = {} } -- texto normal recebido nesta sessão
 local requested = {} -- [stream] = true: histórico já pedido ao servidor
+local gaps = {}      -- [stream] = { [ID do buraco] = true, n = pedidos }: buracos já pedidos
+local GAP_REQUESTS_MAX = 5 -- pedidos para preencher buracos, por canal e sessão
 local HISTORY_COUNT = 100
 
 local function Changed()
@@ -71,12 +73,23 @@ function GuildChat.Entries(channel)
   local club, streams = ns.Flavor.GuildChatStreams()
   if not club then return {} end
   local stream = streams[channel]
-  local raw = ns.Flavor.GuildChatMessages(club, stream)
+  local raw, gap = ns.Flavor.GuildChatMessages(club, stream)
   -- Canal sem histórico carregado (o de oficiais, em geral): pede uma vez; a
   -- resposta chega por evento e o painel relê.
   if #raw == 0 and stream and not requested[stream] then
     requested[stream] = true
     ns.Flavor.RequestChatHistory(club, stream, HISTORY_COUNT)
+  end
+  -- Histórico com buraco: pede as mensagens anteriores ao bloco mais novo,
+  -- uma vez por buraco e no máximo GAP_REQUESTS_MAX vezes por canal.
+  if gap and stream then
+    local asked = gaps[stream] or { n = 0 }
+    gaps[stream] = asked
+    local key = type(gap) == "table" and ((gap.epoch or 0) .. ":" .. (gap.position or 0)) or tostring(gap)
+    if not asked[key] and asked.n < GAP_REQUESTS_MAX then
+      asked[key], asked.n = true, asked.n + 1
+      ns.Flavor.RequestChatHistory(club, stream, HISTORY_COUNT, gap)
+    end
   end
   local byGuid, byName = {}, {}
   for _, entry in ipairs(ns.Flavor.GuildRoster()) do
@@ -90,7 +103,7 @@ function GuildChat.Entries(channel)
       content = ns.Chat.MatchRecent(recent[channel] or {}, m.guid, m.name, m.time, MATCH_TOLERANCE, used) or content
     end
     local entry = { id = m.id, clock = ns.Flavor.Clock(m.time), content = content, secret = m.secret,
-      name = m.name }
+      name = m.name, time = m.time, epoch = m.epoch }
     if not m.secret then
       local member = (m.guid and byGuid[m.guid]) or (m.name and byName[m.name])
       if member then
@@ -103,6 +116,18 @@ function GuildChat.Entries(channel)
     entries[#entries + 1] = entry
   end
   return entries
+end
+
+-- Marcador de leitura do canal ("guild" ou "officer"), ou nil.
+function GuildChat.ViewMarker(channel)
+  local club, streams = ns.Flavor.GuildChatStreams()
+  return club and ns.Flavor.ChatViewMarker(club, streams[channel]) or nil
+end
+
+-- Marca o canal como lido.
+function GuildChat.MarkRead(channel)
+  local club, streams = ns.Flavor.GuildChatStreams()
+  if club then ns.Flavor.MarkChatRead(club, streams[channel]) end
 end
 
 -- Envia o texto digitado no canal. Retorna true, ou false e a mensagem de erro.

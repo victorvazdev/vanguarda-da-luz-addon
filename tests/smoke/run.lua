@@ -110,7 +110,7 @@ local club = {
   { name = "Aelin Ashryvrr", presence = 3, profession1Name = "Esfolamento", profession1Rank = 1,
     profession2Name = "Couraria", profession2Rank = 1 },
 }
-local officerLoaded, historyRequests = false, {}
+local officerLoaded, historyRequests, readMarks = false, {}, {}
 _G.C_Club = {
   GetGuildClubId = function() return "clube" end,
   GetClubMembers = function() local ids = {} for i = 1, #club do ids[i] = i end return ids end,
@@ -119,12 +119,24 @@ _G.C_Club = {
   GetStreams = function() return { { streamId = "g", streamType = 1, name = "Guilda" },
     { streamId = "o", streamType = 2, name = "Oficial" } } end,
   -- O canal de oficiais só tem histórico depois de pedido ao servidor.
+  -- O da guilda vem em dois blocos, com um buraco entre eles (o bloco novo
+  -- vem primeiro, para conferir a ordem).
   GetMessageRanges = function(_, stream)
     if stream == "o" and not officerLoaded then return {} end
-    return { { oldestMessageId = 1, newestMessageId = 2 } }
+    if stream == "o" then return { { oldestMessageId = 1, newestMessageId = 2 } } end
+    return { { oldestMessageId = "novo1", newestMessageId = "novo2" }, { oldestMessageId = 1, newestMessageId = 2 } }
   end,
-  RequestMoreMessagesBefore = function(_, stream) historyRequests[#historyRequests + 1] = stream end,
-  GetMessagesInRange = function(_, stream)
+  -- Marcador de leitura da guilda entre as mensagens; o de oficiais, ausente.
+  GetStreamViewMarker = function(_, stream) if stream == "g" then return 1794410000000000 end end,
+  AdvanceStreamViewMarker = function(_, stream) readMarks[#readMarks + 1] = stream end,
+  RequestMoreMessagesBefore = function(_, stream, before)
+    historyRequests[#historyRequests + 1] = stream .. (before and ("<" .. before) or "")
+  end,
+  GetMessagesInRange = function(_, stream, oldest)
+    if oldest == "novo1" then return {
+      { messageId = { epoch = 1794410120000000, position = 3 }, author = { name = "Maren-Forever", guid = "Player-2" },
+        content = "oi | tudo" },
+    } end
     if stream == "o" then return { { messageId = { epoch = 1794410000000000, position = 1 },
       author = { name = "Maren", guid = "Player-2" }, content = "só oficiais" } } end
     return {
@@ -132,8 +144,6 @@ _G.C_Club = {
         content = "vejam www.site.app agora" },
       { messageId = { epoch = 1794410060000000, position = 2 }, author = { name = "Ana Clara" },
         content = "mensagem-destruida-xyz", destroyed = true },
-      { messageId = { epoch = 1794410120000000, position = 3 }, author = { name = "Maren-Forever", guid = "Player-2" },
-        content = "oi | tudo" },
       -- texto protegido, como o histórico entrega; o jogo mostra o texto
       { messageId = { epoch = 1794409000000000, position = 4 }, author = { name = "Ana Clara" },
         content = "|Kw774|k" },
@@ -143,7 +153,12 @@ _G.C_Club = {
     }
   end,
 }
-_G.date = function() return "20:33" end
+-- Hora fixa nas linhas do chat; datas de verdade para os separadores por dia.
+_G.date = function(format, ...)
+  if format == "%H:%M" then return "20:33" end
+  return os.date(format, ...)
+end
+_G.time = os.time
 _G.GetProfessions = function() return 6, 8 end
 _G.GetProfessionInfo = function(index)
   if index == 6 then return "Ferraria", 136241, 88, 150 end
@@ -177,6 +192,7 @@ _G.CommunitiesFrame.GuildDetailsFrame = { Info = { EditMOTDButton = Mock("EditMO
   EditDetailsButton = Mock("EditDetailsButton") } }
 _G.CommunitiesGuildTextEditFrame = Mock("CommunitiesGuildTextEditFrame")
 _G.GuildMicroButton = Mock("GuildMicroButton")
+_G.CommunitiesFrame.InviteButton = Mock("InviteButton")
 local canEdit = true
 _G.CanEditMOTD = function() return canEdit end
 _G.CanEditGuildInfo = function() return canEdit end
@@ -190,6 +206,8 @@ local timers = {}
 _G.C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end, NewTicker = function() end }
 _G.C_AddOns = { GetAddOnMetadata = function() return "0.1.0" end,
   IsAddOnLoaded = function(name) return name == "Blizzard_Communities" end }
+local canInvite = true
+_G.CanGuildInvite = function() return canInvite end
 _G.C_GuildInfo = {
   GuildRoster = function() end,
   GuildControlGetRankFlags = function() return { [14] = false, [17] = true } end,
@@ -361,6 +379,80 @@ SlashCmdList.VANGUARDADALUZ("presencas")
 local exported = ns.PresenceCodec.Decode(_G.VanguardaDaLuzPresenceExport.edit._text)
 print("exportação:", exported and exported.exportNumber, exported and exported.store[A]["Tester Vaz"].s,
   _G.VanguardaDaLuzPresenceExport.summary._text)
+-- evento criado no jogo (o jogador é Lorde)
+_G.VanguardaDaLuzPresenceExport:Hide()
+ns.MainFrame.ShowTab("events")
+Click("+ Evento")
+local ed = _G.VanguardaDaLuzEventDialog
+print("novo evento:", ed._shown, ed.heading._text, ed.organizer._text, ed.max._text, ed.max.box._shown)
+ed.title:SetText("Treino | PvP")
+ed.date:SetText("40/11/2026"); Click("Salvar")
+print("data inválida:", ed.message._text, ed._shown)
+local day = ns.Time.Fields(now + 3 * 86400, ns.Config.BRASILIA_OFFSET)
+ed.date:SetText(string.format("%02d/%02d/%04d", day.day, day.month, day.year))
+ed.clock:SetText("21:30")
+Click("Salvar")
+local createdId
+for id, e in pairs(ns.db.events) do if e.origin == "jogo" then createdId = id end end
+local created = ns.db.events[createdId]
+print("evento criado:", created.title, created.pending, created.max, created.guests, #createdId, ed._shown,
+  comms[#comms])
+print("detalhe do criado:", main.detail.organizer._text)
+Click("Editar")
+print("editar abre:", ed.heading._text, ed.title._text, ed.clock._text)
+ed.title:SetText("Treino de PvP"); ed.max:SetText("12")
+Click("Salvar")
+print("evento editado:", ns.db.events[createdId].title, ns.db.events[createdId].max)
+Click("Cancelar evento")
+print("cancelar pede confirmação:", ns.db.events[createdId].status)
+Click("Clique de novo")
+print("evento cancelado:", ns.db.events[createdId].status)
+Click("Excluir evento")
+print("excluir pede confirmação:", ns.db.events[createdId] ~= nil)
+Click("Clique de novo")
+print("evento excluído:", ns.db.events[createdId] == nil, ns.db.deleted[createdId].status, comms[#comms])
+-- evento do site editado no jogo: sem vagas e visitantes
+for _, cell in ipairs(all) do
+  if cell.day == 13 and cell._scripts.OnClick then cell._scripts.OnClick(cell); break end
+end
+Click("Editar")
+print("editar do site:", ed.title._text, ed.max.box._shown, ed.limitsNote._shown)
+ed.hide = nil; ed:Hide()
+-- alterações recebidas de um Lorde e de quem não tem cargo
+local function Remote(id, title)
+  return ns.BackupCodec.Encode({ game = "forever", generatedAt = now, exportNumber = 0, generatedBy = "x",
+    events = { { id = id, origin = "jogo", title = title, startsAt = now + 7200, description = "", organizer = "M",
+      status = "ativo", updatedAt = now, max = 10, guests = true, by = "Maren-Forever" } } })
+end
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.GameEvents(Remote("RemotoLorde", "De Maren")), "GUILD",
+  "Maren-Forever")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.GameEvents(Remote("RemotoMembro", "De Ana")), "GUILD",
+  "Ana Clara")
+print("eventos recebidos:", ns.db.events.RemotoLorde and ns.db.events.RemotoLorde.title,
+  ns.db.events.RemotoMembro == nil)
+local beforeEvents = #comms
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.GameEventsRequest(), "GUILD", "Ana Clara")
+RunTimers()
+print("eventos do jogo enviados:", #comms - beforeEvents, comms[#comms])
+-- backup e restauração
+Click("Gerar backup")
+local be = _G.VanguardaDaLuzBackupExport
+local backup = ns.BackupCodec.Decode(be.edit._text)
+print("backup:", be._shown, backup and #backup.events, backup and backup.generatedBy, be.summary._text)
+be:Hide()
+backup.together["Ana Clara"] = 99999
+backup.professions["Ana Clara"] = { t = now, p = { { n = "Costura", l = 50, m = 75, i = 197 } } }
+Click("Restaurar")
+local br = _G.VanguardaDaLuzBackupRestore
+br.edit:SetText("VDLP1:1:abc"); Click("Validar")
+print("restaurar inválido:", br.message._text, br.confirm:IsEnabled())
+br.edit:SetText(ns.BackupCodec.Encode(backup)); Click("Validar")
+print("restaurar válido:", br.confirm:IsEnabled(), br.message._text)
+Click("Restaurar")
+print("restaurado:", br._shown, ns.db.together["Ana Clara"], ns.db.professions["Ana Clara"].p[1].n)
+RunTimers()
+-- desfaz o restaurado, para não mudar os testes seguintes
+ns.db.together["Ana Clara"], ns.db.professions["Ana Clara"] = nil, nil
 -- profissões
 for _, c in ipairs(comms) do
   if c:find(" F|", 1, true) then print("profissões anunciadas:", c) end
@@ -489,6 +581,14 @@ cf.RosterTab._scripts.OnClick(cf.RosterTab)
 RunTimers()
 print("membros depois:", GT.overlay._shown, GT.panels.members and GT.panels.members.frame._shown)
 local membersCover = GT.panels.members
+local guildInvite = membersCover.inner.inviteLink
+print("convite na guilda:", membersCover.inner.invite._shown, guildInvite.mode, guildInvite.button._shown,
+  guildInvite.button._attr.clickbutton == _G.CommunitiesFrame.InviteButton)
+selectedClub = "outro"
+membersCover.inner:Refresh()
+print("convite em outro clube:", guildInvite.button._shown)
+selectedClub = "clube"
+membersCover.inner:Refresh()
 local coverRow = membersCover.inner.rows[1]
 print("lista na guilda:", coverRow.name._text, "|", coverRow.rank._text, "| dica:", membersCover.hint._shown,
   "| tempo:", membersCover.inner.columns.time ~= nil, rawget(membersCover.inner.headers, "time") ~= nil)
@@ -619,6 +719,30 @@ mp.rows[1]._scripts.OnMouseUp(mp.rows[1], "RightButton")
 print("menu você:", MenuState(memberMenu))
 memberMenu._scripts.OnEvent(memberMenu, "GLOBAL_MOUSE_DOWN")
 print("menu fecha fora:", memberMenu._shown)
+-- convidar para a guilda: botão só com a permissão do posto; na janela do
+-- addon, um botão seguro abre a janela da guilda
+_G.CommunitiesFrame:Hide()
+mp:Refresh()
+local addonInvite = mp.inviteLink
+print("botão convite guilda:", mp.invite._shown, mp.hint._rel == mp.invite, addonInvite.button._shown,
+  addonInvite.button._attr.type, addonInvite.button._attr.clickbutton == _G.GuildMicroButton)
+addonInvite.button._scripts.PostClick(addonInvite.button)
+print("convite abre a guilda:", _G.VanguardaDaLuzMainFrame._shown)
+ns.MainFrame.Open("members")
+_G.CommunitiesFrame:Show()
+mp:Refresh()
+print("convite com a guilda aberta:", mp.invite._shown, addonInvite.button._shown)
+mp.invite._scripts.OnClick(mp.invite)
+canInvite = false
+mp:Refresh()
+print("sem permissão convite:", mp.invite._shown, mp.hint._rel == mp.online, addonInvite.button._shown)
+canInvite = true
+_G.CommunitiesFrame:Hide()
+mp:Refresh()
+ns.GuildInviteButton.OnCombatStart()
+print("convite em combate:", addonInvite.button._shown, addonInvite.button._rel == UIParent)
+ns.GuildInviteButton.Refresh()
+print("convite depois do combate:", addonInvite.button._shown)
 mp.headers.level._scripts.OnClick(mp.headers.level)
 print("ordem nível:", mp.rows[1].level._text, mp.rows[2].level._text, mp.rows[3].level._text)
 mp.headers.level._scripts.OnClick(mp.headers.level)
@@ -633,6 +757,7 @@ ns.MainFrame.Open("chat")
 local cp = _G.VanguardaDaLuzMainFrame.panels.chat
 print("bate-papo:", cp.frame._shown, cp.officerTab._shown, #cp.messages._lines)
 for _, line in ipairs(cp.messages._lines) do print("linha:", line) end
+print("canais lidos:", table.concat(readMarks, ","))
 cp.messages._scripts.OnHyperlinkClick(cp.messages, "vdlurl:www.site.app", "", "LeftButton")
 print("copiar do chat:", cp.copy._shown, cp.copy.edit._text)
 cp.messages._scripts.OnHyperlinkClick(cp.messages, "vdlplayer:Maren-Forever", "", "RightButton")
@@ -666,7 +791,7 @@ officerLoaded = true
 ns.GuildChat.OnEvent(nil, "CLUB_MESSAGE_HISTORY_RECEIVED")
 RunTimers()
 cp:Refresh()
-print("oficiais:", cp:Channel(), cp.messages._lines[1])
+print("oficiais:", cp:Channel(), cp.messages._lines[#cp.messages._lines])
 cp.input:SetText("reunião")
 cp.input._scripts.OnEnterPressed(cp.input)
 print("enviado aos oficiais:", chat[#chat])

@@ -33,6 +33,11 @@ Flavor.guildWindow = {
   -- Botão Guilda do menu do jogo: acionado por um botão seguro, abre a janela
   -- da guilda sem bloquear a edição depois (confirmado no jogo).
   openButton = "GuildMicroButton",
+  -- Botão de convite da janela da guilda (filho de CommunitiesFrame; a
+  -- Blizzard só o mostra no modo Bate-papo). Acionado por um botão seguro do
+  -- addon, mesmo escondido, abre a janela de convite da Blizzard e convida;
+  -- convidar pelo código do addon é bloqueado (os dois confirmados no jogo).
+  inviteButton = "InviteButton",
   tabs = { "ChatTab", "RosterTab", "GuildBenefitsTab", "GuildInfoTab" },
   tabGap = 20,
   minWidth = 700,             -- largura normal: 814; minimizada é bem menor
@@ -101,35 +106,56 @@ function Flavor.GuildChatStreams()
   return lastClub, lastStreams
 end
 
--- Mensagens já carregadas de um canal, da mais antiga para a mais nova:
--- { { id, time, name, guid, content, secret }, ... }. Inclui as de antes do
--- login (histórico do clube, confirmado no jogo: as últimas 100).
-function Flavor.GuildChatMessages(club, stream)
+-- Mensagens de um bloco do histórico (C_Club.GetMessagesInRange), ou nil se
+-- a lista vier secreta.
+local function ReadMessages(messages)
+  if Flavor.IsSecret(messages) then return nil end
   local list = {}
-  if not (club and stream and C_Club.GetMessageRanges and C_Club.GetMessagesInRange) then return list end
-  local ranges = C_Club.GetMessageRanges(club, stream)
-  if Flavor.IsSecret(ranges) then return lastMessages[stream] or list end
-  local range = ranges and ranges[#ranges]
-  if not range then return list end
-  if Flavor.IsSecret(range) then return lastMessages[stream] or list end
-  local messages = C_Club.GetMessagesInRange(club, stream, range.oldestMessageId, range.newestMessageId) or {}
-  if Flavor.IsSecret(messages) then return lastMessages[stream] or list end
-  for _, m in ipairs(messages) do
+  for _, m in ipairs(messages or {}) do
     local id = not Flavor.IsSecret(m) and m.messageId or nil
     -- Mensagem sem identificação legível (restrição do jogo): fica de fora.
     if id and not Flavor.AnySecret(id, id.epoch, id.position, m.destroyed, m.author) and not m.destroyed then
       local author = m.author or {}
+      local epoch, position = id.epoch or 0, id.position or 0
       list[#list + 1] = {
-        id = (id.epoch or 0) .. ":" .. (id.position or 0),
-        time = math.floor((id.epoch or 0) / 1000000),
+        id = epoch .. ":" .. position, epoch = epoch, position = position,
+        time = math.floor(epoch / 1000000),
         name = author.name, guid = author.guid,
         content = m.content,
         secret = Flavor.AnySecret(m.content, author.name, author.guid),
       }
     end
   end
-  lastMessages[stream] = list
   return list
+end
+
+-- Mensagens já carregadas de um canal, da mais antiga para a mais nova:
+-- { { id, epoch, position, time, name, guid, content, secret }, ... }. Inclui
+-- as de antes do login (histórico do clube, confirmado no jogo: as últimas
+-- 100). O histórico pode vir em vários blocos, com buracos entre eles (o
+-- separador "Mensagens não lidas" da Blizzard fica no começo do mais novo);
+-- todos entram. O segundo retorno, quando há buraco, é o ID (do jogo) da
+-- mensagem mais antiga do bloco mais novo, para pedir as anteriores a ela.
+function Flavor.GuildChatMessages(club, stream)
+  local list = {}
+  if not (club and stream and C_Club.GetMessageRanges and C_Club.GetMessagesInRange) then return list end
+  local ranges = C_Club.GetMessageRanges(club, stream)
+  if Flavor.IsSecret(ranges) then return lastMessages[stream] or list end
+  local blocks, used = {}, {}
+  for _, range in ipairs(ranges or {}) do
+    if Flavor.IsSecret(range) or Flavor.AnySecret(range.oldestMessageId, range.newestMessageId) then
+      return lastMessages[stream] or list
+    end
+    local block = ReadMessages(C_Club.GetMessagesInRange(club, stream, range.oldestMessageId,
+      range.newestMessageId))
+    if not block then return lastMessages[stream] or list end
+    blocks[#blocks + 1], used[#blocks + 1] = block, range
+  end
+  local newest
+  list, newest = ns.Chat.MergeRanges(blocks)
+  lastMessages[stream] = list
+  local gap = #blocks > 1 and newest and used[newest].oldestMessageId or nil
+  return list, gap
 end
 
 -- Valor secreto (Midnight: em encontros, alguns textos chegam ilegíveis para
@@ -192,18 +218,45 @@ function Flavor.OnChatLinkInsert(callback)
   if ChatEdit_InsertLink then hooksecurefunc("ChatEdit_InsertLink", Hook) end
 end
 
--- Pede ao servidor o histórico de um canal do clube (as `count` mensagens mais
--- recentes). O jogo só carrega o histórico de um canal quando alguém pede: o
--- da guilda já vem pelo chat da Blizzard, o de oficiais não. A resposta chega
--- no evento CLUB_MESSAGE_HISTORY_RECEIVED.
-function Flavor.RequestChatHistory(club, stream, count)
+-- Pede ao servidor o histórico de um canal do clube: as `count` mensagens
+-- anteriores a `before` (ID do jogo), ou as mais recentes se `before` for nil.
+-- O jogo só carrega o histórico de um canal quando alguém pede: o da guilda
+-- já vem pelo chat da Blizzard, o de oficiais não. A resposta chega no evento
+-- CLUB_MESSAGE_HISTORY_RECEIVED.
+function Flavor.RequestChatHistory(club, stream, count, before)
   if not (club and stream and C_Club and C_Club.RequestMoreMessagesBefore) then return false end
-  return pcall(C_Club.RequestMoreMessagesBefore, club, stream, nil, count) and true or false
+  return pcall(C_Club.RequestMoreMessagesBefore, club, stream, before, count) and true or false
 end
 
 -- Hora local ("20:31") de um horário Unix.
 function Flavor.Clock(seconds)
   return date("%H:%M", seconds)
+end
+
+-- Fuso do computador em segundos (o mesmo de Flavor.Clock), para separar as
+-- mensagens do bate-papo por dia.
+function Flavor.LocalOffset(seconds)
+  seconds = seconds or time()
+  -- Os campos UTC lidos como horário local, com o mesmo horário de verão.
+  local utc = date("!*t", seconds)
+  utc.isdst = date("*t", seconds).isdst
+  return seconds - time(utc)
+end
+
+-- Marcador de leitura de um canal do clube (o que a Blizzard usa para o
+-- separador "Mensagens não lidas"), no formato do `epoch` das mensagens. nil
+-- se o jogo não informa ou entrega secreto.
+function Flavor.ChatViewMarker(club, stream)
+  if not (club and stream and C_Club and C_Club.GetStreamViewMarker) then return nil end
+  local ok, marker = pcall(C_Club.GetStreamViewMarker, club, stream)
+  if not ok or Flavor.IsSecret(marker) or type(marker) ~= "number" then return nil end
+  return marker
+end
+
+-- Marca o canal como lido (a Blizzard faz o mesmo ao mostrar o canal).
+function Flavor.MarkChatRead(club, stream)
+  if not (club and stream and C_Club and C_Club.AdvanceStreamViewMarker) then return end
+  pcall(C_Club.AdvanceStreamViewMarker, club, stream)
 end
 
 -- Mostra o texto no quadro do aviso de raide da interface padrão.
@@ -368,6 +421,12 @@ function Flavor.GuildTextEditButton(kind)
   return frame and frame[spec.editButtons[kind]] or nil
 end
 
+-- Botão de convite da Blizzard na janela da guilda, ou nil se ela não carregou.
+function Flavor.GuildInviteButton()
+  local frame = _G[Flavor.guildWindow.frame]
+  return frame and frame[Flavor.guildWindow.inviteButton] or nil
+end
+
 -- Botão Guilda do menu do jogo (abre a janela da guilda), ou nil.
 function Flavor.GuildOpenButton()
   return _G[Flavor.guildWindow.openButton]
@@ -390,6 +449,18 @@ function Flavor.IsGuildClubSelected(host)
   local guild, selected = C_Club.GetGuildClubId(), host:GetSelectedClubId()
   if Flavor.AnySecret(guild, selected) then return false end
   return guild ~= nil and selected == guild
+end
+
+-- O posto deste personagem tem a permissão "Convidar membros" da guilda?
+-- Segue a configuração dos postos no jogo, não os nomes dos postos. Em luta
+-- com chefe o valor pode vir secreto: vale o último lido.
+local lastCanInvite = false
+function Flavor.CanGuildInvite()
+  if not CanGuildInvite then return false end
+  local can = CanGuildInvite()
+  if Flavor.IsSecret(can) then return lastCanInvite end
+  lastCanInvite = can and true or false
+  return lastCanInvite
 end
 
 -- Convida para o grupo.

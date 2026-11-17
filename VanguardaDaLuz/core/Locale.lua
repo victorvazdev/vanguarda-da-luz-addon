@@ -137,6 +137,8 @@ EN["ATIVO"] = "ACTIVE"
 EN["Cancelado"] = "Cancelled"
 EN["Sem descrição."] = "No description."
 EN["Hoje"] = "Today"
+EN["Ontem"] = "Yesterday"
+EN["Mensagens não lidas"] = "Unread messages"
 EN["Nenhum evento neste dia."] = "No events on this day."
 EN["QUANDO"] = "WHEN"
 EN["ORGANIZADOR"] = "ORGANIZER"
@@ -160,6 +162,11 @@ EN["Sem profissão"] = "No profession"
 EN["  (você)"] = "  (you)"
 EN["Sussurrar"] = "Whisper"
 EN["Convidar para o grupo"] = "Invite to group"
+EN["Convidar para a guilda"] = "Invite to guild"
+EN["Na janela da guilda, abra Membros e clique em Convidar para a guilda."] =
+  "In the guild window, open Members and click Invite to guild."
+EN["Selecione a guilda na janela da guilda para convidar."] = "Select the guild in the guild window to invite."
+EN["Em combate não dá para convidar. Tente ao sair do combate."] = "You can't invite in combat. Try again after combat."
 EN["NV"] = "LVL"
 EN["ILVL"] = "ILVL"
 EN["MAIN/ALT"] = "MAIN/ALT"
@@ -186,9 +193,8 @@ EN["Para alterar a nota, use a original."] = "To change your note, use the origi
 
 -- Administração, importação, alerta e presenças
 EN["Importar eventos"] = "Import events"
-EN["Cole a string gerada no site em \"Exportar para o addon\". Os eventos vão para o calendário e são enviados à guilda."] =
-  "Paste the string generated on the website under \"Exportar para o addon\". The events go to the calendar and "
-  .. "are sent to the guild."
+EN["Cole a string de \"Exportar para o addon\" do site. Os eventos vão para o calendário e para a guilda."] =
+  "Paste the string from \"Exportar para o addon\" on the website. The events go to the calendar and to the guild."
 EN["Importar"] = "Import"
 EN["Exportar presenças"] = "Export attendance"
 EN["Gera a string com as confirmações e os cancelamentos do jogo, para colar no site."] =
@@ -299,3 +305,72 @@ EN["Não foi possível enviar a mensagem."] = "The message could not be sent."
 EN["Comunicação restrita no momento (encontro, Mítica+ ou JxJ). A mensagem não foi enviada."] =
   "Communication is restricted right now (encounter, Mythic+ or PvP). The message was not sent."
 EN["Bate-papo do addon na aba Bate-papo"] = "Addon chat on the Chat tab"
+
+-- Eventos criados no jogo
+EN["Somente o Grão Lorde e os Lordes podem criar e alterar eventos."] =
+  "Only the Guild Master and the Lords can create and change events."
+EN["Este evento não pode mais ser alterado (cancelado ou já começou)."] =
+  "This event can no longer be changed (cancelled or already started)."
+EN["Calendário alterado no jogo por %s."] = "Calendar changed in game by %s."
+EN["Alterações do jogo aguardando o site (mantidas): %d"] = "In-game changes waiting for the website (kept): %d"
+EN["Cancelar evento"] = "Cancel event"
+EN["Excluir evento"] = "Delete event"
+EN["Só eventos cancelados podem ser excluídos."] = "Only cancelled events can be deleted."
+EN["Criado no jogo por %s · aguardando o site"] = "Created in game by %s · waiting for the website"
+EN["Alterado no jogo por %s · aguardando o site"] = "Changed in game by %s · waiting for the website"
+EN["+ Evento"] = "+ Event"
+EN["Editar"] = "Edit"
+EN["Clique de novo"] = "Click again"
+EN["Evento alterado: %s. Ele vai para o site no próximo backup."] =
+  "Event changed: %s. It goes to the website in the next backup."
+EN["Evento criado: %s. Ele vai para o site no próximo backup."] =
+  "Event created: %s. It goes to the website in the next backup."
+EN["Novo evento"] = "New event"
+EN["Editar evento"] = "Edit event"
+EN["TÍTULO"] = "TITLE"
+EN["DATA (dd/mm/aaaa)"] = "DATE (dd/mm/yyyy)"
+EN["HORA DE BRASÍLIA"] = "BRASÍLIA TIME"
+EN["VAGAS"] = "SPOTS"
+EN["Aceita visitantes"] = "Guests allowed"
+EN["Vagas e visitantes deste evento são definidos no site."] = "Spots and guests of this event are set on the website."
+EN["Salvar"] = "Save"
+EN["Vai para a guilda na hora e para o site no próximo backup."] =
+  "Goes to the guild right away and to the website in the next backup."
+EN["Informe um título com até 80 caracteres."] = "Enter a title with up to 80 characters."
+EN["Informe o organizador com até 40 caracteres."] = "Enter the organizer with up to 40 characters."
+EN["A descrição pode ter até 2000 caracteres."] = "The description can have up to 2000 characters."
+EN["Escolha uma data e hora que ainda não passaram."] = "Choose a date and time that have not passed yet."
+EN["As vagas devem ser um número de 1 a 500."] = "Spots must be a number from 1 to 500."
+EN["Data inválida. Use dd/mm/aaaa."] = "Invalid date. Use dd/mm/yyyy."
+EN["Hora inválida. Use hh:mm."] = "Invalid time. Use hh:mm."
+
+-- Backup do addon
+EN["Backup do addon"] = "Addon backup"
+EN["Eventos criados no jogo, presenças, profissões, item level e tempo junto, para guardar no site e restaurar depois."] =
+  "Events created in game, attendance, professions, item level and time together, to keep on the website and "
+  .. "restore later."
+EN["Gerar backup"] = "Create backup"
+EN["Restaurar"] = "Restore"
+EN["Restaurar backup"] = "Restore backup"
+EN["%d evento(s) do jogo  ·  %d presença(s)  ·  %d profissão(ões)  ·  %d item level(s)  ·  %d tempo(s) junto"] =
+  "%d in-game event(s)  ·  %d attendance(s)  ·  %d profession(s)  ·  %d item level(s)  ·  %d time(s) together"
+EN["Eventos criados ou alterados no jogo, presenças, profissões, item level, main e tempo jogado junto. Copie com Ctrl+C e cole no site, em Administração > Backup do addon."] =
+  "Events created or changed in game, attendance, professions, item level, main and time played together. Copy "
+  .. "with Ctrl+C and paste it on the website, under Administração > Backup do addon."
+EN["Cole a string copiada do site em Backup do addon e clique em Validar."] =
+  "Paste the string copied from Backup do addon on the website and click Validate."
+EN[" por %s"] = " by %s"
+EN["Backup válido"] = "Valid backup"
+EN["Gerado em %s%s"] = "Created on %s%s"
+EN["A restauração só acrescenta dados mais novos que os do addon; nada é apagado."] =
+  "Restoring only adds data newer than the addon's; nothing is deleted."
+EN["Backup restaurado: %d evento(s), %d presença(s), %d profissão(ões), %d item level(s) e %d tempo(s) junto atualizados."] =
+  "Backup restored: %d event(s), %d attendance(s), %d profession(s), %d item level(s) and %d time(s) together updated."
+EN["No site, abra Administração > Backup do addon, copie a string de restauração e cole abaixo com Ctrl+V."] =
+  "On the website, open Administração > Backup do addon, copy the restore string and paste it below with Ctrl+V."
+EN["Somente o Grão Lorde e os Lordes podem gerar e restaurar o backup."] =
+  "Only the Guild Master and the Lords can create and restore the backup."
+EN["Cole a string de backup copiada do site."] = "Paste the backup string copied from the website."
+EN["Isto não é uma string de backup da Vanguarda da Luz (deve começar com VDLB)."] =
+  "This is not a Vanguarda da Luz backup string (it must start with VDLB)."
+EN["Este backup é de outra versão do jogo."] = "This backup is from another version of the game."

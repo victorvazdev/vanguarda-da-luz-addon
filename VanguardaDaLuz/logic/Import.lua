@@ -2,7 +2,8 @@
 -- aplica o retrato completo. Usada pelo administrador (colando a string) e
 -- pelos membros (recebendo da guilda). Lógica pura.
 --
--- `data` é a parte do SavedVariables com { export = meta|nil, events = {} }.
+-- `data` é a parte do SavedVariables com { export = meta|nil, events = {},
+-- deleted = {} } (deleted: exclusões do jogo, opcional).
 local _, ns = ...
 
 local Import = {}
@@ -24,14 +25,14 @@ function Import.Prepare(data, raw, options)
   return {
     raw = ns.Text.Trim(raw),
     export = export,
-    diff = Snapshot.Diff(data.events, export),
+    diff = Snapshot.Diff(data.events, export, data.deleted),
   }
 end
 
 -- Aplica uma importação preparada. `meta` traz { source, sender, receivedAt }.
 function Import.Commit(data, prepared, meta)
   local export = prepared.export
-  ns.Snapshot.Apply(data.events, prepared.diff)
+  ns.Snapshot.Apply(data.events, prepared.diff, data.deleted)
   data.export = {
     raw = prepared.raw,
     exportNumber = export.exportNumber,

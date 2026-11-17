@@ -88,6 +88,7 @@ function Comm.RequestLatest()
   Send("professionsRequest", ns.Protocol.ProfessionIdsRequest(), "NORMAL")
   Send("membersRequest", ns.Protocol.MembersRequest(), "NORMAL")
   Send("togetherRequest", ns.Protocol.TogetherRequest(), "NORMAL")
+  Send("gameEventsRequest", ns.Protocol.GameEventsRequest(), "NORMAL")
 end
 
 -- Presença do próprio jogador num evento (só a última de cada evento fica na
@@ -126,6 +127,17 @@ end
 
 function Comm.SendTogetherList(message)
   Send("togetherList", message, "BULK")
+end
+
+-- Evento criado ou alterado no jogo pelo próprio jogador (só a última
+-- alteração de cada evento fica na fila durante a restrição) e eventos do jogo
+-- conhecidos repassados.
+function Comm.SendGameEvent(message, eventId)
+  Send("gameEvent:" .. eventId, message, "NORMAL")
+end
+
+function Comm.SendGameEventsList(message)
+  Send("gameEventsList", message, "BULK")
 end
 
 -- Envia a exportação atual para a guilda (cargos aceitos).
@@ -223,6 +235,10 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
     ns.GuildTogether.OnRequest()
   elseif message.kind == "togetherList" then
     ns.GuildTogether.OnList(message)
+  elseif message.kind == "gameEvents" then
+    ns.GuildEvents.OnReceived(message, sender)
+  elseif message.kind == "gameEventsRequest" then
+    ns.GuildEvents.OnRequest()
   end
 end
 

@@ -4,7 +4,9 @@
 --   schema = 1,
 --   export = { raw, exportNumber, windowStart, windowEnd, count,
 --              receivedAt, source = "import"|"guild", sender },
---   events = { [siteId] = { id, title, startsAt, description, organizer, status, updatedAt } },
+--   events = { [id] = { id, title, startsAt, description, organizer, status, updatedAt,
+--              pending, origin, max, guests, by } },  -- os 5 últimos: logic/GameEvents.lua
+--   deleted = { [id] = evento com status "excluido" },  -- exclusões do jogo: logic/GameEvents.lua
 --   attendance = { [siteId] = { [personagem] = { s, t } } },     -- logic/Attendance.lua
 --   professions = { [personagem] = { t, p = { { n, l, m } } } }, -- logic/Professions.lua
 --   members = { [personagem] = { t, i, m } },                   -- logic/Members.lua
@@ -27,6 +29,7 @@ function Store.Init()
   local db = VanguardaDaLuzDB
   db.schema = db.schema or SCHEMA
   db.events = db.events or {}
+  db.deleted = db.deleted or {}
   -- Versões anteriores guardavam aqui a ligação com o calendário do jogo.
   db.game = nil
   db.settings = db.settings or {}

@@ -42,6 +42,10 @@ local function Summary(p)
   end
   lines[#lines + 1] = Theme.Code("textMuted") .. string.format(L["Sem alteração: %d"], diff.unchanged)
     .. "  ·  " .. string.format(L["Fora da janela (mantidos): %d"], diff.outside) .. "|r"
+  if diff.pending > 0 then
+    lines[#lines + 1] = Theme.Code("warning")
+      .. string.format(L["Alterações do jogo aguardando o site (mantidas): %d"], diff.pending) .. "|r"
+  end
   return table.concat(lines, "\n")
 end
 
