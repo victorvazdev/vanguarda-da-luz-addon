@@ -4,8 +4,8 @@ Textos para o projeto no CurseForge, seguindo as [regras de moderação](https:/
 
 - nome em inglês e funcional, sem o nome do jogo nem número de versão;
 - resumo de uma frase, sem copiar a descrição;
-- descrição que diz o que o addon faz, com o inglês antes de outros idiomas;
-- links externos (site e Discord) no fim da descrição, sem links de download;
+- descrição em inglês que diz o que o addon faz;
+- link do Discord no fim da descrição, sem links de download;
 - avatar de 400x400 em JPG (o envio de PNG e WebP falhou): [`assets/curseforge-avatar.jpg`](../assets/curseforge-avatar.jpg);
 - changelog em cada arquivo enviado.
 
@@ -73,7 +73,9 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - One click sends it to the chat channel you pick (General by default). There is no automatic sending, and there are 60 s between sends.
 
 ### Members
-- A **Members** list with each member's name in class color, level, item level, main/alt, zone and rank. Click a column title to sort; show everyone or online members only; right-click a member to whisper, invite to your group or request to join theirs. Members whose rank can invite also get an **Invite to guild** button.
+- A **Members** list with each member's name in class color, level, item level, main/alt, zone and rank. Offline members show how long ago they last logged in ("Offline · 3 d ago").
+- Click a column title to sort, and the dot at the top of the first column to go back to the default order. Show everyone or online members only.
+- Right-click a member to whisper, invite to your group or request to join theirs, following Blizzard's rule. Members whose rank can invite also get an **Invite to guild** button.
 - It also replaces the guild window's Members tab, with a button to open Blizzard's original list (for promoting, demoting, removing and notes).
 
 ### Guild map
@@ -87,15 +89,21 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - A **Chat** tab with the guild chat, including recent messages from before you logged in: names in class color, "(alt of …)" for alts, clickable links to copy, item and quest tooltips on mouseover, and a click on a name to whisper or invite. Write to the guild from the tab (Shift+click items and quests to link them). Officers also get the officer channel.
 
 ### Settings
-- A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon and turn each guild window feature on or off.
+- A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon, turn sharing your map position or showing members on the map on or off, and turn each guild window feature on or off.
+
+### New version warning
+- The addon tells you in chat, once per session, when a guild member has a newer version. No addon can check CurseForge from inside the game, so the warning shows up once someone in the guild has updated.
+
+### Diagnostics
+- `/vdl status` shows the addon version, your rank, calendar and sync state, whether addon communication is restricted, how many online members have the addon and the map state. Useful when something did not arrive.
 
 ### Guild window integration
 - Adds **Events**, **Professions** and **Administration** tabs to the *Guild & Communities* window (J), below Blizzard's own tabs.
 - The **Chat** tab shows the addon's chat, and the **Guild Information** tab shows the addon's Home, each with a button to open Blizzard's original (news and the event log are there). Officers click the Message of the Day or the Guild Information to edit it.
 
 ## Permissions
-- **Guild Master** and the **"Lorde"** rank: import events, export attendance and send raid alerts. Other members only accept data and alerts from these ranks, verified against the guild roster.
-- **All members**: calendar, attendance, professions and whispers.
+- **Guild Master** and the **"Lorde"** rank: import events, create, edit and cancel events in game, export attendance, create and restore backups, write and send the recruitment message and send raid alerts. Other members only accept data and alerts from these ranks, verified against the guild roster.
+- **All members**: calendar, attendance, reminders, professions, members, map, chat and whispers.
 
 ## Commands
 | Command | What it does |
@@ -105,9 +113,13 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 | `/vdl sincronizar` | Asks the guild for the latest events |
 | `/vdl presencas` | Generates the attendance string for the website (officers) |
 | `/vdl profissoes` | Opens the professions list |
+| `/vdl membros` | Opens the members list |
 | `/vdl main` | Sets the current character as your main (your other characters become alts) |
 | `/vdl alerta [text]` | Sends a raid alert (officers) |
 | `/vdl minimapa` | Shows or hides the minimap button |
+| `/vdl status` | Shows the addon diagnostics (version, sync, communication) |
+
+Commands also accept English names in any language: `/vdl import`, `/vdl sync`, `/vdl attendance`, `/vdl professions`, `/vdl members`, `/vdl alert`, `/vdl minimap`.
 
 The minimap button and the addon compartment open the addon window. Right-click opens a shortcut menu: Home, Events, Professions, Sync, Administration (officers only) and hide the minimap button.
 
@@ -120,29 +132,8 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 
 ---
 
-**Guild website:** https://vanguarda-da-luz.web.app
 **Discord:** https://discord.gg/uGyPjtEsBw
 
----
-
-## Português (Brasil)
-
-**Vanguarda da Luz Guild Hub** é o addon da guilda **Vanguarda da Luz** no WoW Forever. Ele traz para o jogo o calendário de eventos do site da guilda, permite confirmar presença, mostra as profissões dos membros e deixa os oficiais enviarem alertas de raide.
-
-> **Só para membros.** Todas as funções exigem estar na guilda *Vanguarda da Luz*. Quem não é da guilda vê apenas uma janela de boas-vindas com o convite do Discord.
-
-- **Início:** mensagem do dia e informações da guilda com links para copiar, próximo evento e membros online.
-- **Calendário:** eventos criados no site; um oficial importa a string e o addon envia para todos os membros da guilda. Horários de Brasília. Grão Lorde e Lordes também criam, editam e cancelam eventos no jogo.
-- **Backup:** string com eventos criados no jogo, presenças, profissões, item level e tempo junto para guardar no site, e restauração a partir do site.
-- **Presença:** confirme ou cancele com um clique, veja quem confirmou e convide cada um para o grupo; lembrete 15 minutos antes do evento; os oficiais geram a string de presenças para o site.
-- **Profissões:** profissões primárias e nível de cada membro, com filtro, só online e botão de sussurrar.
-- **Bate-papo:** o chat da guilda no addon, com as mensagens de antes de entrar no jogo, nomes na cor da classe, main/alt, links para copiar e tooltip de itens; escreva para a guilda (e para os oficiais, Grão Lorde e Lordes) direto da aba.
-- **Alerta de raide:** aviso no centro da tela de todos os membros online e no chat da guilda (Grão Lorde e Lordes).
-- **Item level e main/alt:** na lista de Membros da janela da guilda, com `/vdl main` (ou o aviso ao entrar no jogo) para definir o main.
-- **Configurações:** main, botão do minimapa, atalho de teclado para abrir o addon e cada funcionalidade da janela da guilda.
-- **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J), e o bate-papo, o Início e a lista de membros do addon nas abas Bate-papo, Informações e Membros. Os oficiais editam a mensagem do dia e as informações clicando no texto.
-
-Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`, `/vdl status`.
 ```
 
 ## Changelog da versão 0.6.0
