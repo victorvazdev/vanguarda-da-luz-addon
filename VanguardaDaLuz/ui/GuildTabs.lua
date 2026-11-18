@@ -17,6 +17,8 @@ local Theme = ns.Theme
 local GuildTabs = {}
 
 local INSET = 10 -- margem do painel dentro da área coberta
+local RAISE_INTERVAL = 0.5 -- painel aberto: mede de novo a camada a cada meio segundo
+local RETRY_DELAY = 0.25   -- depois de um clique: confere de novo a aba da Blizzard
 
 local host, overlay
 local tabs = {}         -- [nome] = botão
@@ -222,8 +224,14 @@ local STRATA = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5,
 
 -- Põe o painel acima de tudo o que a janela da guilda mostra. Alguns quadros
 -- dela (barra de rolagem e caixa de texto do bate-papo) ficam em camadas mais
--- altas que a própria janela, então a camada é medida ao abrir o painel.
+-- altas que a própria janela, então a camada é medida ao abrir o painel e de
+-- novo enquanto ele está aberto: em Informações e Membros a Blizzard mostra ou
+-- recria quadros depois (linhas da lista quando o roster chega, notícias), e
+-- eles ficavam por cima do painel. No Bate-papo isso não acontecia porque os
+-- quadros dele já são os mais altos ao abrir. Em combate não mexe: o painel
+-- tem botões seguros, e o pai deles fica travado.
 local function Raise()
+  if InCombatLockdown() then return end
   local strata, level = host:GetFrameStrata() or "MEDIUM", host:GetFrameLevel() or 0
   local function Visit(frame)
     for _, child in ipairs({ frame:GetChildren() }) do
@@ -370,6 +378,13 @@ local function Setup()
   overlay:EnableMouse(true)
   Theme.Backdrop(overlay, "bg", "goldDeep")
   overlay:Hide()
+  local wait = 0
+  overlay:SetScript("OnUpdate", function(_, elapsed)
+    wait = wait - (elapsed or 0)
+    if wait > 0 then return end
+    wait = RAISE_INTERVAL
+    Raise()
+  end)
   GuildTabs.overlay = overlay
 
   local previous = anchor
@@ -393,6 +408,9 @@ local function Setup()
       tab:HookScript("OnClick", function()
         showOriginal[cover.key] = nil
         ScheduleUpdate()
+        -- Se a Blizzard ainda não marcou o botão no próximo quadro, confere de
+        -- novo um pouco depois (o painel não abria e nada tentava de novo).
+        C_Timer.After(RETRY_DELAY, GuildTabs.Update)
       end)
     end
   end
@@ -404,7 +422,12 @@ local function Setup()
     GuildTabs.Update()
     ScheduleUpdate()
   end)
-  if host.SetDisplayMode then hooksecurefunc(host, "SetDisplayMode", ScheduleUpdate) end
+  if host.SetDisplayMode then
+    hooksecurefunc(host, "SetDisplayMode", function()
+      ScheduleUpdate()
+      C_Timer.After(RETRY_DELAY, GuildTabs.Update)
+    end)
+  end
   host:HookScript("OnSizeChanged", GuildTabs.Update)
   host:HookScript("OnHide", function()
     Close()
@@ -418,6 +441,7 @@ local function Setup()
   ns.On("MEMBERS_UPDATED", GuildTabs.Refresh)
   ns.On("TOGETHER_UPDATED", GuildTabs.Refresh)
   ns.On("CHAT_UPDATED", GuildTabs.Refresh)
+  ns.On("RECRUIT_UPDATED", GuildTabs.Refresh)
   ns.On("SETTINGS_UPDATED", GuildTabs.Update)
   ns.On("PROFESSIONS_UPDATED", function()
     GuildTabs.Update()

@@ -9,6 +9,11 @@ local HomePanel = {}
 
 local LINK_TYPE = "vdlurl"
 local RIGHT_W = 320
+local NEXT_H = 200         -- cartão "Próximo evento" na janela da guilda
+local NEXT_H_WIDE = 170    -- na janela do addon: sobra altura para o ranking
+local RANK_MAX = 10        -- linhas do ranking "Mais tempo jogando com a guilda"
+local RANK_LINE_H = 19     -- altura de cada linha do ranking
+local RANK_HEADER_H = 132  -- título, contagem, "Jogando com" e título do ranking
 local GAP = 16
 local PAD = 16
 local SCROLLBAR_W = 24 -- barra de rolagem do UIPanelScrollFrameTemplate, à direita
@@ -264,7 +269,8 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
   -- Próximo evento
   local nextEvent = Card(frame, L["Próximo evento"])
   Theme.PixelPoint(nextEvent, "TOPRIGHT", frame, "TOPRIGHT")
-  Theme.PixelSize(nextEvent, RIGHT_W, 200)
+  local nextH = compact and NEXT_H or NEXT_H_WIDE
+  Theme.PixelSize(nextEvent, RIGHT_W, nextH)
   nextEvent.name = Theme.Text(nextEvent, "bodyStrong", "heading")
   nextEvent.name:SetPoint("TOPLEFT", nextEvent.title, "BOTTOMLEFT", 0, -10)
   nextEvent.name:SetPoint("RIGHT", -PAD, 0)
@@ -284,16 +290,16 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
   -- Guilda
   local guild = Card(frame, L["Guilda"])
   Theme.PixelPoint(guild, "TOPRIGHT", nextEvent, "BOTTOMRIGHT", 0, -GAP)
-  Theme.PixelSize(guild, RIGHT_W, height - 200 - GAP)
+  Theme.PixelSize(guild, RIGHT_W, height - nextH - GAP)
   guild.counts = Theme.Text(guild, "body")
   guild.counts:SetPoint("TOPLEFT", guild.title, "BOTTOMLEFT", 0, -10)
   guild.player = Theme.Text(guild, "body")
   guild.player:SetPoint("TOPLEFT", guild.counts, "BOTTOMLEFT", 0, -6)
   guild.player:SetPoint("RIGHT", -PAD, 0)
 
-  -- Ranking do tempo com a guilda: quantas linhas couberem no cartão (até 5).
+  -- Ranking do tempo com a guilda: quantas linhas couberem no cartão (até 10).
   guild.rankLines = {}
-  local rankCount = math.max(0, math.min(5, math.floor((height - 200 - GAP - 132) / 20)))
+  local rankCount = math.max(0, math.min(RANK_MAX, math.floor((height - nextH - GAP - RANK_HEADER_H) / RANK_LINE_H)))
   if rankCount > 0 then
     local rankTitle = Theme.Text(guild, "smallStrong", "goldDeep")
     rankTitle:SetPoint("TOPLEFT", guild.player, "BOTTOMLEFT", 0, -14)

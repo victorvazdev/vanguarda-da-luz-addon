@@ -1,6 +1,6 @@
 -- Painel de administração (Grão Lorde e Lordes): importar a string do site,
--- backup do addon, exportar as presenças e enviar o alerta de raide, com o estado da
--- sincronização. Usado na aba Administração da janela da guilda.
+-- backup do addon, exportar as presenças, enviar o alerta de raide e a
+-- mensagem de recrutamento, com o estado da sincronização. Usado na aba Administração da janela da guilda.
 local _, ns = ...
 
 local L = ns.L
@@ -39,7 +39,26 @@ local CARDS = {
     text = L["Mostra um aviso no centro da tela dos membros online e publica no chat da guilda."],
     buttons = { { label = L["Enviar alerta"], kind = "outline", action = function() ns.AlertDialog.Show() end } },
   },
+  {
+    key = "recruit",
+    title = L["Mensagem de recrutamento"],
+    text = "", -- o texto salvo, preenchido em Refresh
+    buttons = {
+      { label = L["Editar texto"], kind = "outline", action = function() ns.RecruitDialog.Show() end },
+      { label = L["Enviar no canal"], kind = "ghost", action = function() ns.RecruitDialog.SendNow() end },
+    },
+  },
 }
+
+-- Linha do cartão da mensagem de recrutamento: o texto e o canal.
+local function RecruitLine()
+  local record = ns.GuildRecruit.Get()
+  if not record then
+    return L["Texto do Grão Lorde e dos Lordes para enviar com um clique num canal do chat, como o Geral."]
+  end
+  local channel = ns.GuildRecruit.ChannelLabel(ns.GuildRecruit.Channel())
+  return "\"" .. ns.Text.Escape(record.text) .. "\" · " .. string.format(L["Canal: %s"], channel)
+end
 
 local BUTTON_W = 120
 
@@ -50,6 +69,8 @@ function Panel:Refresh()
   for _, card in ipairs(self.cards) do
     for _, button in ipairs(card.buttons) do button:SetEnabled(trusted) end
   end
+  self.recruit.text:SetText(RecruitLine())
+  self.recruit.send:SetEnabled(trusted and ns.GuildRecruit.Get() ~= nil)
   self.denied:SetShown(not trusted)
 end
 
@@ -104,6 +125,7 @@ function AdminPanel.Create(parent, width, height)
       end
       button:SetScript("OnClick", b.action)
       card.buttons[#card.buttons + 1] = button
+      if spec.key == "recruit" and b.label == L["Enviar no canal"] then card.send = button end
       right = button
     end
     local title = Theme.Text(card, "heading", "heading")
@@ -115,6 +137,11 @@ function AdminPanel.Create(parent, width, height)
     text:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
     text:SetPoint("RIGHT", right, "LEFT", -12, 0)
     text:SetText(spec.text)
+    card.text = text
+    if spec.key == "recruit" then
+      text:SetWordWrap(false) -- uma linha; o jogo corta com "..."
+      self.recruit = card
+    end
     self.cards[i] = card
     previous = card
   end

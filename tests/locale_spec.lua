@@ -47,6 +47,7 @@ local function UsedKeys()
   for _, spec in ipairs({
     { "VanguardaDaLuz/logic/Codec.lua", "Codec%.ERRORS = (%b{})" },
     { "VanguardaDaLuz/logic/Alert.lua", "Alert%.ERRORS = (%b{})" },
+    { "VanguardaDaLuz/logic/Recruit.lua", "Recruit%.ERRORS = (%b{})" },
     { "VanguardaDaLuz/core/Main.lua", "local HELP = (%b{})" },
     { "VanguardaDaLuz/game/GuildEvents.lua", "GuildEvents%.ERRORS = (%b{})" },
     { "VanguardaDaLuz/game/Backup.lua", "Backup%.ERRORS = (%b{})" },

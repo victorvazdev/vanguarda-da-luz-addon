@@ -50,7 +50,8 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 
 ### Attendance (RSVP)
 - Members confirm or cancel their attendance on upcoming events with one click.
-- Responses are shared between members, so everyone sees who confirmed.
+- Responses are shared between members, so everyone sees who confirmed, with class, item level and an **Invite** button in front of each online name to build the group.
+- A reminder shows on screen 15 minutes before an event you confirmed.
 - Officers generate an attendance string to paste back on the guild website.
 
 ### Professions
@@ -67,9 +68,16 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Officers send an alert that appears in the center of the screen of every online member, with the raid warning sound, and is also posted once in guild chat.
 - Rate-limited, and never sent during encounters where addon communication is restricted.
 
+### Recruitment message
+- The Guild Master and the Lords write a recruitment message in Administration. The text is shared among them, so everyone sends the same one.
+- One click sends it to the chat channel you pick (General by default). There is no automatic sending, and there are 60 s between sends.
+
 ### Members
-- A **Members** list with each member's name in class color, level, item level, main/alt, zone and rank. Click a column title to sort; show everyone or online members only; right-click a member to whisper or invite to your group. Members whose rank can invite also get an **Invite to guild** button.
+- A **Members** list with each member's name in class color, level, item level, main/alt, zone and rank. Click a column title to sort; show everyone or online members only; right-click a member to whisper, invite to your group or request to join theirs. Members whose rank can invite also get an **Invite to guild** button.
 - It also replaces the guild window's Members tab, with a button to open Blizzard's original list (for promoting, demoting, removing and notes).
+
+### Guild map
+- Online members with the addon show on the world map as a square in their class color, with name, level, rank and zone on mouseover. Sharing your position can be turned off in Settings.
 
 ### Time with the guild
 - Counts how long each member plays grouped with guildmates (same zone, nobody away). Alts add up to the main.
@@ -126,7 +134,7 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 - **Início:** mensagem do dia e informações da guilda com links para copiar, próximo evento e membros online.
 - **Calendário:** eventos criados no site; um oficial importa a string e o addon envia para todos os membros da guilda. Horários de Brasília. Grão Lorde e Lordes também criam, editam e cancelam eventos no jogo.
 - **Backup:** string com eventos criados no jogo, presenças, profissões, item level e tempo junto para guardar no site, e restauração a partir do site.
-- **Presença:** confirme ou cancele com um clique; os oficiais geram a string de presenças para o site.
+- **Presença:** confirme ou cancele com um clique, veja quem confirmou e convide cada um para o grupo; lembrete 15 minutos antes do evento; os oficiais geram a string de presenças para o site.
 - **Profissões:** profissões primárias e nível de cada membro, com filtro, só online e botão de sussurrar.
 - **Bate-papo:** o chat da guilda no addon, com as mensagens de antes de entrar no jogo, nomes na cor da classe, main/alt, links para copiar e tooltip de itens; escreva para a guilda (e para os oficiais, Grão Lorde e Lordes) direto da aba.
 - **Alerta de raide:** aviso no centro da tela de todos os membros online e no chat da guilda (Grão Lorde e Lordes).
@@ -134,7 +142,40 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 - **Configurações:** main, botão do minimapa, atalho de teclado para abrir o addon e cada funcionalidade da janela da guilda.
 - **Janela da guilda:** abas Eventos, Profissões e Administração na janela *Guilda e comunidades* (J), e o bate-papo, o Início e a lista de membros do addon nas abas Bate-papo, Informações e Membros. Os oficiais editam a mensagem do dia e as informações clicando no texto.
 
-Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`.
+Comandos: `/vdl` (abre a janela), `/vdl importar`, `/vdl sincronizar`, `/vdl presencas`, `/vdl profissoes`, `/vdl main`, `/vdl alerta [texto]`, `/vdl minimapa`, `/vdl status`.
+```
+
+## Changelog da versão 0.6.0
+
+```markdown
+### New
+- **Recruitment message.** The Guild Master and the Lords write a recruitment message in Administration > Recruitment message. The text is shared among them, and one click sends it to a chat channel you pick (General by default). Sending is always your click, with 60 s between sends.
+- **New version warning.** The addon tells you in chat, once per session, when a guild member has a newer version. No addon can check CurseForge from inside the game, so the warning shows up once someone in the guild has updated.
+- **Event reminder.** 15 minutes before an event you confirmed, a notice shows in the center of the screen with the raid warning sound, and in chat.
+- **Who confirmed.** The event detail lists each confirmed member with class color, item level and main/alt, and an **Invite** button in front of each online name (or **Suggest**/**Request**, following Blizzard's rule), so you can build the raid group one invite at a time.
+- **Last online.** Offline members in the Members tab show how long ago they last logged in ("Offline · 3 d ago").
+- **Diagnostics.** `/vdl status` shows the addon version, your rank, calendar and sync state, whether communication is restricted, how many online members have the addon and the map state.
+- **Request to join a group.** The right-click menu on a member (Members tab and names in Chat) now picks the group option like Blizzard's own menu: **Invite to group**, **Suggest invite** when you are in a group but not the leader, or **Request to join group** when you have no group and the member is in one.
+
+### Changes
+- **Invite to group** is disabled for members already in your group.
+- The Members tab of the addon window now comes right after Chat, before Events.
+- In the Members list, click the dot at the top of the first column to go back to the default order (online first, then rank, level and name).
+```
+
+## Changelog da versão 0.5.0
+
+```markdown
+### New
+- **Guild members on the world map.** Online members with the addon show on the world map as a square in their class color (unlike the round party and raid dots), on the zone, continent and city maps. Mouse over a square to see name, level, rank, main/alt, zone and how recent the position is. Settings > Map turns off sharing your position or showing members. The game gives no position inside instances.
+
+### Changes
+- The addon window is a little taller, so every option of the Settings tab fits.
+- The "most time playing with the guild" ranking on the Home tab shows the top 10 instead of 5.
+
+### Fixes
+- With the Settings tab open, keys you pressed (like moving) could become the addon's key binding without clicking the button first. Now only a click on the button starts waiting for a key.
+- In the guild window, the addon's Info and Members views no longer end up hidden behind Blizzard's view. The Chat view did not have this problem.
 ```
 
 ## Changelog da versão 0.4.0

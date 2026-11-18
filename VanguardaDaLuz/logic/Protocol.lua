@@ -23,6 +23,13 @@
 --               e Lordes), numa string VDLB1 só com eventos
 --   B           Pedido: "alguém me manda os eventos do jogo que aguardam o site?"
 --   C|<VDLB1>   Eventos do jogo que aguardam o site, conhecidos pelo remetente
+--   W|<mapa>|<x>|<y>|<em voo>  Posição do próprio remetente no mapa
+--               (logic/MapPositions.lua)
+--   S|<t>|<quem>|<texto>  Mensagem de recrutamento salva por último (Grão
+--               Lorde e Lordes; logic/Recruit.lua)
+--   Z           Pedido: "alguém me manda a mensagem de recrutamento?"
+--   I|<versão>  Versão do addon do remetente (enviada com Q; quem tem uma
+--               mais nova responde com a sua; logic/Version.lua)
 --
 -- A AceComm divide e junta as mensagens grandes.
 local _, ns = ...
@@ -117,6 +124,22 @@ function Protocol.GameEventsList(encoded)
   return "C|" .. encoded
 end
 
+function Protocol.Position(payload)
+  return "W|" .. payload
+end
+
+function Protocol.Recruit(payload)
+  return "S|" .. payload
+end
+
+function Protocol.RecruitRequest()
+  return "Z"
+end
+
+function Protocol.Version(version)
+  return "I|" .. version
+end
+
 -- Retorna { kind = "query"|"have"|"data", number, raw }, { kind = "alert", id,
 -- text }, { kind = "presence", eventId, status, at }, { kind = "presenceRequest" },
 -- { kind = "presenceList", encoded }, { kind = "professions", at, payload },
@@ -125,7 +148,9 @@ end
 -- { kind = "member", at, payload }, { kind = "membersRequest" },
 -- { kind = "membersList", payload }, { kind = "together", payload },
 -- { kind = "togetherRequest" }, { kind = "togetherList", payload },
--- { kind = "gameEvents", encoded, list }, { kind = "gameEventsRequest" } ou nil
+-- { kind = "gameEvents", encoded, list }, { kind = "gameEventsRequest" },
+-- { kind = "position", payload }, { kind = "recruit", payload },
+-- { kind = "recruitRequest" }, { kind = "version", version } ou nil
 -- (`list` = true em C, a resposta a um pedido).
 function Protocol.Parse(message)
   if type(message) ~= "string" then return nil end
@@ -138,6 +163,13 @@ function Protocol.Parse(message)
   if idsList then return { kind = "professionsList", payload = idsList, withIds = true } end
   if message == "N" then return { kind = "membersRequest" } end
   if message == "B" then return { kind = "gameEventsRequest" } end
+  if message == "Z" then return { kind = "recruitRequest" } end
+  local version = string.match(message, "^I|(%d[%d%.]*)$")
+  if version then return { kind = "version", version = version } end
+  local recruit = string.match(message, "^S|(%d.*)$")
+  if recruit then return { kind = "recruit", payload = recruit } end
+  local position = string.match(message, "^W|(%d.*)$")
+  if position then return { kind = "position", payload = position } end
   local gameKind, gameEvents = string.match(message, "^([EC])|(VDLB.+)$")
   if gameKind then return { kind = "gameEvents", encoded = gameEvents, list = gameKind == "C" } end
   if message == "U" then return { kind = "togetherRequest" } end

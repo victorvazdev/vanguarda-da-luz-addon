@@ -1,5 +1,6 @@
 -- Painel Configurações da janela do addon: main da conta, botão do minimapa,
--- atalho de teclado e funcionalidades do addon na janela da guilda.
+-- atalho de teclado, funcionalidades do addon na janela da guilda e membros no
+-- mapa-múndi.
 local _, ns = ...
 
 local L = ns.L
@@ -42,6 +43,8 @@ function Panel:Refresh()
     self.mainNote:SetText(L["Nenhum main definido nesta conta."])
   end
   self.minimap:SetValue(ns.MinimapButton.IsShown())
+  self.mapShare:SetValue(ns.GuildMap.IsSharing())
+  self.mapShow:SetValue(ns.GuildMap.IsShown())
   self:RefreshKey()
   -- Opções visíveis, uma abaixo da outra (Administração só para Grão Lorde e Lordes).
   local trusted = ns.Guild.IsPlayerTrusted()
@@ -127,6 +130,7 @@ function SettingsPanel.Create(parent, width, height)
   self.key:SetPoint("TOPLEFT", shortcut.text, "BOTTOMLEFT", 0, -12)
   self.key:SetScript("OnClick", function() self:Capture(not self.capturing) end)
   self.key:SetScript("OnKeyDown", function(_, key)
+    if not self.capturing then return end
     if key == "ESCAPE" then
       self:Capture(false)
       return
@@ -141,6 +145,9 @@ function SettingsPanel.Create(parent, width, height)
     ns.Keybind.Set(combo)
     self:RefreshKey()
   end)
+  -- Pôr um OnKeyDown liga o teclado no botão: ele pegaria as teclas com a aba
+  -- aberta, sem o clique. O teclado só fica ligado durante a captura.
+  self.key:EnableKeyboard(false)
   self.clearKey = Theme.Button(shortcut, L["Limpar"], "ghost", 80)
   self.clearKey:SetPoint("LEFT", self.key, "RIGHT", 8, 0)
   self.clearKey:SetScript("OnClick", function() ns.Keybind.Set(nil) end)
@@ -162,6 +169,20 @@ function SettingsPanel.Create(parent, width, height)
       ns.Store.SetGuildFeature(feature.key, value)
     end)
   end
+
+  -- Mapa-múndi
+  local map = Card(frame, L["Mapa"], L["Membros online com o addon aparecem no mapa-múndi como um quadrado na cor "
+    .. "da classe. Em instâncias o jogo não dá a posição."])
+  map:SetPoint("TOPLEFT", guild, "BOTTOMLEFT", 0, -GAP)
+  map:SetSize(colW, 96 + 2 * ROW)
+  self.mapShare = Theme.Toggle(map, L["Compartilhar minha posição com a guilda"], toggleW, function(value)
+    ns.GuildMap.SetSharing(value)
+  end)
+  self.mapShare:SetPoint("TOPLEFT", map.text, "BOTTOMLEFT", 0, -12)
+  self.mapShow = Theme.Toggle(map, L["Mostrar os membros no mapa"], toggleW, function(value)
+    ns.GuildMap.SetShown(value)
+  end)
+  self.mapShow:SetPoint("TOPLEFT", self.mapShare, "BOTTOMLEFT", 0, -(ROW - 26))
 
   return self
 end

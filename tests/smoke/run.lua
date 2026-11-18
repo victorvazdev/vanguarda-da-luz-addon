@@ -31,7 +31,13 @@ local function Mock(name)
       end,
       Clear = function(self) rawset(self, "_lines", {}) end,
       HasFocus = function() return false end,
-      SetPoint = function(self, _, rel) if type(rel) == "table" then self._rel = rel end end,
+      SetPoint = function(self, _, rel, _, x, y)
+        if type(rel) == "table" then self._rel = rel end
+        self._x, self._y = x, y
+      end,
+      CreateMaskTexture = function() return Mock() end,
+      SetFrameLevel = function(self, v) self._level = v end,
+      GetFrameLevel = function(self) return rawget(self, "_level") end,
       GetChecked = function(self) return self._checked end,
       IsShown = function(self) return self._shown end,
       SetShown = function(self, v) if v then self:Show() else self:Hide() end end,
@@ -65,7 +71,8 @@ _G.geterrorhandler = function() return error end
 _G.securecallfunction = function(f, ...) return f(...) end
 local now = 1794410000
 _G.GetServerTime = function() return now end
-_G.GetTime = function() return 0 end
+local clock = 0
+_G.GetTime = function() return clock end
 _G.IsInGuild = function() return true end
 local inCombat = false
 _G.InCombatLockdown = function() return inCombat end
@@ -90,6 +97,10 @@ local roster = {
     classFile = "MAGE" },
 }
 _G.GetNumGuildMembers = function() return #roster end
+-- Última entrada de quem está offline: 3 dias e 2 horas.
+_G.GetGuildRosterLastOnline = function(i)
+  if roster[i] and not roster[i].online then return 0, 0, 3, 2 end
+end
 _G.GetGuildRosterInfo = function(i)
   local m = roster[i]
   return m[1], m[2], m[3], m.level, m.class, m.zone, nil, nil, m.online, m.status, m.classFile,
@@ -206,6 +217,22 @@ local timers = {}
 _G.C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end, NewTicker = function() end }
 _G.C_AddOns = { GetAddOnMetadata = function() return "0.1.0" end,
   IsAddOnLoaded = function(name) return name == "Blizzard_Communities" end }
+-- Mapa-múndi: a tela do mapa (zoom 2) e a posição do jogador no mapa 10,
+-- que fica em x 0.2–0.6 e y 0.5–0.7 do continente 1.
+local mapCanvas = Mock("mapCanvas")
+mapCanvas.GetScale = function() return 2 end
+mapCanvas.GetFrameLevel = function() return 5 end
+local shownMap = 10
+_G.WorldMapFrame = Mock("WorldMapFrame")
+_G.WorldMapFrame.GetCanvas = function() return mapCanvas end
+_G.WorldMapFrame.GetMapID = function() return shownMap end
+local myMap = { map = 10, x = 0.5, y = 0.25 }
+_G.C_Map = {
+  GetBestMapForUnit = function() return myMap.map end,
+  GetPlayerMapPosition = function() return myMap.x and { GetXY = function() return myMap.x, myMap.y end } end,
+  GetMapRectOnMap = function(a, b) if a == 10 and b == 1 then return 0.2, 0.6, 0.5, 0.7 end end,
+}
+_G.UnitOnTaxi = function() return false end
 local canInvite = true
 _G.CanGuildInvite = function() return canInvite end
 _G.C_GuildInfo = {
@@ -218,7 +245,9 @@ _G.C_ChatInfo = {
   RegisterAddonMessagePrefix = function() return 0 end,
   SendAddonMessage = function(_, m) sent[#sent + 1] = m; return 0 end,
   InChatMessagingLockdown = function() return lockdown end,
-  SendChatMessage = function(m, chatType) chat[#chat + 1] = chatType .. " " .. m end,
+  SendChatMessage = function(m, chatType, _, target)
+    chat[#chat + 1] = chatType .. (target and ("#" .. target) or "") .. " " .. m
+  end,
 }
 local warnings, sounds = {}, 0
 _G.RaidWarningFrame = Mock()
@@ -363,6 +392,20 @@ for _, cell in ipairs(all) do
   if cell.day == 13 and cell._scripts.OnClick then cell._scripts.OnClick(cell); break end
 end
 print("detalhe presença:", _G.VanguardaDaLuzMainFrame.detail.attendance._text)
+-- quem confirmou: um por linha, com o botão de grupo para quem está online
+local people = _G.VanguardaDaLuzMainFrame.detail.people
+local function Person(i)
+  local r = people.rows[i]
+  return table.concat({ r.name._text, r.detail._text, tostring(r.button._shown), r.button._text, r.state._text }, " | ")
+end
+print("confirmado 1:", Person(1))
+print("confirmado 2:", Person(2))
+local groupInvites = {}
+local realParty = _G.C_PartyInfo
+_G.C_PartyInfo = { InviteUnit = function(name) groupInvites[#groupInvites + 1] = name end }
+people.rows[1].button._scripts.OnClick(people.rows[1].button)
+_G.C_PartyInfo = realParty
+print("convite do confirmado:", groupInvites[1])
 Click("Cancelar presença")
 print("depois do clique:", P.Status(A), table.concat(P.Confirmed(A), ","))
 -- outro membro pede as presenças e recebe a lista
@@ -527,6 +570,20 @@ RunTimers()
 local infoPanel = GT.panels.info
 print("informações:", GT.overlay._shown, infoPanel and infoPanel.frame._shown, cf.GuildInfoTab._checked)
 print("dica informações:", infoPanel.hint._text)
+-- a Blizzard mostra um quadro mais alto depois de o painel abrir: o painel
+-- sobe de novo (fora de combate)
+local lateFrame = Mock("lateFrame")
+lateFrame._shown, lateFrame._level = true, 500
+lateFrame.GetFrameStrata = function() return "MEDIUM" end
+sideTabs[#sideTabs + 1] = "LateFrame"
+_G.CommunitiesFrame.LateFrame = lateFrame
+inCombat = true
+GT.overlay._scripts.OnUpdate(GT.overlay, 1)
+local levelInCombat = rawget(GT.overlay, "_level")
+inCombat = false
+GT.overlay._scripts.OnUpdate(GT.overlay, 1)
+print("painel sobe:", levelInCombat ~= 510, GT.overlay._level)
+sideTabs[#sideTabs] = nil
 -- clique no texto abre a edição da Blizzard por um botão seguro
 local function Editor(kind, mode)
   for _, e in ipairs(ns.GuildTextEdit.editors) do if e.kind == kind and e.mode == mode then return e end end
@@ -697,7 +754,16 @@ print("membros tempo:", mp.rows[1].time._text, mp.rows[3].time._text, mp.rows[2]
   ns.Theme.PresenceColor(true, mp.rows[2].data.status) == ns.Theme.colors.away)
 -- clique direito: menu com sussurrar e convidar
 local invites = {}
-_G.C_PartyInfo = { InviteUnit = function(name) invites[#invites + 1] = name end }
+local requests = {}
+_G.C_PartyInfo = { InviteUnit = function(name) invites[#invites + 1] = name end,
+  RequestInviteFromUnit = function(name) requests[#requests + 1] = name end }
+local inviteType, inGroup = nil, {}
+_G.GetDisplayedInviteType = function(guid)
+  if not guid then return "INVITE" end
+  return inviteType or "INVITE"
+end
+_G.UnitInParty = function(name) return inGroup[name] or false end
+_G.UnitInRaid = function() return nil end
 mp.rows[2]._scripts.OnMouseUp(mp.rows[2], "RightButton")
 local memberMenu = _G.VanguardaDaLuzMemberMenu
 local function MenuState(m)
@@ -717,6 +783,20 @@ mp.rows[3]._scripts.OnMouseUp(mp.rows[3], "RightButton")
 print("menu offline:", MenuState(memberMenu))
 mp.rows[1]._scripts.OnMouseUp(mp.rows[1], "RightButton")
 print("menu você:", MenuState(memberMenu))
+-- o item de grupo segue a regra do jogo: pedir para entrar, sugerir convite
+inviteType = "REQUEST_INVITE"
+mp.rows[2]._scripts.OnMouseUp(mp.rows[2], "RightButton")
+print("menu pedir:", MenuState(memberMenu))
+memberMenu.buttons[2]._scripts.OnClick(memberMenu.buttons[2])
+print("pedido:", requests[1], #invites)
+inviteType = "SUGGEST_INVITE"
+mp.rows[2]._scripts.OnMouseUp(mp.rows[2], "RightButton")
+print("menu sugerir:", MenuState(memberMenu))
+inviteType = nil
+inGroup["Maren-Forever"] = true
+mp.rows[2]._scripts.OnMouseUp(mp.rows[2], "RightButton")
+print("menu no grupo:", MenuState(memberMenu))
+inGroup["Maren-Forever"] = nil
 memberMenu._scripts.OnEvent(memberMenu, "GLOBAL_MOUSE_DOWN")
 print("menu fecha fora:", memberMenu._shown)
 -- convidar para a guilda: botão só com a permissão do posto; na janela do
@@ -743,11 +823,62 @@ ns.GuildInviteButton.OnCombatStart()
 print("convite em combate:", addonInvite.button._shown, addonInvite.button._rel == UIParent)
 ns.GuildInviteButton.Refresh()
 print("convite depois do combate:", addonInvite.button._shown)
+-- membros no mapa-múndi: envio da própria posição
+clock = 100
+local sentBefore = #comms
+ns.GuildMap.Broadcast()
+print("posição enviada:", comms[sentBefore + 1])
+ns.GuildMap.Broadcast()
+print("posição parado:", #comms - sentBefore)
+clock = 100 + ns.Config.MAP_HEARTBEAT
+ns.GuildMap.Broadcast()
+print("posição de novo:", #comms - sentBefore)
+myMap.x = 0.7
+lockdown = true
+ns.GuildMap.Broadcast()
+lockdown = false
+myMap.x = nil -- instância: o jogo não dá a posição
+ns.GuildMap.Broadcast()
+print("posição em restrição e instância:", #comms - sentBefore)
+myMap.x = 0.5
+ns.GuildMap.SetSharing(false)
+clock = clock + 100
+ns.GuildMap.Broadcast()
+print("sem compartilhar:", #comms - sentBefore, ns.db.settings.map.share)
+ns.GuildMap.SetSharing(true)
+-- posições recebidas e desenho no mapa
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Position("10|2500|5000|1"), "GUILD", "Maren-Forever")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Position("10|1000|1000|0"), "GUILD", "Ana Clara")
+comm.OnCommReceived(comm, "VanguardaDaLuz", "W|lixo", "GUILD", "Dorvan")
+ns.GuildMapPins.driver._scripts.OnUpdate(ns.GuildMapPins.driver, 1)
+local mapPin = ns.GuildMapPins.pins[1]
+print("pontos no mapa:", ns.GuildMapPins.count, mapPin._shown, mapPin._x, mapPin._y, mapPin.item.name,
+  ns.GuildMap.positions["Ana Clara"] ~= nil, ns.GuildMap.positions.Dorvan == nil)
+for i = #tipLines, 1, -1 do tipLines[i] = nil end
+mapPin._scripts.OnEnter(mapPin)
+print("tooltip do mapa:", table.concat(tipLines, " / "))
+shownMap = 1
+ns.GuildMapPins.Draw()
+print("ponto no continente:", ns.GuildMapPins.count, mapPin._x, mapPin._y)
+shownMap = 99
+ns.GuildMapPins.Draw()
+print("ponto em outro mapa:", ns.GuildMapPins.count, mapPin._shown)
+shownMap = 10
+ns.GuildMap.SetShown(false)
+ns.GuildMapPins.Draw()
+print("mapa sem membros:", ns.GuildMapPins.count, ns.db.settings.map.show)
+ns.GuildMap.SetShown(true)
+clock = clock + ns.Config.MAP_EXPIRE + 1
+ns.GuildMapPins.Draw()
+print("posição expirada:", ns.GuildMapPins.count, ns.GuildMap.positions["Maren-Forever"] == nil)
+clock = 0
 mp.headers.level._scripts.OnClick(mp.headers.level)
 print("ordem nível:", mp.rows[1].level._text, mp.rows[2].level._text, mp.rows[3].level._text)
 mp.headers.level._scripts.OnClick(mp.headers.level)
 print("ordem nível desc:", mp.rows[1].level._text, mp.rows[2].level._text, mp.rows[3].level._text)
-mp.headers.level._scripts.OnClick(mp.headers.level)
+mp.reset._scripts.OnClick(mp.reset)
+print("ordem padrão pela bolinha:", mp.options.sort == nil, mp.headers.level.arrow._shown,
+  mp.rows[1].level._text, mp.rows[2].level._text, mp.rows[3].level._text)
 mp.online._scripts.OnClick(mp.online)
 print("membros só online:", mp.online._text, mp.rows[3]._shown)
 -- Bate-papo: histórico da guilda com nome, alt e links; canal de oficiais
@@ -857,6 +988,9 @@ ns.MainFrame.Open("settings")
 sp.key._scripts.OnClick(sp.key)
 sp.key._scripts.OnKeyDown(sp.key, "ESCAPE")
 print("captura cancelada:", sp.key._text, ns.db.settings.keybind)
+-- sem clicar no botão, uma tecla com a aba aberta não vira atalho
+sp.key._scripts.OnKeyDown(sp.key, "D")
+print("tecla sem captura:", ns.db.settings.keybind, sp.key._text)
 inCombat = true
 sp.key._scripts.OnClick(sp.key)
 sp.key._scripts.OnKeyDown(sp.key, "F7")
@@ -888,7 +1022,7 @@ _G.GetGuildInfo = function() return "Vanguarda da Luz", "Membro", 5 end
 mb._scripts.OnClick(mb, "RightButton")
 print("menu sem cargo:", MenuLabels(mm))
 ns.MainFrame.Open("settings")
-print("abas sem cargo:", mainFrame.tabs.admin._shown, mainFrame.tabs.settings._rel == mainFrame.tabs.members)
+print("abas sem cargo:", mainFrame.tabs.admin._shown, mainFrame.tabs.settings._rel == mainFrame.tabs.professions)
 ns.MainFrame.Open("chat")
 local chatSemCargo = mainFrame.panels.chat
 print("bate-papo sem cargo:", chatSemCargo.officerTab._shown, chatSemCargo:Channel())
@@ -920,6 +1054,77 @@ print("em luta:", secretMembers and #secretMembers, #ns.Flavor.GuildRoster(), ns
   #ns.GuildChat.Entries("guild"), ns.Guild.PlayerName())
 _G.C_Club.GetClubMembers, _G.C_Club.GetStreams, _G.GetNumGuildMembers = realMembers, realStreams, realCount
 _G.issecretvalue = nil
+-- mensagem de recrutamento: salva, vai para a guilda e sai no canal com o clique
+_G.GetChannelList = function() return 1, "Geral", false, 2, "Comércio", false, 4, "DefesaLocal", true end
+local adminPanel = main.panels.admin
+adminPanel:Refresh()
+print("recrutamento vazio:", adminPanel.recruit.send._enabled, adminPanel.recruit.text._text:sub(1, 20))
+local recruitBefore = #comms
+Click("Editar texto")
+local rd = _G.VanguardaDaLuzRecruitDialog
+rd.edit:SetText("Vanguarda da Luz | recrutando\nraides às 20h")
+rd.edit._scripts.OnTextChanged(rd.edit)
+print("recrutamento diálogo:", rd._shown, rd.counter._text, rd.channel._text)
+Click("Salvar e enviar")
+print("recrutamento enviado:", ns.db.recruit.text, ns.db.recruit.by, chat[#chat], rd._shown)
+print("recrutamento guilda:", #comms - recruitBefore, comms[#comms])
+Click("Enviar no canal")                               -- antes do intervalo
+clock = clock + 61
+lockdown = true
+Click("Enviar no canal")
+lockdown = false
+SlashCmdList.VANGUARDADALUZ("")
+ns.RecruitDialog.Show()
+Click("Canal: 1. Geral")
+print("recrutamento canal:", rd.channel._text, ns.db.settings.recruitChannel)
+rd:Hide()
+Click("Enviar no canal")
+print("recrutamento no comércio:", chat[#chat])
+adminPanel:Refresh()
+print("recrutamento cartão:", adminPanel.recruit.send._enabled, adminPanel.recruit.text._text)
+-- texto de um Lorde vale; de quem não tem cargo, não
+local newer = ns.Recruit.Encode({ text = "Texto da Maren", at = ns.db.recruit.at + 10, by = "Maren-Forever" })
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Recruit(newer), "GUILD", "Ana Clara")
+print("recrutamento sem cargo:", ns.db.recruit.text)
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Recruit(newer), "GUILD", "Maren-Forever")
+print("recrutamento de lorde:", ns.db.recruit.text, ns.db.recruit.by)
+recruitBefore = #comms
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.RecruitRequest(), "GUILD", "Ana Clara")
+RunTimers()
+print("recrutamento responde:", #comms - recruitBefore, comms[#comms])
+for i = #chat, 1, -1 do chat[i] = nil end -- o alerta de raide confere o chat sozinho
+-- versão nova: o pedido de sincronização leva a versão; quem tem uma mais
+-- nova responde; o aviso aparece uma vez
+local versionBefore = #comms
+ns.Comm.RequestLatest()
+print("versão no pedido:", comms[#comms])
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.0.9"), "GUILD", "Dorvan")
+RunTimers()
+print("versão responde ao antigo:", comms[#comms])
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.0.8"), "GUILD", "Dorvan")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.1.0"), "GUILD", "Ana Clara")
+RunTimers()
+print("versão resposta cancelada:", comms[#comms] == comms[versionBefore + 8], #comms - versionBefore)
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.2.0"), "GUILD", "Maren-Forever")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.10.0"), "GUILD", "Ana Clara")
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("lixo"), "GUILD", "Ana Clara")
+print("versão mais nova:", ns.VersionCheck.Newest())
+-- lembrete 15 min antes de um evento confirmado, uma vez só
+ns.db.events.lembrete = { id = "lembrete", title = "Raide | teste", startsAt = now + 600, status = "ativo",
+  description = "", organizer = "M", updatedAt = now }
+ns.db.events.semPresenca = { id = "semPresenca", title = "Outro", startsAt = now + 300, status = "ativo",
+  description = "", organizer = "M", updatedAt = now }
+ns.Attendance.Set(ns.db.attendance, "lembrete", "Tester Vaz", 1, now)
+local warningsBefore, soundsBefore = #warnings, sounds
+ns.EventReminder.Check()
+ns.EventReminder.Check()
+print("lembretes:", #warnings - warningsBefore, warnings[#warnings], ns.db.reminded.lembrete == now + 600,
+  sounds - soundsBefore)
+for i = #warnings, warningsBefore + 1, -1 do warnings[i] = nil end
+sounds = sounds - 1 -- o alerta de raide confere os sons sozinho
+ns.db.events.lembrete, ns.db.events.semPresenca = nil, nil
+-- diagnóstico
+SlashCmdList.VANGUARDADALUZ("status")
 -- alerta de raide
 local before = #comms
 SlashCmdList.VANGUARDADALUZ("alerta   ")             -- sem texto: abre o modal

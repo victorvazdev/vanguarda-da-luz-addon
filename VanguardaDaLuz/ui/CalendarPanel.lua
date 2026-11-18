@@ -16,6 +16,7 @@ local LAYOUTS = {
     cardPad = 10, rowH = 22, rowStep = 25 },
 }
 local MAX_DAY_EVENTS = 6
+local PERSON_H = 24 -- linha de cada confirmado
 
 local function Brasilia() return ns.Config.BRASILIA_OFFSET end
 
@@ -60,14 +61,87 @@ Panel.__index = Panel
 -- Detalhe do evento
 ---------------------------------------------------------------------------
 
+-- Rótulos curtos do botão de grupo de cada confirmado.
+local GROUP_LABELS = {
+  INVITE = L["Convidar"], SUGGEST_INVITE = L["Sugerir"], REQUEST_INVITE = L["Pedir"],
+}
+
+-- Linha de um confirmado: nome na cor da classe, item level e main/alt, e o
+-- botão de grupo (convidar, sugerir ou pedir para entrar).
+function Panel:PersonRow(i)
+  local d = self.detail
+  local row = d.people.rows[i]
+  if row then return row end
+  row = CreateFrame("Frame", nil, d.people)
+  row:SetHeight(PERSON_H)
+  row:SetPoint("TOPLEFT", 0, -(i - 1) * PERSON_H)
+  row:SetPoint("RIGHT")
+  row.button = Theme.Button(row, L["Convidar"], "outline", 76)
+  row.button:SetHeight(20)
+  row.button:SetPoint("RIGHT", 0, 0)
+  row.button:SetScript("OnClick", function(b)
+    ns.MembersPanel.DoGroupInvite(b.name, b.kind)
+  end)
+  row.state = Theme.Text(row, "small", "textMuted")
+  row.state:SetPoint("RIGHT", -4, 0)
+  row.name = Theme.Text(row, "body")
+  row.name:SetPoint("LEFT", 0, 0)
+  row.name:SetWordWrap(false)
+  row.detail = Theme.Text(row, "small", "textMuted")
+  row.detail:SetPoint("LEFT", row.name, "RIGHT", 6, 0)
+  row.detail:SetPoint("RIGHT", row.button, "LEFT", -6, 0)
+  row.detail:SetWordWrap(false)
+  d.people.rows[i] = row
+  return row
+end
+
+-- Quem confirmou presença, um por linha, com o botão de grupo na frente de
+-- quem está online.
+function Panel:ShowPeople(names)
+  local people = self.detail.people
+  local roster = {}
+  for _, entry in ipairs(ns.Flavor.GuildRoster()) do roster[entry.name] = entry end
+  for i, name in ipairs(names) do
+    local row = self:PersonRow(i)
+    local entry = roster[name]
+    local online = entry and entry.online
+    local color = online and ns.Flavor.ClassColorCode(entry.classFile)
+    local text = Text.Escape(name)
+    row.name:SetText(color and (color .. text .. "|r") or (Theme.Code("textMuted") .. text .. "|r"))
+    row.detail:SetText(Text.Escape(ns.Members.Detail(name, ns.GuildMembers.Get(name)) or ""))
+    local state
+    if ns.Guild.IsPlayer(name) then
+      state = L["você"]
+    elseif not online then
+      state = L["Offline"]
+    elseif ns.Flavor.InGroupWith(name) then
+      state = L["no grupo"]
+    end
+    if state then
+      row.button:Hide()
+      row.state:SetText(state)
+      row.detail:SetPoint("RIGHT", row.state, "LEFT", -6, 0)
+    else
+      local kind = ns.MembersPanel.GroupKind(name, entry.guid)
+      row.button.name, row.button.kind = name, kind
+      row.button:SetText(GROUP_LABELS[kind] or GROUP_LABELS.INVITE)
+      row.button:Show()
+      row.state:SetText("")
+      row.detail:SetPoint("RIGHT", row.button, "LEFT", -6, 0)
+    end
+    row:Show()
+  end
+  for i = #names + 1, #people.rows do people.rows[i]:Hide() end
+  people:SetHeight(math.max(1, #names * PERSON_H))
+end
+
 -- Lista de presença do jogo e botão de confirmar/cancelar.
 function Panel:ShowAttendance(event)
   local d, Lay = self.detail, self.layout
   local names = ns.Presence.Confirmed(event.id)
-  local escaped = {}
-  for i, name in ipairs(names) do escaped[i] = Text.Escape(name) end
-  local line = Theme.Code("textMuted") .. string.format(L["Confirmados no jogo (%d):"], #names) .. "|r "
-  d.attendance:SetText(line .. (#names > 0 and table.concat(escaped, ", ") or L["ninguém ainda"]))
+  local line = Theme.Code("textMuted") .. string.format(L["Confirmados no jogo (%d)"], #names) .. "|r"
+  d.attendance:SetText(#names > 0 and line or (line .. " " .. L["ninguém ainda"]))
+  self:ShowPeople(names)
   local open = ns.Presence.IsOpen(event)
   d.attend:SetShown(open)
   -- Editar e cancelar (Grão Lorde e Lordes), numa linha acima da presença.
@@ -259,7 +333,7 @@ local function DetailBody(parent)
   child:SetSize(1, 1)
   scroll:SetScrollChild(child)
 
-  local strings, values = {}, {}
+  local strings, values, frames = {}, {}, {}
   local previous
   function scroll.Add(labelText)
     local label = Theme.Text(child, "smallStrong", "goldDeep")
@@ -277,6 +351,17 @@ local function DetailBody(parent)
     return value
   end
 
+  -- Quadro logo abaixo da última seção (sem rótulo), com altura própria.
+  function scroll.AddFrame()
+    local frame = CreateFrame("Frame", nil, child)
+    frame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -4)
+    frame:SetPoint("RIGHT", child, "RIGHT")
+    frame:SetHeight(1)
+    frames[#frames + 1] = frame
+    previous = frame
+    return frame
+  end
+
   scroll:SetScript("OnSizeChanged", function(self, w)
     child:SetWidth(w)
     for _, fs in ipairs(strings) do fs:SetWidth(w) end
@@ -285,6 +370,7 @@ local function DetailBody(parent)
   function scroll:Layout()
     local height = 0
     for _, fs in ipairs(strings) do height = height + (fs:GetStringHeight() or 0) end
+    for _, frame in ipairs(frames) do height = height + (frame:GetHeight() or 0) + 4 end
     child:SetHeight(height + #values * 4 + (#values - 1) * 12 + 4)
     self:SetVerticalScroll(0)
   end
@@ -435,6 +521,8 @@ function Panel:BuildSide(grid, sideW, height)
   detail.when = body.Add(L["QUANDO"])
   detail.organizer = body.Add(L["ORGANIZADOR"])
   detail.attendance = body.Add(L["PRESENÇA"])
+  detail.people = body.AddFrame()
+  detail.people.rows = {}
   detail.description = body.Add(L["DESCRIÇÃO"])
 
   detail.attend = Theme.Button(detail, L["Confirmar presença"], "primary", 170)

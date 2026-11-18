@@ -15,7 +15,11 @@
 --                mainAsked = { [personagem] = true },  -- responderam "Não" ao popup do main
 --                mainPromptOff = true,                 -- "Não perguntar mais"
 --                keybind = "SHIFT-V",                  -- atalho para abrir o addon
---                guildWindow = { [funcionalidade] = false } },  -- desligadas
+--                guildWindow = { [funcionalidade] = false },  -- desligadas
+--                map = { share = false, show = false },        -- mapa: desligados
+--                recruitChannel = "Geral" },                   -- canal da mensagem de recrutamento
+--   recruit = { text, at, by },  -- mensagem de recrutamento: logic/Recruit.lua
+--   reminded = { [id] = startsAt },  -- eventos já lembrados: logic/Reminders.lua
 -- }
 local _, ns = ...
 

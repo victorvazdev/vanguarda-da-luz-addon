@@ -8,7 +8,7 @@ local L = ns.L
 local Theme = ns.Theme
 local MainFrame = {}
 
-local WIDTH, HEIGHT = 960, 640
+local WIDTH, HEIGHT = 960, 700
 local PAD = 20
 local CONTENT_TOP = 116  -- abaixo do cabeçalho e da barra de abas
 local FOOTER_H = 62
@@ -16,9 +16,9 @@ local FOOTER_H = 62
 local TABS = {
   { key = "home", label = L["Início"], width = 100 },
   { key = "chat", label = L["Bate-papo"], width = 110 },
+  { key = "members", label = L["Membros"], width = 110 },
   { key = "events", label = L["Eventos"], width = 100 },
   { key = "professions", label = L["Profissões"], width = 116 },
-  { key = "members", label = L["Membros"], width = 110 },
   { key = "admin", label = L["Administração"], width = 140, trusted = true },
   { key = "settings", label = L["Configurações"], width = 140 },
 }
@@ -131,6 +131,7 @@ local function Build()
   ns.On("MEMBERS_UPDATED", MainFrame.Refresh)
   ns.On("TOGETHER_UPDATED", MainFrame.Refresh)
   ns.On("CHAT_UPDATED", MainFrame.Refresh)
+  ns.On("RECRUIT_UPDATED", MainFrame.Refresh)
 end
 
 function MainFrame.Hide()

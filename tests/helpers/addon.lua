@@ -27,6 +27,10 @@ local FILES = {
   "logic/Chat.lua",
   "logic/GameEvents.lua",
   "logic/BackupCodec.lua",
+  "logic/MapPositions.lua",
+  "logic/Recruit.lua",
+  "logic/Version.lua",
+  "logic/Reminders.lua",
 }
 
 local LibDeflate

@@ -2,7 +2,8 @@
 -- main/alt sincronizados, filtra e ordena. Lógica pura.
 --
 -- Entrada (Flavor.GuildRoster): { { name, rank, rankIndex, level, class,
---   classFile, zone, online }, ... }
+--   classFile, zone, online, lastOnline }, ... } (lastOnline = horas desde a
+--   última entrada, para quem está offline)
 -- Linha: os mesmos campos mais `ilvl` (nil sem o addon), `main` (nil sem main)
 -- e `together` (tempo da pessoa com a guilda, em segundos; nil sem dados).
 local _, ns = ...
@@ -21,12 +22,26 @@ function Roster.BuildRows(entries, store, togetherTotals)
     rows[#rows + 1] = {
       name = e.name, rank = e.rank, rankIndex = e.rankIndex or 99, level = e.level or 0,
       class = e.class, classFile = e.classFile, zone = e.zone, online = e.online and true or false,
-      status = e.status,
+      status = e.status, lastOnline = e.lastOnline,
       ilvl = record and record.i, main = record and record.m,
       together = togetherTotals and togetherTotals[(record and record.m) or e.name],
     }
   end
   return rows
+end
+
+-- Há quanto tempo um membro offline entrou, a partir das horas desde a última
+-- entrada (GetGuildRosterLastOnline). "há 3 d", "há 5 h"; nil sem dado.
+function Roster.LastSeen(hours)
+  local L = ns.L
+  if type(hours) ~= "number" or hours < 0 then return nil end
+  if hours < 1 then return L["há menos de 1 h"] end
+  if hours < 24 then return string.format(L["há %d h"], math.floor(hours)) end
+  local days = math.floor(hours / 24)
+  if days < 30 then return string.format(L["há %d d"], days) end
+  local months = math.floor(days / 30)
+  if months < 12 then return string.format(L["há %d mês(es)"], months) end
+  return L["há mais de 1 ano"]
 end
 
 -- "Main", "Alt de Fulano" ou nil.

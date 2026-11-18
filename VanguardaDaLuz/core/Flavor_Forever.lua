@@ -87,6 +87,28 @@ function Flavor.SendChat(text, channel)
   return false, tostring(err)
 end
 
+-- Canais do chat em que o personagem está, como GetChannelList() devolve
+-- (id, nome, desativado, ...). Nada se os valores vierem secretos.
+function Flavor.ChatChannels()
+  if not GetChannelList then return end
+  local values = { pcall(GetChannelList) }
+  if not table.remove(values, 1) then return end
+  for i = 1, #values do
+    if Flavor.IsSecret(values[i]) then return end
+  end
+  return unpack(values)
+end
+
+-- Envia uma mensagem num canal do chat pelo número (`id`). Só funciona a
+-- partir de um clique ou tecla da pessoa. Retorna true, ou false e o erro.
+function Flavor.SendChannelMessage(text, id)
+  local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or SendChatMessage
+  if not send then return false, "SendChatMessage" end
+  local ok, err = pcall(send, text, "CHANNEL", nil, tostring(id))
+  if ok then return true end
+  return false, tostring(err)
+end
+
 -- Canais do bate-papo da guilda no clube da guilda (C_Club): o bate-papo da
 -- guilda e o de oficiais são "streams" (tipos 1 e 2, confirmado no jogo).
 -- Retorna o clube e { guild = streamId, officer = streamId }, ou nil.
@@ -347,8 +369,18 @@ local function RosterStatus(status)
   return nil
 end
 
+-- Horas desde a última entrada do membro `i` do roster (offline), ou nil.
+local function LastOnline(i)
+  if not GetGuildRosterLastOnline then return nil end
+  local ok, years, months, days, hours = pcall(GetGuildRosterLastOnline, i)
+  if not ok or Flavor.AnySecret(years, months, days, hours) then return nil end
+  if type(years) ~= "number" then return nil end
+  return (((years * 12 + (months or 0)) * 30 + (days or 0)) * 24) + (hours or 0)
+end
+
 -- Roster da guilda para a lista de membros: { { name, rank, rankIndex, level,
--- class, classFile, zone, online, status, guid }, ... }. Conferido no WoW
+-- class, classFile, zone, online, status, guid, lastOnline }, ... }
+-- (lastOnline = horas desde a última entrada, só de quem está offline). Conferido no WoW
 -- Forever: o nome vem como "Nome Sobrenome" e classFile como "ROGUE".
 --
 -- Com o roster secreto (restrição do jogo, como em luta com chefe), vale o
@@ -368,7 +400,7 @@ function Flavor.GuildRoster()
     if name then
       entries[#entries + 1] = { name = name, rank = rank, rankIndex = rankIndex, level = level,
         class = class, classFile = classFile, zone = zone, online = online and true or false,
-        status = RosterStatus(status), guid = guid }
+        status = RosterStatus(status), guid = guid, lastOnline = not online and LastOnline(i) or nil }
     end
   end
   lastRoster = entries
@@ -463,12 +495,77 @@ function Flavor.CanGuildInvite()
   return lastCanInvite
 end
 
+-- Mapa-múndi da Blizzard (o addon desenha os membros por cima dele).
+Flavor.worldMap = { addon = "Blizzard_WorldMap", frame = "WorldMapFrame" }
+
+function Flavor.WorldMap()
+  return _G[Flavor.worldMap.frame]
+end
+
+-- Posição do próprio personagem: { map, x, y, taxi }, ou nil quando o jogo não
+-- a dá (instâncias) ou a esconde (valores secretos).
+function Flavor.PlayerMapPosition()
+  if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetPlayerMapPosition) then return nil end
+  local ok, map, x, y = pcall(function()
+    local id = C_Map.GetBestMapForUnit("player")
+    if Flavor.IsSecret(id) or type(id) ~= "number" then return nil end
+    local position = C_Map.GetPlayerMapPosition(id, "player")
+    if not position or Flavor.IsSecret(position) then return nil end
+    local px, py = position:GetXY()
+    if Flavor.AnySecret(px, py) then return nil end
+    return id, px, py
+  end)
+  if not (ok and map and type(x) == "number" and type(y) == "number") then return nil end
+  local taxi = UnitOnTaxi and UnitOnTaxi("player")
+  if Flavor.IsSecret(taxi) then taxi = false end
+  return { map = map, x = x, y = y, taxi = taxi and true or false }
+end
+
+-- Retângulo (minX, maxX, minY, maxY) do mapa `a` dentro do mapa `b`, ou nil.
+function Flavor.MapRect(a, b)
+  if not (C_Map and C_Map.GetMapRectOnMap) then return nil end
+  local ok, minX, maxX, minY, maxY = pcall(C_Map.GetMapRectOnMap, a, b)
+  if not ok or Flavor.AnySecret(minX, maxX, minY, maxY) then return nil end
+  if type(minX) ~= "number" or type(maxX) ~= "number" or type(minY) ~= "number" or type(maxY) ~= "number" then
+    return nil
+  end
+  return minX, maxX, minY, maxY
+end
+
 -- Convida para o grupo.
 function Flavor.InviteToGroup(name)
   if C_PartyInfo and C_PartyInfo.InviteUnit then
     C_PartyInfo.InviteUnit(name)
   elseif InviteUnit then
     InviteUnit(name)
+  end
+end
+
+-- Qual convite de grupo o menu do membro mostra: "INVITE" (convidar),
+-- "SUGGEST_INVITE" (sugerir ao líder, quando estou num grupo sem ser líder
+-- nem assistente) ou "REQUEST_INVITE" (pedir para entrar, quando estou sem
+-- grupo e a pessoa está num). Usa a função do próprio jogo, a mesma do menu
+-- da Blizzard (Blizzard_LFGUtil); sem ela, ou com valor secreto, "INVITE".
+local INVITE_TYPES = { INVITE = true, SUGGEST_INVITE = true, REQUEST_INVITE = true }
+function Flavor.GroupInviteType(guid)
+  if type(GetDisplayedInviteType) ~= "function" or Flavor.IsSecret(guid) then return "INVITE" end
+  local ok, kind = pcall(GetDisplayedInviteType, guid)
+  if not ok or Flavor.IsSecret(kind) or not INVITE_TYPES[kind] then return "INVITE" end
+  return kind
+end
+
+-- A pessoa já está no meu grupo ou raide?
+function Flavor.InGroupWith(name)
+  local ok, party, raid = pcall(function() return UnitInParty(name), UnitInRaid(name) end)
+  if not ok or Flavor.AnySecret(party, raid) then return false end
+  return (party and true or false) or raid ~= nil
+end
+
+-- Pede para entrar no grupo da pessoa (C_PartyInfo.RequestInviteFromUnit,
+-- como o menu da Blizzard).
+function Flavor.RequestGroupInvite(name)
+  if C_PartyInfo and C_PartyInfo.RequestInviteFromUnit then
+    C_PartyInfo.RequestInviteFromUnit(name)
   end
 end
 

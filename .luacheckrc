@@ -25,11 +25,13 @@ read_globals = {
   "geterrorhandler", "GetTime", "PlaySound", "RaidNotice_AddMessage", "RaidWarningFrame",
   "SendChatMessage", "SOUNDKIT", "UnitGUID", "C_Club", "GetProfessions", "GetProfessionInfo",
   "GetAverageItemLevel", "PixelUtil", "RAID_CLASS_COLORS", "C_PartyInfo", "InviteUnit",
+  "GetDisplayedInviteType", "UnitInParty", "UnitInRaid", "GetChannelList",
+  "GetGuildRosterLastOnline",
   "GetLocale", "UnitIsAFK", "GetZoneText", "GetNumGroupMembers", "IsInRaid", "UnitExists", "UnitIsUnit", "UnitIsConnected",
   "ChatFrameUtil", "ChatFrame_SendTell", "hooksecurefunc",
   "GetGuildRosterMOTD", "GetGuildInfoText",
   "SetOverrideBindingClick", "ClearOverrideBindings", "GetBindingText", "GetBindingAction",
-  "issecretvalue", "issecrettable", "canaccesstable", "SetItemRef", "ChatEdit_InsertLink", "date", "time", "CanEditMOTD", "CanEditGuildInfo", "CanGuildInvite", "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsMetaKeyDown",
+  "issecretvalue", "issecrettable", "canaccesstable", "SetItemRef", "ChatEdit_InsertLink", "date", "time", "CanEditMOTD", "CanEditGuildInfo", "CanGuildInvite", "C_Map", "UnitOnTaxi", "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsMetaKeyDown",
 }
 
 files["tests/"] = { std = "+busted" }

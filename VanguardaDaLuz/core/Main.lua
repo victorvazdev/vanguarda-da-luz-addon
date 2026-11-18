@@ -39,6 +39,8 @@ local function OnLogin()
     RequestWhenMember()
   end)
   ns.GuildTogether.Start()
+  ns.GuildMap.Start()
+  ns.EventReminder.Start()
   -- Reenvia mensagens adiadas se o aviso de fim da restrição não chegar.
   C_Timer.NewTicker(30, ns.Comm.Flush)
 end
@@ -50,11 +52,13 @@ local function Start()
   ns.GuildProfessions.Init()
   ns.GuildMembers.Init()
   ns.GuildTogether.Init()
+  ns.GuildMap.Init()
   ns.GuildChat.Init()
   ns.MinimapButton.Init()
   ns.Keybind.Init()
   ns.GuildTabs.Init()
   ns.GuildRoster.Init()
+  ns.GuildMapPins.Init()
 
   Register("PLAYER_ENTERING_WORLD", OnLogin)
   Register("GUILD_ROSTER_UPDATE", function(...)
@@ -103,6 +107,7 @@ local HELP = {
   "/vdl main  define este personagem como main (os outros da conta viram alts)",
   "/vdl alerta [texto]  envia um alerta de raide à guilda (Grão Lorde e Lordes)",
   "/vdl minimapa  mostra ou esconde o botão no minimapa",
+  "/vdl status  mostra o diagnóstico do addon (versão, sincronização, comunicação)",
 }
 
 -- Comandos aceitos em qualquer idioma: português, inglês e sem acento.
@@ -115,6 +120,7 @@ local COMMANDS = {
   main = "main",
   alerta = "alert", alert = "alert",
   minimapa = "minimap", minimap = "minimap",
+  status = "status", diagnostico = "status", ["diagnóstico"] = "status",
 }
 
 SLASH_VANGUARDADALUZ1 = "/vdl"
@@ -152,6 +158,8 @@ SlashCmdList.VANGUARDADALUZ = function(input)
     end
   elseif command == "minimap" then
     ns.MinimapButton.Toggle()
+  elseif command == "status" then
+    ns.Diagnostics.Print()
   else
     ns.Print(string.format(L["comandos (versão %s):"], ns.version))
     for _, line in ipairs(HELP) do print("  " .. L[line]) end

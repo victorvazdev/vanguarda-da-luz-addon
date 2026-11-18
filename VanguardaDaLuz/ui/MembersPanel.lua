@@ -1,6 +1,7 @@
 -- Painel Membros: lista da guilda com nome (na cor da classe), nível, item
 -- level, main/alt, zona e posto. Clicar no título de uma coluna ordena por ela;
--- o clique direito num membro abre o menu (sussurrar e convidar para o grupo).
+-- o clique direito num membro abre o menu (sussurrar e convidar, sugerir
+-- convite ou pedir para entrar no grupo).
 -- Quem o jogo deixa convidar para a guilda vê o botão "Convidar para a guilda".
 -- Usado na janela do addon e por cima da aba Membros da janela da guilda.
 local _, ns = ...
@@ -35,6 +36,43 @@ local function Muted(text)
   return Theme.Code("textMuted") .. text .. "|r"
 end
 
+-- GUID do membro no roster (o menu também abre pelos nomes do bate-papo).
+local function MemberGuid(name)
+  for _, entry in ipairs(ns.Flavor.GuildRoster()) do
+    if entry.name == name then return entry.guid end
+  end
+  return nil
+end
+
+-- Convite de grupo para o membro, com a mesma regra do menu da Blizzard:
+-- "INVITE", "SUGGEST_INVITE" ou "REQUEST_INVITE" (Flavor.GroupInviteType).
+function MembersPanel.GroupKind(name, guid)
+  return ns.Flavor.GroupInviteType(guid or MemberGuid(name))
+end
+
+-- Faz o convite do tipo `kind` (convidar e sugerir usam a mesma chamada).
+function MembersPanel.DoGroupInvite(name, kind)
+  if kind == "REQUEST_INVITE" then
+    ns.Flavor.RequestGroupInvite(name)
+  else
+    ns.Flavor.InviteToGroup(name)
+  end
+end
+
+-- Item de grupo do menu: convidar, sugerir convite ao líder ou pedir para
+-- entrar no grupo da pessoa.
+local function GroupItem(data, disabled)
+  local name = data.name
+  local kind = MembersPanel.GroupKind(name, data.guid)
+  if kind == "REQUEST_INVITE" then
+    return { label = L["Pedir para entrar no grupo"], disabled = disabled,
+      action = function() MembersPanel.DoGroupInvite(name, kind) end }
+  end
+  local label = kind == "SUGGEST_INVITE" and L["Sugerir convite"] or L["Convidar para o grupo"]
+  return { label = label, disabled = disabled or ns.Flavor.InGroupWith(name),
+    action = function() MembersPanel.DoGroupInvite(name, kind) end }
+end
+
 -- Menu do clique direito num membro.
 function MembersPanel.OpenMenu(data)
   menu = menu or Theme.PopupMenu("VanguardaDaLuzMemberMenu", 200)
@@ -42,8 +80,7 @@ function MembersPanel.OpenMenu(data)
   local isMe = ns.Guild.IsPlayer(data.name)
   menu:Open(data.name, {
     { label = L["Sussurrar"], disabled = offline or isMe, action = function() ns.Flavor.Whisper(data.name) end },
-    { label = L["Convidar para o grupo"], disabled = offline or isMe,
-      action = function() ns.Flavor.InviteToGroup(data.name) end },
+    GroupItem(data, offline or isMe),
   })
   return menu
 end
@@ -93,7 +130,10 @@ function Panel:ShowRow(i, data)
   Cell(row.ilvl, data.ilvl and tostring(data.ilvl) or "—")
   local main = Roster.MainText(data)
   Cell(row.main, main and Text.Escape(main) or "—")
-  Cell(row.zone, data.online and Text.Escape(data.zone or "") or L["Offline"])
+  -- Offline: há quanto tempo entrou pela última vez.
+  local seen = not data.online and Roster.LastSeen(data.lastOnline)
+  local offline = seen and (L["Offline"] .. " · " .. seen) or L["Offline"]
+  Cell(row.zone, data.online and Text.Escape(data.zone or "") or offline)
   Cell(row.rank, Text.Escape(data.rank or ""))
   if self.columns.time then Cell(row.time, data.together and ns.Together.Format(data.together) or "—") end
 
@@ -110,6 +150,8 @@ function Panel:Refresh()
   self.hint:ClearAllPoints()
   self.hint:SetPoint("RIGHT", self.count, "LEFT", -12, 0)
   self.hint:SetPoint("LEFT", canInvite and self.invite or self.online, "RIGHT", 12, 0)
+  -- A bolinha do título acende na ordem padrão.
+  self.reset.dot:SetColorTexture(unpack(Theme.colors[options.sort and "goldDeep" or "goldLight"]))
   for _, column in ipairs(self.cols) do
     local header = self.headers[column.key]
     local active = options.sort == column.key
@@ -139,8 +181,15 @@ function Panel:Refresh()
   end
 end
 
+-- Clique no título da bolinha: volta à ordem padrão.
+function Panel:ResetSort()
+  self.options.sort, self.options.descending = nil, false
+  self:Refresh()
+end
+
 -- Clique no título: ordena pela coluna; de novo, inverte; uma terceira vez
--- volta à ordem padrão (online, posto, nível decrescente e nome).
+-- volta à ordem padrão (online, posto, nível decrescente e nome), como o
+-- clique no título da bolinha.
 function Panel:SortBy(key)
   local options = self.options
   if options.sort ~= key then
@@ -206,6 +255,23 @@ function MembersPanel.Create(parent, width, height, hidden, inGuildWindow)
   count:SetJustifyH("RIGHT")
   self.count = count
   hint:SetPoint("RIGHT", count, "LEFT", -12, 0)
+
+  -- Título da coluna da bolinha (online): volta à ordem padrão.
+  local reset = CreateFrame("Button", nil, frame)
+  reset:SetSize(26, HEADER_H - 4)
+  reset:SetPoint("TOPLEFT", 0, -TOOLBAR_H - 2)
+  reset.dot = reset:CreateTexture(nil, "OVERLAY")
+  reset.dot:SetSize(8, 8)
+  reset.dot:SetPoint("LEFT", 10, 0)
+  reset:SetScript("OnClick", function() self:ResetSort() end)
+  reset:SetScript("OnEnter", function(b)
+    GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+    GameTooltip:SetText(L["Ordem padrão"])
+    GameTooltip:AddLine(L["Online primeiro, depois o posto, o nível e o nome."], 0.85, 0.81, 0.73, true)
+    GameTooltip:Show()
+  end)
+  reset:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  self.reset = reset
 
   -- Títulos das colunas (clicáveis)
   for _, column in ipairs(self.cols) do

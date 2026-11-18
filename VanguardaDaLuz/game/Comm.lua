@@ -11,6 +11,7 @@ local queue = {}          -- mensagens adiadas: [kind] = { message, prio }
 local response = nil      -- resposta agendada: { number }
 local sendingData = nil   -- envio de dados em andamento: { number }
 local status = L["Aguardando."]
+local seen = {}           -- remetentes de mensagens do addon nesta sessão: [nome] = true
 
 local function SetStatus(text)
   status = text
@@ -19,6 +20,18 @@ end
 
 function Comm.Status()
   return status
+end
+
+-- Quantas mensagens esperam o fim da restrição.
+function Comm.QueueSize()
+  local count = 0
+  for _ in pairs(queue) do count = count + 1 end
+  return count
+end
+
+-- `name` mandou alguma mensagem do addon nesta sessão?
+function Comm.HasSeen(name)
+  return seen[name] == true
 end
 
 local function Locked()
@@ -89,6 +102,8 @@ function Comm.RequestLatest()
   Send("membersRequest", ns.Protocol.MembersRequest(), "NORMAL")
   Send("togetherRequest", ns.Protocol.TogetherRequest(), "NORMAL")
   Send("gameEventsRequest", ns.Protocol.GameEventsRequest(), "NORMAL")
+  Send("recruitRequest", ns.Protocol.RecruitRequest(), "NORMAL")
+  Comm.SendVersion(ns.VersionCheck.Message())
 end
 
 -- Presença do próprio jogador num evento (só a última de cada evento fica na
@@ -138,6 +153,24 @@ end
 
 function Comm.SendGameEventsList(message)
   Send("gameEventsList", message, "BULK")
+end
+
+-- Versão do addon do próprio jogador.
+function Comm.SendVersion(message)
+  if message then Send("version", message, "NORMAL") end
+end
+
+-- Mensagem de recrutamento salva (só a última fica na fila).
+function Comm.SendRecruit(message)
+  Send("recruit", message, "NORMAL")
+end
+
+-- Posição do próprio jogador no mapa: vai na hora ou não vai (uma posição
+-- atrasada não serve; a próxima sai em seguida). Retorna se enviou.
+function Comm.SendPosition(message)
+  if not ns.Guild.IsMember() or Locked() then return false end
+  RawSend(message, "BULK")
+  return true
 end
 
 -- Envia a exportação atual para a guilda (cargos aceitos).
@@ -197,6 +230,7 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
   if prefix ~= ns.Config.COMM_PREFIX or distribution ~= "GUILD" then return end
   if not ns.Guild.IsMember() then return end
   if ns.Guild.IsPlayer(sender) then return end
+  seen[Ambiguate(sender, "none")] = true
   local message = ns.Protocol.Parse(text)
   if not message then return end
   if message.kind == "query" then
@@ -239,6 +273,14 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
     ns.GuildEvents.OnReceived(message, sender)
   elseif message.kind == "gameEventsRequest" then
     ns.GuildEvents.OnRequest()
+  elseif message.kind == "position" then
+    ns.GuildMap.OnPosition(message, sender)
+  elseif message.kind == "recruit" then
+    ns.GuildRecruit.OnReceived(message, sender)
+  elseif message.kind == "recruitRequest" then
+    ns.GuildRecruit.OnRequest()
+  elseif message.kind == "version" then
+    ns.VersionCheck.OnAnnounce(message)
   end
 end
 

@@ -31,13 +31,14 @@ Os eventos são criados no [site da guilda](https://vanguarda-da-luz.web.app/). 
 | `/vdl alerta [texto]` | Envia um alerta de raide à guilda. Sem texto, abre o modal do alerta (Grão Lorde e Lordes) |
 | `/vdl minimapa` | Mostra ou esconde o botão no minimapa |
 | `/vdl membros` | Abre a janela do addon na aba Membros |
+| `/vdl status` | Mostra o diagnóstico do addon no chat (ver abaixo) |
 | `/vdl ajuda` | Lista os comandos |
 
-Os comandos também aceitam os nomes em inglês, em qualquer idioma do jogo: `import`, `sync`, `attendance`, `professions`, `members`, `alert`, `minimap` e `help`.
+Os comandos também aceitam os nomes em inglês, em qualquer idioma do jogo: `import`, `sync`, `attendance`, `professions`, `members`, `alert`, `minimap`, `status` e `help`.
 
 O botão no minimapa e a entrada no compartimento de addons também abrem a janela no Início. O clique direito abre um menu de atalhos: Início, Eventos, Profissões, Membros, Sincronizar, Administração (só para o Grão Lorde e os Lordes), Configurações e Esconder botão do minimapa.
 
-A janela tem as abas **Início**, **Bate-papo**, **Eventos**, **Profissões**, **Membros**, **Administração** (só Grão Lorde e Lordes) e **Configurações**. O rodapé mostra a última exportação recebida, o estado da sincronização e o botão **Sincronizar**.
+A janela tem as abas **Início**, **Bate-papo**, **Membros**, **Eventos**, **Profissões**, **Administração** (só Grão Lorde e Lordes) e **Configurações**. O rodapé mostra a última exportação recebida, o estado da sincronização e o botão **Sincronizar**.
 
 Na janela **Guilda e comunidades** do jogo (J), com a guilda selecionada, o addon acrescenta três botões abaixo dos botões laterais da Blizzard: **Eventos**, **Profissões** e **Administração** (só Grão Lorde e Lordes). As abas **Bate-papo**, **Informações** e **Membros** mostram o bate-papo, o Início e a lista de membros do addon, com um botão para ver as originais da Blizzard.
 
@@ -56,6 +57,7 @@ Na janela **Guilda e comunidades** do jogo (J), com a guilda selecionada, o addo
 | Gerar e restaurar o backup do addon | Cargos aceitos (Grão Lorde e Lorde) |
 | Ver as profissões e sussurrar | Qualquer membro |
 | Enviar alerta de raide | Cargos aceitos (Grão Lorde e Lorde). Os membros só mostram alertas de remetentes com cargo aceito |
+| Editar e enviar a mensagem de recrutamento | Cargos aceitos (Grão Lorde e Lorde). Os membros só aceitam o texto de remetentes com cargo aceito |
 
 Contas trial e veteranas do WoW Forever não podem enviar mensagens de addon nem criar eventos no calendário.
 
@@ -120,6 +122,9 @@ As mensagens usam o canal `GUILD` com o prefixo `VanguardaDaLuz`. A AceComm divi
 | `E\|<VDLB1>` | Eventos criados, editados ou cancelados no jogo pelo remetente (cargo aceito), numa string `VDLB1` só com eventos |
 | `B` | Pedido dos eventos do jogo que aguardam o site, enviado junto com o `Q` |
 | `C\|<VDLB1>` | Eventos do jogo que aguardam o site, conhecidos pelo remetente (só cargos aceitos respondem) |
+| `S\|<horário>\|<quem salvou>\|<texto>` | Mensagem de recrutamento salva por último (cargo aceito; ver abaixo) |
+| `Z` | Pedido da mensagem de recrutamento, enviado junto com o `Q` (só cargos aceitos respondem) |
+| `I\|<versão>` | Versão do addon do remetente, enviada junto com o `Q`; quem tem uma mais nova responde com a sua (ver abaixo) |
 
 - Só responde quem tem cargo aceito e dados mais novos. A resposta sai depois de uma espera aleatória de 1 a 6 s e é cancelada se outro remetente avisar (`H`) ou enviar (`D`) a mesma exportação ou uma mais nova.
 - Ao confirmar uma importação, um Grão Lorde ou Lorde envia a exportação à guilda na hora.
@@ -138,7 +143,10 @@ A janela do addon abre sempre no Início, com:
 
 ### Lista de presença
 
-No detalhe de um evento ativo que ainda não começou, o botão **Confirmar presença** (ou **Cancelar presença**) registra o personagem logado. O detalhe mostra "Confirmados no jogo (N)" com os nomes.
+No detalhe de um evento ativo que ainda não começou, o botão **Confirmar presença** (ou **Cancelar presença**) registra o personagem logado. O detalhe mostra "Confirmados no jogo (N)" e, abaixo, um confirmado por linha: nome na cor da classe (cinza se offline), item level e main/alt.
+
+- Na frente de cada confirmado online há um botão de grupo, com a mesma regra do menu do clique direito em Membros: **Convidar**, **Sugerir** (você está num grupo sem ser líder nem assistente) ou **Pedir** (você está sem grupo e a pessoa está num). Um convite por clique, para montar o grupo da raide. No lugar do botão aparece "você", "Offline" ou "no grupo".
+- **Lembrete:** 15 minutos antes de um evento ativo em que você confirmou presença, o addon mostra "Lembrete: <evento> começa em N min (hh:mm de Brasília)." no centro da tela (quadro do aviso de raide, com o som) e no chat. Cada evento é lembrado uma vez (`reminded` nas SavedVariables, também depois de `/reload`); se o horário mudar, o lembrete vale de novo. A conferência roda a cada 30 s.
 
 - Esta lista é do jogo e não mostra as presenças do site, porque a string `VDL1` não traz a lista de confirmados nem o limite de vagas.
 - Cada membro anuncia só a própria presença (`P`), e o jogo garante quem é o remetente.
@@ -202,15 +210,15 @@ A aba **Profissões** da janela (ou `/vdl profissoes`, que abre uma janela só c
 A aba **Membros** (na janela do addon e por cima da aba Membros da janela da guilda) lista os membros com nome na cor da classe, nível, item level, main/alt ("Main" ou "Alt de Fulano"), zona, posto e tempo de jogo com a guilda. A bolinha é verde para online, amarela para ausente, vermelha para ocupado e cinza para offline (também na aba Profissões).
 
 - Nome, nível, classe, zona, posto e online vêm do roster do jogo (`GetGuildRosterInfo`); a cor, de `RAID_CLASS_COLORS`. Item level e main/alt são os sincronizados (ver abaixo). Quem não tem o addon aparece com "—".
-- Abre com **todos** os membros; **Mostrar** alterna para só online. Offline aparece em cinza, com "Offline" na zona.
-- Ordem padrão: online primeiro, depois o posto (Grão Lorde primeiro), o nível (maior primeiro) e o nome. Clicar no título de uma coluna ordena por ela; de novo, inverte; uma terceira vez, volta à ordem padrão.
-- O clique direito num membro abre um menu com **Sussurrar** (abre o chat com `/w Nome Sobrenome`) e **Convidar para o grupo** (`C_PartyInfo.InviteUnit`). As duas opções ficam desativadas para quem está offline e na linha do próprio jogador. O menu fecha ao escolher, ao clicar fora ou com Esc.
+- Abre com **todos** os membros; **Mostrar** alterna para só online. Offline aparece em cinza, com "Offline" e há quanto tempo entrou pela última vez na zona ("Offline · há 3 d"; `GetGuildRosterLastOnline`).
+- Ordem padrão: online primeiro, depois o posto (Grão Lorde primeiro), o nível (maior primeiro) e o nome. Clicar no título de uma coluna ordena por ela; de novo, inverte; uma terceira vez, volta à ordem padrão. A bolinha no título da primeira coluna (a de online) também volta à ordem padrão a qualquer momento; ela fica acesa quando a lista está na ordem padrão.
+- O clique direito num membro abre um menu com **Sussurrar** (abre o chat com `/w Nome Sobrenome`) e um item de grupo que segue a mesma regra do menu da Blizzard (`GetDisplayedInviteType`): **Convidar para o grupo** (`C_PartyInfo.InviteUnit`); **Sugerir convite** quando você está num grupo sem ser líder nem assistente (o líder recebe a sugestão); ou **Pedir para entrar no grupo** (`C_PartyInfo.RequestInviteFromUnit`) quando você está sem grupo e a pessoa está num. As duas opções ficam desativadas para quem está offline e na linha do próprio jogador, e o convite fica desativado para quem já está no seu grupo. O menu fecha ao escolher, ao clicar fora ou com Esc.
 - **Convidar para a guilda:** quem tem a permissão de convidar no posto (configurada nos postos da guilda; o addon pergunta ao jogo com `CanGuildInvite`, sem olhar o nome do posto) vê o botão **Convidar para a guilda** na barra da aba. Na janela da guilda, ele abre a janela de convite da própria Blizzard, onde se digita o nome; o jogo avisa no chat se o convite foi enviado. Na janela do addon, ele abre a janela da guilda e avisa para clicar em Convidar na aba Membros dela. Para quem não tem a permissão o botão não aparece. Addons não podem convidar no WoW Forever: `C_GuildInfo.Invite` e até `/ginvite` num botão seguro de macro são bloqueados (confirmado no jogo). Por isso o clique cai num botão seguro do addon (`SecureActionButtonTemplate`, `type = "click"`, `ui/GuildInviteButton.lua`) que aciona o botão de convite da Blizzard (`CommunitiesFrame.InviteButton`, que ela só mostra no Bate-papo; acionado escondido, abre a janela de convite e convida — confirmado no jogo) ou, na janela do addon, o botão Guilda do menu do jogo, como na edição da mensagem do dia. O botão seguro é posicionado pela tela em cima do botão do addon; em combate ele sai, e volta ao sair do combate.
 - Promover, rebaixar, remover e editar notas ficam na lista original da Blizzard (**Ver original da Blizzard**), porque são ações protegidas. Na original, cada linha continua mostrando o item level e o main/alt.
 
 ### Bate-papo
 
-A aba **Bate-papo** mostra o bate-papo da guilda com o tema do addon: hora, nome na cor da classe, "(alt de Fulano)" para quem é alt e links clicáveis, que abrem a caixa de copiar. Clicar num nome abre o menu Sussurrar / Convidar para o grupo (o mesmo da aba Membros), e passar o mouse mostra o item level e o main/alt. Links de item, missão e outros do jogo mostram o tooltip junto do mouse ao passar por cima (`GameTooltip:SetHyperlink`) e, ao clicar, fazem o mesmo que no chat da Blizzard (`SetItemRef`; com Shift, o link vai para a caixa do chat). A caixa embaixo envia para a guilda (Enter ou **Enviar**). O Grão Lorde e os Lordes têm também o canal **Oficiais**, se o jogo deixar ler.
+A aba **Bate-papo** mostra o bate-papo da guilda com o tema do addon: hora, nome na cor da classe, "(alt de Fulano)" para quem é alt e links clicáveis, que abrem a caixa de copiar. Clicar num nome abre o menu Sussurrar / convite de grupo (o mesmo da aba Membros), e passar o mouse mostra o item level e o main/alt. Links de item, missão e outros do jogo mostram o tooltip junto do mouse ao passar por cima (`GameTooltip:SetHyperlink`) e, ao clicar, fazem o mesmo que no chat da Blizzard (`SetItemRef`; com Shift, o link vai para a caixa do chat). A caixa embaixo envia para a guilda (Enter ou **Enviar**). O Grão Lorde e os Lordes têm também o canal **Oficiais**, se o jogo deixar ler.
 
 - As mensagens vêm do histórico do clube da guilda (`C_Club.GetStreams`, `GetMessageRanges` e `GetMessagesInRange`): o bate-papo da guilda e o de oficiais são "streams" do clube (tipos 1 e 2). Com isso a aba já abre com as mensagens de antes do login (confirmado no jogo: as últimas 100). Os eventos `CHAT_MSG_GUILD`, `CHAT_MSG_OFFICER` e `CLUB_MESSAGE_ADDED` só avisam que chegou algo, e a aba relê o histórico. O jogo só carrega o histórico de um canal quando alguém pede: o da guilda já vem pelo chat da Blizzard, o de oficiais não. Quando um canal está vazio, o addon pede as últimas 100 mensagens (`C_Club.RequestMoreMessagesBefore`) uma vez por sessão, e relê quando chega `CLUB_MESSAGE_HISTORY_RECEIVED`.
 - O histórico carregado pode vir em vários blocos (`GetMessageRanges`), com buracos entre eles: as mensagens de quando o jogador estava offline formam um bloco à parte, que na Blizzard começa no separador "Mensagens não lidas" ou "Hoje". O addon junta todos os blocos em ordem (`Chat.MergeRanges`) e, quando há buraco, pede as mensagens anteriores ao bloco mais novo (`RequestMoreMessagesBefore` com o ID da mais antiga dele), uma vez por buraco e no máximo 5 vezes por canal na sessão.
@@ -230,7 +238,18 @@ O addon soma quanto tempo cada pessoa joga junto com a guilda.
 - Cada addon conta só o próprio tempo. Quem não tem o addon não acumula tempo. O tempo de antes da instalação não entra, e o total acumula para sempre.
 - O total é por pessoa: os alts somam no main (main/alt das Configurações).
 - O addon anuncia o próprio total (`T`) ao entrar no jogo e a cada 10 min enquanto ele cresce. Ao entrar ou em **Sincronizar**, pede os totais (`U`), e qualquer membro responde com os que conhece (`V`). Como o total só cresce, vale sempre o maior valor recebido.
-- Aparece na coluna **TEMPO** da aba Membros da janela do addon (ordenável; na janela da guilda a coluna não aparece) e no ranking "Mais tempo jogando com a guilda" do Início da janela do addon (até 5 pessoas que ainda estão na guilda). No Início da janela da guilda o espaço é pequeno, e o ranking não aparece.
+- Aparece na coluna **TEMPO** da aba Membros da janela do addon (ordenável; na janela da guilda a coluna não aparece) e no ranking "Mais tempo jogando com a guilda" do Início da janela do addon (as 10 pessoas com mais tempo que ainda estão na guilda). No Início da janela da guilda o espaço é pequeno, e o ranking não aparece.
+
+### Membros no mapa
+
+Os membros online que têm o addon aparecem no mapa-múndi (M) como um quadrado na cor da classe (diferente dos pontos redondos de grupo e raide), no mapa da zona, no do continente e no de um bairro da zona.
+
+- A cada 5 s o addon lê a própria posição (`C_Map.GetBestMapForUnit` e `C_Map.GetPlayerMapPosition`) e a envia para a guilda (`W|mapa|x|y|em voo`) se o personagem andou ou mudou de mapa; parado, a cada 30 s. A posição só fica na memória, não nas SavedVariables.
+- Em instâncias o jogo não dá a posição, e durante a restrição de mensagens (lutas com chefe, M+, JxJ) a posição não é enviada nem guardada para depois. Quem não envia há 75 s some do mapa, e só aparecem membros online no roster.
+- A posição é levada para o mapa aberto com `C_Map.GetMapRectOnMap`. Os quadrados são quadros do addon dentro da tela do mapa (`WorldMapFrame:GetCanvas()`), com a escala inversa do zoom para manter o tamanho; o addon não mexe nos quadros da Blizzard. Os quadrados só pegam o movimento do mouse; clicar e arrastar continuam com o mapa.
+- O mouse em cima de um quadrado mostra nome, nível, posto, item level e main/alt, zona, "Em voo" e há quanto tempo a posição chegou.
+- Em **Configurações › Mapa**: **Compartilhar minha posição com a guilda** e **Mostrar os membros no mapa** (os dois começam ligados, por conta). Sem compartilhar, o addon não envia nada, mas continua mostrando os outros.
+- Não é ligado a outros addons de mapa (como o MapUtils): só aparecem membros com este addon.
 
 ### Configurações
 
@@ -276,6 +295,37 @@ O Grão Lorde ou um Lorde envia um alerta com `/vdl alerta <texto>` ou em **Admi
 - Intervalo mínimo de 30 s entre envios. Quem recebe ignora IDs repetidos e alertas do mesmo remetente com menos de 20 s.
 - Durante a restrição de comunicação (encontros de chefe, M+ e JxJ), o envio é recusado com um aviso, porque um alerta atrasado perde o sentido.
 
+### Mensagem de recrutamento
+
+Em **Administração** > **Mensagem de recrutamento**, o Grão Lorde e os Lordes escrevem um texto de recrutamento e o enviam num canal do chat, como o Geral.
+
+- **Editar texto** abre a janela do texto: uma linha só, sem `|`, até 255 bytes (o limite de uma mensagem do chat). **Salvar** guarda o texto e o envia para a guilda (`S|<horário>|<quem salvou>|<texto>`); quem recebe confere o cargo do remetente e fica com o texto salvo por último. Ao entrar no jogo, o addon pede o texto (`Z`) e um cargo aceito responde. A janela mostra quem salvou e quando.
+- O botão do canal troca entre os canais em que o personagem está (`GetChannelList`); a escolha fica salva por conta. Sem escolha, vai no canal 1 (o Geral, normalmente).
+- **Enviar no canal** (no cartão) e **Salvar e enviar** (na janela) publicam com `C_ChatInfo.SendChatMessage(texto, "CHANNEL", nil, número)`. O jogo só aceita isso a partir de um clique ou tecla da pessoa, então não há envio automático. Intervalo mínimo de 60 s entre envios; durante a restrição do chat (encontros de chefe, M+ e JxJ), o envio é recusado com um aviso.
+- O texto não entra no backup `VDLB1`.
+
+### Aviso de versão nova
+
+Nenhum addon consegue consultar a CurseForge de dentro do jogo. Por isso, cada addon conta a sua versão (a do `.toc`) para a guilda, como fazem o DBM e o BigWigs.
+
+- A mensagem `I|<versão>` vai junto com o pedido `Q`, ao entrar no jogo e em **Sincronizar**.
+- Quem tem uma versão mais nova responde com a sua, depois de uma espera aleatória de 1 a 6 s. A resposta é cancelada se outro membro anunciar a mesma versão ou uma mais nova antes.
+- As versões são comparadas número por número (0.9.0 < 0.10.0); um texto que não é versão é ignorado.
+- Ao ver uma versão mais nova, o addon avisa no chat uma vez por sessão: "Há uma versão nova do addon (0.7.0); a sua é 0.6.0. Atualize pela CurseForge." O aviso depende de alguém da guilda já ter atualizado e estar online.
+- As versões antigas, sem esse aviso, ignoram a mensagem `I`.
+
+### Diagnóstico
+
+`/vdl status` (ou `/vdl diagnostico`) mostra no chat:
+
+- a versão do addon e a mais nova vista na guilda;
+- o personagem, o posto e se é Grão Lorde ou Lorde;
+- quantos eventos o calendário tem e a última exportação recebida;
+- o estado da sincronização;
+- se a comunicação está restrita e quantas mensagens esperam na fila;
+- quantos membros online mandaram alguma mensagem do addon nesta sessão (quem tem o addon e está ativo);
+- se o mapa está compartilhando e mostrando, e quantos membros aparecem nele.
+
 ### Idiomas
 
 O addon fala português no jogo em português do Brasil (`ptBR`) e inglês em qualquer outro idioma (`GetLocale()`).
@@ -302,14 +352,18 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
            Attendance e PresenceCodec (lista de presença e string VDLP1), Professions,
            Members (item level e main/alt), Roster (lista de membros), Together (tempo com a guilda),
            Keys (combinação do atalho de teclado), Chat (linhas e canais do bate-papo),
-           GameEvents (eventos criados no jogo), BackupCodec (string VDLB1)
+           GameEvents (eventos criados no jogo), BackupCodec (string VDLB1), Recruit (mensagem de recrutamento),
+           Version (comparação de versões), Reminders (lembrete antes do evento)
   game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide),
            Presence (lista de presença), GuildProfessions (profissões), GuildMembers (item level e main/alt),
            GuildTogether (tempo com a guilda), Keybind (atalho para abrir o addon), GuildChat (bate-papo),
-           GuildEvents (eventos criados no jogo), Backup (backup e restauração)
+           GuildEvents (eventos criados no jogo), Backup (backup e restauração),
+           GuildRecruit (mensagem de recrutamento), VersionCheck (aviso de versão nova),
+           EventReminder (lembrete antes do evento), Diagnostics (/vdl status)
   ui/      Theme (identidade do site), painéis reaproveitáveis HomePanel, CalendarPanel, ProfessionsPanel e AdminPanel,
            MembersPanel, ChatPanel, SettingsPanel, MainFrame, ImportDialog, AlertBanner, AlertDialog, WelcomeFrame, MainPrompt, PresenceExport,
            EventDialog (formulário de evento), BackupDialog (gerar e restaurar backup),
+           RecruitDialog (mensagem de recrutamento),
            ProfessionsFrame, GuildTabs (abas e Informações na janela da guilda),
            GuildRoster (texto na lista de membros), MinimapButton
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
@@ -340,7 +394,11 @@ scripts/   setup-dev.sh, check.sh, package.sh, install.sh
   settings = { minimap = { angle, hide }, main = "Nome Sobrenome",
                mainAsked = { ["Nome Sobrenome"] = true }, mainPromptOff = true, -- popup do main
                keybind = "SHIFT-V",                                           -- atalho do addon
-               guildWindow = { events|professions|admin|chat|info|members|roster = false } }, -- desligadas
+               guildWindow = { events|professions|admin|chat|info|members|roster = false }, -- desligadas
+               map = { share = false, show = false },                         -- mapa: desligados
+               recruitChannel = "Geral" },                                    -- canal do recrutamento
+  recruit = { text, at = horário, by = "Nome Sobrenome" },                    -- mensagem de recrutamento
+  reminded = { [id] = horárioDoEvento },                                      -- eventos já lembrados
 }
 ```
 
@@ -443,6 +501,9 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. Com o Lorde offline, o membro confirma presença. O Lorde entra no jogo e, em alguns segundos, vê a confirmação.
 4. O Lorde clica em **Administração** > **Gerar string**: a string `VDLP1` aparece selecionada, com o resumo de eventos, confirmações e cancelamentos.
 5. Eventos cancelados ou que já começaram não mostram o botão de presença.
+6. Com dois confirmados online, o Lorde (sem grupo) vê **Convidar** na frente do outro e "você" na própria linha. Clique em **Convidar**: o convite chega. Depois que o outro entra no grupo, a linha mostra "no grupo".
+7. Sem grupo, com um confirmado que está em outro grupo: o botão mostra **Pedir** e o líder recebe o pedido.
+8. Confirme presença num evento que começa em 20 minutos. Aos 15 minutos, o aviso "Lembrete: …" aparece no centro da tela com som e no chat, uma vez só (também depois de `/reload`).
 
 ### Profissões
 
@@ -470,7 +531,8 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 13. Clique num link das informações: abre só a caixa de copiar, sem a janela de edição.
 14. Entre em combate com a aba Informações aberta e troque de aba e volte: nenhum aviso de bloqueio; clicar no texto não abre a edição. Saia do combate: o clique volta a abrir.
 15. No membro sem cargo: a dica é só a de notícias e registro, e clicar no texto não abre nada.
-16. No Lorde, com a janela da guilda fechada, abra o addon (`/vdl`): no Início, a dica "Clique no texto para editar na janela da guilda" aparece. Clique nas informações, fora de um link: a janela do addon fecha, a da guilda abre e o chat avisa uma vez para abrir Informações. Abra Informações, clique no texto, edite e aceite: grava.
+16. Abra e feche a janela da guilda várias vezes, alternando entre **Bate-papo**, **Informações** e **Membros** (inclusive logo depois de entrar no jogo, com a lista da guilda ainda carregando): o painel do addon sempre aparece, sem a tela da Blizzard por cima dele.
+17. No Lorde, com a janela da guilda fechada, abra o addon (`/vdl`): no Início, a dica "Clique no texto para editar na janela da guilda" aparece. Clique nas informações, fora de um link: a janela do addon fecha, a da guilda abre e o chat avisa uma vez para abrir Informações. Abra Informações, clique no texto, edite e aceite: grava.
 
 ### Configurações
 
@@ -487,7 +549,7 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 
 1. Abra a aba **Membros** da janela do addon: aparecem todos os membros, com o nome na cor da classe (offline em cinza), nível, item level, main/alt, zona e posto, iguais aos da janela da guilda.
 2. Clique em **NV**: ordena do menor nível para o maior; de novo, do maior para o menor; uma terceira vez, volta à ordem padrão (online, posto, nível do maior para o menor, nome). Faça o mesmo com as outras colunas.
-3. **Mostrar: todos** alterna para só online. Clique direito num membro online: o menu mostra o nome, **Sussurrar** abre o chat e **Convidar para o grupo** envia o convite (confirme que não aparece "ação bloqueada" e que o convite chega com o nome "Nome Sobrenome"). Num membro offline ou em você, as opções ficam desativadas. Clicar fora ou Esc fecha o menu.
+3. **Mostrar: todos** alterna para só online. Clique direito num membro online: o menu mostra o nome, **Sussurrar** abre o chat e **Convidar para o grupo** envia o convite (confirme que não aparece "ação bloqueada" e que o convite chega com o nome "Nome Sobrenome"). Num membro offline ou em você, as opções ficam desativadas. Clicar fora ou Esc fecha o menu. Sem grupo, clique direito num membro que está num grupo: o item vira **Pedir para entrar no grupo** e o líder dele recebe o pedido (confirme que não aparece "ação bloqueada"). Num grupo sem ser líder, o item vira **Sugerir convite**; num membro que já está no seu grupo, o convite fica desativado.
 4. Na janela da guilda (J), clique em **Membros**: aparece a lista do addon. **Ver original da Blizzard** mostra a original, com o "27 · Main" nas linhas. Clique em Membros de novo: volta a lista do addon.
 5. Com um personagem cujo posto pode convidar (Grão Lorde, Lorde, Cruzado...), abra a aba **Membros** da janela da guilda (J): aparece **Convidar para a guilda**. Clique: deve abrir a janela de convite da Blizzard, **sem** "ação bloqueada" (confirmado). Convide "Nome Sobrenome" de um personagem sem guilda e confira que o convite chega; teste também só o primeiro nome. Na janela do addon, **Convidar para a guilda** abre a janela da guilda e avisa no chat onde clicar. Em combate, o clique só avisa que não dá; ao sair, volta. Com um posto sem a permissão, o botão não aparece.
 6. Em Configurações, desligue **Lista de membros do addon na aba Membros**: a aba Membros da guilda volta a ser só a da Blizzard.
@@ -514,6 +576,15 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. Em até 10 min, o outro jogador vê o seu tempo na lista dele. Faça `/reload` e **Sincronizar**: o tempo continua o mesmo.
 4. No Início da janela do addon, "Mais tempo jogando com a guilda" mostra as pessoas com mais tempo, com você em destaque.
 5. Num membro ausente, a bolinha da lista de Membros e de Profissões fica amarela.
+
+### Membros no mapa
+
+1. Com dois personagens da guilda online, os dois com o addon, abra o mapa (M) num deles: em até 5 s o outro aparece como um quadrado na cor da classe, no lugar certo da zona. Ande com o outro: o quadrado acompanha.
+2. Abra o mapa do continente e o de uma cidade (bairro) da zona: o quadrado continua no lugar certo. Num mapa de outro continente, ele não aparece.
+3. Dê zoom no mapa: o quadrado fica do mesmo tamanho. Clique e arraste em cima do quadrado: o mapa continua respondendo, sem "ação bloqueada".
+4. Passe o mouse no quadrado: aparecem nome, nível, posto, item level e main/alt, zona e há quanto tempo a posição chegou. Em voo, aparece "Em voo".
+5. Entre numa masmorra com o outro: em até 75 s o quadrado some. Saia: volta.
+6. Em Configurações › Mapa, desligue **Compartilhar minha posição** no outro: em até 75 s ele some do seu mapa. Desligue **Mostrar os membros no mapa** no seu: os quadrados somem na hora.
 
 ### Item level e main/alt
 
@@ -556,3 +627,23 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. No membro, `/vdl alerta teste`: deve aparecer que só o Grão Lorde e os Lordes podem enviar. A aba **Administração** não aparece na janela do membro.
 4. Num encontro de chefe, tente enviar: deve aparecer o aviso de comunicação restrita, e nada é publicado.
 5. Um membro que entra depois do alerta não o vê.
+
+### Mensagem de recrutamento
+
+1. No Lorde, **Administração** > **Editar texto**: escreva o texto, escolha o canal no botão **Canal** e clique em **Salvar e enviar**. A mensagem aparece no canal escolhido (confirme que não aparece "ação bloqueada") e o cartão mostra o texto e o canal.
+2. Clique em **Enviar no canal** antes de 60 s: deve aparecer "Aguarde … s".
+3. No Grão Lorde (ou outro Lorde), o cartão mostra o mesmo texto, e a janela mostra quem salvou e quando. Mude o texto: o primeiro Lorde recebe a versão nova.
+4. Saia e entre no jogo num Lorde sem o texto: o texto chega pela guilda depois de alguns segundos.
+5. No membro, a aba **Administração** não aparece.
+
+### Aviso de versão nova
+
+1. Num personagem, instale uma versão mais nova do addon (mude o número no `.toc` para testar); no outro, deixe a atual.
+2. Entre no jogo com o personagem de versão antiga com o outro online: depois de alguns segundos, o chat mostra "Há uma versão nova do addon (…); a sua é …". O aviso não se repete ao clicar em **Sincronizar**.
+3. No personagem de versão nova, nenhum aviso aparece.
+
+### Diagnóstico
+
+1. `/vdl status` mostra a versão, o personagem e o posto, o calendário, a sincronização, a comunicação, os membros online com o addon e o mapa.
+2. Num encontro de chefe, `/vdl status` mostra "Comunicação restrita: sim".
+3. Na aba **Membros**, um membro offline mostra "Offline · há N d" (ou h, mês) na zona.

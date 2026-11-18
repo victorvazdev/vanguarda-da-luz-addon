@@ -50,8 +50,21 @@ ns.Config = {
   TOGETHER_TICK = 60,
   TOGETHER_ANNOUNCE_INTERVAL = 600,
 
+  -- Membros no mapa-múndi: envio da própria posição a cada MAP_SEND_INTERVAL
+  -- segundos se andou mais que MAP_MOVE_EPSILON (fração do mapa) ou mudou de
+  -- mapa; parado, a cada MAP_HEARTBEAT. Quem não envia há MAP_EXPIRE segundos
+  -- some do mapa.
+  MAP_SEND_INTERVAL = 5,
+  MAP_MOVE_EPSILON = 0.0015,
+  MAP_HEARTBEAT = 30,
+  MAP_EXPIRE = 75,
+  MAP_PIN_SIZE = 12,
+
   -- Alerta de raide.
   ALERT_MAX_CHARS = 200,          -- tamanho máximo do texto, em caracteres
+  REMINDER_LEAD = 15 * 60,        -- lembrete antes dos eventos confirmados, em segundos
+  REMINDER_CHECK = 30,            -- intervalo da conferência dos lembretes, em segundos
+  RECRUIT_INTERVAL = 60,          -- segundos entre envios da mensagem de recrutamento no canal
   ALERT_CHAT_PREFIX = "[Alerta] ", -- prefixo da mensagem no chat da guilda
   ALERT_SEND_INTERVAL = 30,       -- espera mínima entre dois envios, em segundos
   ALERT_RECEIVE_INTERVAL = 20,    -- intervalo mínimo aceito do mesmo remetente
