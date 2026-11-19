@@ -91,11 +91,8 @@ function GuildChat.Entries(channel)
       ns.Flavor.RequestChatHistory(club, stream, HISTORY_COUNT, gap)
     end
   end
-  local byGuid, byName = {}, {}
-  for _, entry in ipairs(ns.Flavor.GuildRoster()) do
-    if entry.guid then byGuid[entry.guid] = entry end
-    byName[entry.name] = entry
-  end
+  local index = ns.Flavor.GuildRosterIndex()
+  local byGuid, byName = index.byGuid, index.byName
   local entries, used = {}, {}
   for _, m in ipairs(raw) do
     local content = m.content

@@ -385,7 +385,20 @@ end
 --
 -- Com o roster secreto (restrição do jogo, como em luta com chefe), vale o
 -- último lido.
+--
+-- O roster é montado uma vez e guardado até o jogo avisar que ele mudou
+-- (GUILD_ROSTER_UPDATE ou PLAYER_GUILD_UPDATE chamam Flavor.InvalidateRoster).
+-- Montar de novo a cada uso gerava centenas de KB de lixo por segundo numa
+-- guilda grande (cada mensagem do addon recebida lia o roster) e engasgos na
+-- coleta de lixo. Quem usa a lista não deve alterá-la.
+local rosterDirty, rosterIndex = true, nil
+
+function Flavor.InvalidateRoster()
+  rosterDirty = true
+end
+
 function Flavor.GuildRoster()
+  if not rosterDirty and lastRoster then return lastRoster end
   local entries = {}
   if not (GetNumGuildMembers and GetGuildRosterInfo) then return entries end
   local count = GetNumGuildMembers()
@@ -404,7 +417,25 @@ function Flavor.GuildRoster()
     end
   end
   lastRoster = entries
+  rosterIndex = nil
+  -- Lista vazia: a guilda ainda não carregou; lê de novo no próximo uso.
+  rosterDirty = #entries == 0
   return entries
+end
+
+-- Índices do roster atual: { byName = { [nome] = linha }, byGuid = { [guid] =
+-- linha } }. Refeitos só quando o roster é montado de novo.
+function Flavor.GuildRosterIndex()
+  local roster = Flavor.GuildRoster()
+  if not rosterIndex or rosterIndex.roster ~= roster then
+    local byName, byGuid = {}, {}
+    for _, entry in ipairs(roster) do
+      byName[entry.name] = entry
+      if entry.guid then byGuid[entry.guid] = entry end
+    end
+    rosterIndex = { roster = roster, byName = byName, byGuid = byGuid }
+  end
+  return rosterIndex
 end
 
 -- Código de cor da classe ("|cffrrggbb"), ou nil.
@@ -419,10 +450,7 @@ end
 -- achados no roster pelo GUID, porque UnitName("party1") traz só o primeiro
 -- nome no WoW Forever; a zona vem do roster.
 function Flavor.GroupState()
-  local byGuid = {}
-  for _, entry in ipairs(Flavor.GuildRoster()) do
-    if entry.guid then byGuid[entry.guid] = entry end
-  end
+  local byGuid = Flavor.GuildRosterIndex().byGuid
   local player = { afk = UnitIsAFK("player") and true or false, zone = GetZoneText() }
   local group = {}
   local count = GetNumGroupMembers() or 0
@@ -536,17 +564,41 @@ end
 -- { instance, north, west }, ou nil. O vetor de
 -- C_Map.GetWorldPosFromMapPos traz primeiro o norte e depois o oeste (como
 -- usa o HereBeDragons).
+-- Cada vetor do jogo leva uma cópia de todos os métodos (~1 KB): o vetor de
+-- entrada é um só, reaproveitado.
+local inputVector
+local function WorldFromMap(mapID, x, y)
+  inputVector = inputVector or CreateVector2D(0, 0)
+  inputVector.x, inputVector.y = x, y
+  local id, pos = C_Map.GetWorldPosFromMapPos(mapID, inputVector)
+  if not pos or Flavor.AnySecret(id, pos) then return nil end
+  local n, w = pos:GetXY()
+  return id, n, w
+end
+
 function Flavor.WorldPosition(mapID, x, y)
   if not (C_Map and C_Map.GetWorldPosFromMapPos and CreateVector2D) then return nil end
-  local ok, instance, north, west = pcall(function()
-    local id, pos = C_Map.GetWorldPosFromMapPos(mapID, CreateVector2D(x, y))
-    if not pos or Flavor.AnySecret(id, pos) then return nil end
-    local n, w = pos:GetXY()
-    return id, n, w
-  end)
+  local ok, instance, north, west = pcall(WorldFromMap, mapID, x, y)
   if not ok or Flavor.AnySecret(instance, north, west) then return nil end
   if type(instance) ~= "number" or type(north) ~= "number" or type(west) ~= "number" then return nil end
   return { instance = instance, north = north, west = west }
+end
+
+-- Posição do próprio personagem no mundo: norte, oeste (jardas) e instância,
+-- ou nil. UnitPosition devolve só números (nada de vetores na memória);
+-- sem ela, vale o caminho pelo mapa (PlayerMapPosition + WorldPosition).
+function Flavor.PlayerWorldPosition()
+  if UnitPosition then
+    local ok, north, west, _, instance = pcall(UnitPosition, "player")
+    if ok and not Flavor.AnySecret(north, west, instance) and type(north) == "number" and type(west) == "number"
+      and type(instance) == "number" then
+      return north, west, instance
+    end
+  end
+  local own = Flavor.PlayerMapPosition()
+  local world = own and Flavor.WorldPosition(own.map, own.x, own.y)
+  if not world then return nil end
+  return world.north, world.west, world.instance
 end
 
 -- Minimapa da Blizzard (o addon desenha os membros por cima dele).

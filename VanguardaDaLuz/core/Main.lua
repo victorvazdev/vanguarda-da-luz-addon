@@ -22,6 +22,22 @@ local function RequestWhenMember()
   end
 end
 
+-- O jogo avisa várias vezes seguidas que o roster mudou (alguém entrou, saiu,
+-- o pedido de atualização a cada minuto): o trabalho mais pesado roda uma vez,
+-- Config.ROSTER_UPDATE_DELAY segundos depois do primeiro aviso.
+local rosterPending = false
+local function RosterChanged()
+  if rosterPending then return end
+  rosterPending = true
+  C_Timer.After(ns.Config.ROSTER_UPDATE_DELAY, function()
+    rosterPending = false
+    -- O main pode ter entrado ou saído da guilda.
+    if requested then ns.GuildMembers.Announce() end
+    ns.Fire("PROFESSIONS_UPDATED")
+    ns.Fire("GUILD_UPDATED")
+  end)
+end
+
 local function Register(name, fn)
   -- Eventos que não existem nesta versão do jogo são ignorados.
   if pcall(events.RegisterEvent, events, name) then handlers[name] = fn end
@@ -64,19 +80,21 @@ local function Start()
 
   Register("PLAYER_ENTERING_WORLD", OnLogin)
   Register("GUILD_ROSTER_UPDATE", function(...)
+    ns.Flavor.InvalidateRoster()
     ns.Guild.OnRosterUpdate(...)
     RequestWhenMember()
-    -- O main pode ter entrado ou saído da guilda.
-    if requested then ns.GuildMembers.Announce() end
-    ns.Fire("PROFESSIONS_UPDATED")
-    ns.Fire("GUILD_UPDATED")
+    RosterChanged()
   end)
   Register("GUILD_MOTD", function() ns.Fire("GUILD_UPDATED") end)
   Register("SKILL_LINES_CHANGED", ns.GuildProfessions.OnSkillChanged)
   Register("PLAYER_EQUIPMENT_CHANGED", ns.GuildMembers.OnEquipmentChanged)
   Register("PLAYER_AVG_ITEM_LEVEL_UPDATE", ns.GuildMembers.OnEquipmentChanged)
-  Register("PLAYER_GUILD_UPDATE", RequestWhenMember)
+  Register("PLAYER_GUILD_UPDATE", function()
+    ns.Flavor.InvalidateRoster()
+    RequestWhenMember()
+  end)
   Register("ADDON_RESTRICTION_STATE_CHANGED", ns.Comm.OnRestrictionChanged)
+  Register("GROUP_ROSTER_UPDATE", ns.GuildMap.OnGroupChanged)
 end
 
 events:SetScript("OnEvent", function(_, event, ...)

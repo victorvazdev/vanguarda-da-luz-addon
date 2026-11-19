@@ -31,6 +31,9 @@ ns.Config = {
   REQUEST_DELAY_MAX = 15,
   RESPONSE_DELAY_MIN = 1,
   RESPONSE_DELAY_MAX = 6,
+  -- Espera depois de o roster mudar antes de reanunciar e redesenhar (junta
+  -- vários avisos seguidos do jogo num só).
+  ROSTER_UPDATE_DELAY = 1,
 
   -- Profissões: espera depois de uma mudança de nível antes de anunciar, em
   -- segundos (vários pontos seguidos viram um anúncio só).
@@ -60,6 +63,7 @@ ns.Config = {
   MAP_EXPIRE = 75,
   MAP_PIN_SIZE = 12,
   MINIMAP_PIN_SIZE = 8, -- quadrado no minimapa
+  MAP_VISIBLE_REFRESH = 1, -- segundos até refazer a lista de membros no mapa sem mudanças
   NAMEPLATE_ICON_SIZE = 20, -- logo na placa de nome dos membros por perto
 
   -- Alerta de raide.

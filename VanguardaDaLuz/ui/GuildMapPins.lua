@@ -126,11 +126,14 @@ local function Check(_, elapsed)
   drawn.wait = (drawn.wait or 0) - (elapsed or 0)
   if drawn.wait > 0 then return end
   drawn.wait = REFRESH_INTERVAL
-  local key = table.concat({ tostring(map:GetMapID()), tostring(canvas:GetScale()), tostring(canvas:GetWidth()),
-    tostring(canvas:GetHeight()), tostring(ns.GuildMap.version) }, ":")
-  local now = GetTime()
-  if key ~= drawn.key or now - (drawn.at or 0) >= REDRAW_INTERVAL then
-    drawn.key, drawn.at = key, now
+  -- Comparação campo a campo: montar uma chave em texto criaria lixo a cada
+  -- conferência.
+  local mapID, scale, width, height = map:GetMapID(), canvas:GetScale(), canvas:GetWidth(), canvas:GetHeight()
+  local version, now = ns.GuildMap.version, GetTime()
+  if drawn.stale or mapID ~= drawn.mapID or scale ~= drawn.scale or width ~= drawn.width or height ~= drawn.height
+    or version ~= drawn.version or now - (drawn.at or 0) >= REDRAW_INTERVAL then
+    drawn.stale, drawn.mapID, drawn.scale, drawn.width, drawn.height = false, mapID, scale, width, height
+    drawn.version, drawn.at = version, now
     GuildMapPins.Draw()
   end
 end
@@ -144,7 +147,7 @@ local function Setup()
   driver:SetSize(1, 1)
   driver:SetPoint("TOPLEFT")
   driver:SetScript("OnUpdate", Check)
-  driver:SetScript("OnShow", function() drawn.key = nil end)
+  driver:SetScript("OnShow", function() drawn.stale = true end)
   GuildMapPins.driver, GuildMapPins.pins = driver, pins -- para o teste de fumaça
 end
 

@@ -34,6 +34,7 @@ local function Mock(name)
       SetPoint = function(self, _, rel, _, x, y)
         if type(rel) == "table" then self._rel = rel end
         self._x, self._y = x, y
+        self._moves = (rawget(self, "_moves") or 0) + 1
       end,
       CreateMaskTexture = function() return Mock() end,
       SetFrameLevel = function(self, v) self._level = v end,
@@ -63,6 +64,11 @@ local all = {}
 _G.CreateFrame = function(_, name) local f = Mock(name); all[#all+1] = f; if name then _G[name] = f end; return f end
 _G.CreateFont = function() return Mock() end
 _G.UIParent, _G.Minimap, _G.GameTooltip = Mock(), Mock(), Mock()
+-- Métodos fixos no minimapa: os do Mock criam uma tabela a cada chamada, e o
+-- teste de memória do minimapa mede o lixo criado.
+rawset(_G.Minimap, "GetWidth", function() return 140 end)
+rawset(_G.Minimap, "GetHeight", function() return 60 end)
+rawset(_G.Minimap, "GetFrameLevel", function() return 2 end)
 _G.UISpecialFrames, _G.SlashCmdList = {}, {}
 _G.Mixin = function(o) return o end
 _G.BackdropTemplateMixin = {}
@@ -95,13 +101,19 @@ local roster = {
     online = true, classFile = "PALADIN" },
   { "Ana Clara", "Escudeiro", 4, level = 34, class = "Maga", zone = "Vale Gris", online = false,
     classFile = "MAGE" },
+  -- Outro personagem da conta (offline), também na lista da comunidade.
+  { "Aelin Ashryvrr", "Escudeiro", 4, [17] = "Player-3", level = 20, class = "Caçadora", zone = "",
+    online = false, classFile = "HUNTER" },
 }
 _G.GetNumGuildMembers = function() return #roster end
 -- Última entrada de quem está offline: 3 dias e 2 horas.
 _G.GetGuildRosterLastOnline = function(i)
   if roster[i] and not roster[i].online then return 0, 0, 3, 2 end
 end
+-- Leituras do roster: o addon só deve ler de novo quando o roster muda.
+local rosterReads = 0
 _G.GetGuildRosterInfo = function(i)
+  rosterReads = rosterReads + 1
   local m = roster[i]
   return m[1], m[2], m[3], m.level, m.class, m.zone, nil, nil, m.online, m.status, m.classFile,
     nil, nil, nil, nil, nil, m[17]
@@ -228,18 +240,30 @@ _G.WorldMapFrame = Mock("WorldMapFrame")
 _G.WorldMapFrame.GetCanvas = function() return mapCanvas end
 _G.WorldMapFrame.GetMapID = function() return shownMap end
 local myMap = { map = 10, x = 0.5, y = 0.25 }
+local vectorsMade = 0 -- vetores do mapa criados (cada um custa memória no jogo)
 _G.C_Map = {
   GetBestMapForUnit = function() return myMap.map end,
-  GetPlayerMapPosition = function() return myMap.x and { GetXY = function() return myMap.x, myMap.y end } end,
+  GetPlayerMapPosition = function()
+    if not myMap.x then return nil end
+    vectorsMade = vectorsMade + 1
+    return { GetXY = function() return myMap.x, myMap.y end }
+  end,
   GetMapRectOnMap = function(a, b) if a == 10 and b == 1 then return 0.2, 0.6, 0.5, 0.7 end end,
   -- O mapa 10 tem 1000 x 1000 jardas; o canto de cima à esquerda fica em
   -- norte 5000, oeste 3000. O vetor traz o norte e depois o oeste.
   GetWorldPosFromMapPos = function(map, v)
     if map ~= 10 then return nil end
+    vectorsMade = vectorsMade + 1
     return 0, { GetXY = function() return 5000 - v.y * 1000, 3000 - v.x * 1000 end }
   end,
 }
-_G.CreateVector2D = function(x, y) return { x = x, y = y } end
+_G.CreateVector2D = function(x, y) vectorsMade = vectorsMade + 1; return { x = x, y = y } end
+-- Posição no mundo (norte, oeste, altura, instância), como no mapa 10.
+local function UnitPositionMock(unit)
+  if unit ~= "player" or myMap.map ~= 10 or not myMap.x then return nil end
+  return 5000 - myMap.y * 1000, 3000 - myMap.x * 1000, 0, 0
+end
+_G.UnitPosition = UnitPositionMock
 -- Minimapa: raio de 500 jardas, sem girar (a não ser que o teste mude).
 local minimapRadius, cvars, facing = 500, { rotateMinimap = "0" }, 0
 _G.C_Minimap = { GetViewRadius = function() return minimapRadius end }
@@ -736,7 +760,7 @@ ns.GuildTogether.Tick()
 local afterOne = ns.db.together["Tester Vaz"]
 group.afk.party1 = true; ns.GuildTogether.Tick(); group.afk.party1 = nil
 group.afk.player = true; ns.GuildTogether.Tick(); group.afk.player = nil
-roster[1].status = 1; ns.GuildTogether.Tick() -- ausente no roster
+roster[1].status = 1; ns.Flavor.InvalidateRoster(); ns.GuildTogether.Tick() -- ausente no roster
 _G.GetZoneText = function() return "Desolação" end; ns.GuildTogether.Tick()
 _G.GetZoneText = function() return "Pantanal" end
 group.count = 1; ns.GuildTogether.Tick(); group.count = 2
@@ -886,13 +910,54 @@ ns.GuildMinimapPins.Draw()
 print("fora do minimapa:", ns.GuildMinimapPins.count, miniPin._shown)
 minimapRadius = 500
 inGroup["Maren-Forever"] = true
+ev._scripts.OnEvent(ev, "GROUP_ROSTER_UPDATE")
 ns.GuildMinimapPins.Draw()
 print("no grupo fora do minimapa:", ns.GuildMinimapPins.count, #ns.GuildMap.Visible())
 inGroup["Maren-Forever"] = nil
+ev._scripts.OnEvent(ev, "GROUP_ROSTER_UPDATE")
 ns.GuildMap.SetOnMinimap(false)
 ns.GuildMinimapPins.Draw()
 print("minimapa sem membros:", ns.GuildMinimapPins.count, #ns.GuildMap.Visible(), ns.db.settings.map.minimap)
 ns.GuildMap.SetOnMinimap(true)
+-- desempenho: mensagens recebidas e o minimapa não leem o roster de novo;
+-- vários avisos seguidos do jogo viram um só trabalho
+local readsBefore = rosterReads
+for i = 1, 20 do
+  comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Position("10|" .. (2500 + i) .. "|5000|0"), "GUILD",
+    "Maren-Forever")
+  ns.GuildMinimapPins.Draw()
+end
+print("leituras do roster em 20 mensagens:", rosterReads - readsBefore)
+-- o minimapa parado não cria lixo nem redesenha; a própria posição vem de
+-- UnitPosition (sem vetores do mapa)
+ns.GuildMinimapPins.Draw()
+local vectorsBefore, movesBefore = vectorsMade, miniPin._moves
+collectgarbage("collect")
+collectgarbage("stop")
+local memBefore = collectgarbage("count")
+for _ = 1, 100 do ns.GuildMinimapPins.driver._scripts.OnUpdate(ns.GuildMinimapPins.driver, 1) end
+local garbage = collectgarbage("count") - memBefore
+collectgarbage("restart")
+print("minimapa parado: lixo", garbage < 1, "vetores", vectorsMade - vectorsBefore, "redesenhos",
+  miniPin._moves - movesBefore, "ponto", ns.GuildMinimapPins.count)
+myMap.x = 0.45
+ns.GuildMinimapPins.Draw()
+print("minimapa andando:", ns.GuildMinimapPins.count, miniPin._x, miniPin._y, "vetores", vectorsMade - vectorsBefore)
+myMap.x = 0.5
+_G.UnitPosition = nil -- sem UnitPosition: vale o caminho pelo mapa
+ns.GuildMinimapPins.Draw()
+print("minimapa sem UnitPosition:", ns.GuildMinimapPins.count, miniPin._x, miniPin._y)
+_G.UnitPosition = UnitPositionMock
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Position("10|2500|5000|1"), "GUILD", "Maren-Forever")
+local firesBefore = #timers
+ev._scripts.OnEvent(ev, "GUILD_ROSTER_UPDATE")
+ev._scripts.OnEvent(ev, "GUILD_ROSTER_UPDATE")
+ev._scripts.OnEvent(ev, "GUILD_ROSTER_UPDATE")
+local queued = #timers - firesBefore
+readsBefore = rosterReads
+ns.Guild.PlayerName(); ns.Guild.PlayerName()
+print("avisos do roster agrupados:", queued, "leituras depois do aviso:", rosterReads - readsBefore == 2 * #roster)
+RunTimers()
 -- membros por perto: logo na placa de nome e linha no tooltip
 local plates = { nameplate1 = Mock("plate1"), nameplate2 = Mock("plate2") }
 plates.nameplate1.namePlateUnitToken, plates.nameplate2.namePlateUnitToken = "nameplate1", "nameplate2"

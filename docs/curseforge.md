@@ -141,6 +141,13 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 
 ```
 
+## Changelog da versão 0.7.1
+
+```markdown
+### Fixes
+- **Memory no longer keeps growing while guild members are on the minimap.** Ten times a second the minimap read your position as game vectors and rebuilt the member list, creating about 50 KB of garbage per second. That made the addon climb to the top of the memory list until the game cleaned it up. Now your position is read as plain numbers, the member list is kept until something changes, and the squares are only redrawn when you move, turn, zoom or a member's position arrives.
+```
+
 ## Changelog da versão 0.7.0
 
 ```markdown
@@ -151,6 +158,9 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 
 ### Changes
 - The Settings tab scrolls, so every option fits.
+
+### Fixes
+- **Less memory and no more hitches when a guild member logs in.** The addon read the whole guild roster again for every addon message it received (map positions arrive every few seconds), which used a lot of memory in large guilds and caused hitches when the game cleaned it up. It also scanned every guild member each time the roster changed, like when someone logs in. Now the roster is read only when the game says it changed, and several changes in a row are handled once.
 ```
 
 ## Changelog da versão 0.6.0

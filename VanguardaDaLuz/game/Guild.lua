@@ -53,13 +53,19 @@ function Guild.Counts()
   return last.total, last.online
 end
 
--- Lista de { name, rankName, rankIndex } do roster atual.
+-- Lista de { name, rankName, rankIndex } do roster atual. Refeita só quando
+-- o roster muda (Flavor.GuildRoster guarda o último).
+local rosterSource, rosterCopy
 function Guild.Roster()
-  local roster = {}
-  for _, entry in ipairs(ns.Flavor.GuildRoster()) do
-    roster[#roster + 1] = { name = entry.name, rankName = entry.rank, rankIndex = entry.rankIndex }
+  local source = ns.Flavor.GuildRoster()
+  if source ~= rosterSource then
+    rosterCopy = {}
+    for _, entry in ipairs(source) do
+      rosterCopy[#rosterCopy + 1] = { name = entry.name, rankName = entry.rank, rankIndex = entry.rankIndex }
+    end
+    rosterSource = source
   end
-  return roster
+  return rosterCopy
 end
 
 -- Nome do jogador como aparece no roster e nas mensagens de addon, que pode
@@ -67,9 +73,8 @@ end
 function Guild.PlayerName()
   local guid = UnitGUID and UnitGUID("player")
   if guid and not Secret(guid) then
-    for _, entry in ipairs(ns.Flavor.GuildRoster()) do
-      if entry.guid == guid then return entry.name end
-    end
+    local entry = ns.Flavor.GuildRosterIndex().byGuid[guid]
+    if entry then return entry.name end
   end
   -- Sem roster: no WoW Forever, o segundo valor de UnitName é o sobrenome.
   local name, surname = UnitName("player")
@@ -81,10 +86,7 @@ end
 -- ou nil.
 function Guild.MemberByGuid(guid)
   if not guid then return nil end
-  for _, entry in ipairs(ns.Flavor.GuildRoster()) do
-    if entry.guid == guid then return entry end
-  end
-  return nil
+  return ns.Flavor.GuildRosterIndex().byGuid[guid]
 end
 
 -- `sender` é o próprio jogador?

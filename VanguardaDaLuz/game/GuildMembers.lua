@@ -30,16 +30,23 @@ function GuildMembers.Get(name)
   return name and Store()[name] or nil
 end
 
+-- Nomes de quem está na guilda ({ [nome] = linha do roster }), ou nil se o
+-- roster ainda não carregou. Usa o roster guardado: ler a lista da comunidade
+-- (C_Club) membro por membro a cada mudança do roster causava engasgos.
+local function GuildNames()
+  local index = ns.Flavor.GuildRosterIndex()
+  if #index.roster == 0 then return nil end
+  return index.byName
+end
+
 -- Anuncia o próprio item level e main se mudaram desde o último anúncio.
 -- Espera a lista da guilda carregar (para saber se o main ainda está nela).
 function GuildMembers.Announce()
   if not ns.Guild.IsMember() then return end
   local me = ns.Guild.PlayerName()
   local level = ns.Flavor.OwnItemLevel()
-  local members = ns.Flavor.GuildMembers()
-  if not (me and level and members) then return end
-  local names = {}
-  for _, member in ipairs(members) do names[member.name] = true end
+  local names = GuildNames()
+  if not (me and level and names) then return end
   Members.Prune(Store(), names)
   local record = { i = level, m = Members.MainFor(ns.db.settings.main, names) }
   local current = Store()[me]
@@ -90,10 +97,8 @@ function GuildMembers.ShouldAskMain()
   local settings = ns.db.settings
   if settings.mainPromptOff or not ns.Guild.IsMember() then return false end
   local me = ns.Guild.PlayerName()
-  local members = ns.Flavor.GuildMembers()
-  if not (me and members) or (settings.mainAsked and settings.mainAsked[me]) then return false end
-  local names = {}
-  for _, member in ipairs(members) do names[member.name] = true end
+  local names = GuildNames()
+  if not (me and names) or (settings.mainAsked and settings.mainAsked[me]) then return false end
   return Members.MainFor(settings.main, names) == nil
 end
 

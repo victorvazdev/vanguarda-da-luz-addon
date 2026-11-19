@@ -352,6 +352,14 @@ O addon fala português no jogo em português do Brasil (`ptBR`) e inglês em qu
 
 Os horários do addon estão em **Brasília** (UTC−3). Quando o horário do servidor é diferente, ele aparece ao lado com o fuso (por exemplo, `UTC-8`). O horário do servidor é calculado com `C_DateAndTime.GetCurrentCalendarTime()` e `GetServerTime()`.
 
+### Desempenho
+
+- O roster da guilda é lido uma vez e guardado até o jogo avisar que ele mudou (`GUILD_ROSTER_UPDATE`, `PLAYER_GUILD_UPDATE`). Antes, cada mensagem do addon recebida (as posições do mapa chegam a cada poucos segundos) lia o roster inteiro de novo, o que numa guilda grande gerava muita memória e engasgos na coleta de lixo.
+- Quando o jogo avisa várias vezes seguidas que o roster mudou (alguém entrou ou saiu, o pedido de atualização a cada minuto), o reanúncio do main/alt e a atualização das janelas rodam uma vez, 1 s depois do primeiro aviso, e o main/alt é conferido pelo roster guardado, sem ler a lista da comunidade membro por membro.
+- O minimapa confere os pontos 10 vezes por segundo sem criar tabelas: a própria posição vem de `UnitPosition("player")` (só números; cada vetor de `C_Map` leva uma cópia de todos os métodos, ~1 KB), a lista de membros fica guardada em `GuildMap.Visible` até chegar uma posição, mudar o roster, o grupo (`GROUP_ROSTER_UPDATE`) ou uma opção (ou 1 s, para as posições vencidas), e os pontos só se redesenham quando muda a posição, a direção, o zoom ou a lista. Antes eram ~5 KB de lixo a cada conferência (~50 KB/s). Sem `UnitPosition`, vale o caminho pelo mapa (`GetPlayerMapPosition` + `GetWorldPosFromMapPos`, com um vetor de entrada só).
+- O mapa-múndi aberto compara mapa, zoom e tamanho campo a campo, sem montar uma chave em texto.
+- O teste de fumaça falha se mensagens recebidas ou o minimapa voltarem a ler o roster, ou se o minimapa parado criar lixo ou vetores.
+
 ## Estrutura
 
 ```
@@ -676,3 +684,10 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 1. `/vdl status` mostra a versão, o personagem e o posto, o calendário, a sincronização, a comunicação, os membros online com o addon e o mapa.
 2. Num encontro de chefe, `/vdl status` mostra "Comunicação restrita: sim".
 3. Na aba **Membros**, um membro offline mostra "Offline · há N d" (ou h, mês) na zona.
+
+### Desempenho
+
+1. Numa hora movimentada, olhe a memória do addon (por exemplo, no menu de addons ou com `/run UpdateAddOnMemoryUsage() print(GetAddOnMemoryUsage("VanguardaDaLuz"))`, em KB) por alguns minutos: ela deve subir devagar e não ficar entre as maiores.
+2. Quando alguém da guilda entra no jogo, não há engasgo.
+3. Perto de um membro da guilda com o addon (o quadrado dele no minimapa), parado: a memória do addon fica estável, sem subir a cada segundo. Confirme que `/run print(UnitPosition("player"))` mostra números fora de instâncias (sem eles, o addon usa o caminho pelo mapa, que cria lixo só enquanto você anda).
+4. Andando, o quadrado do membro continua no lugar certo do minimapa (igual à 0.7.0), também com **Girar minimapa** ligado.
