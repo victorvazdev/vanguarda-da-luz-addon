@@ -79,17 +79,22 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - It also replaces the guild window's Members tab, with a button to open Blizzard's original list (for promoting, demoting, removing and notes).
 
 ### Guild map
-- Online members with the addon show on the world map as a square in their class color, with name, level, rank and zone on mouseover. Sharing your position can be turned off in Settings.
+- Online members with the addon show on the world map as a square in their class color, with name, level, rank and zone on mouseover.
+- They also show on the minimap when they are close, following the minimap zoom and rotation. Members in your group are left out, since Blizzard already shows them.
+- Sharing your position, showing members on the map and showing them on the minimap can each be turned off in Settings.
 
 ### Time with the guild
 - Counts how long each member plays grouped with guildmates (same zone, nobody away). Alts add up to the main.
 - Shown in the Members list and as a "most time playing with the guild" ranking on the Home tab.
 
+### Members nearby
+- The guild logo shows above the nameplate of guild members near you (with friendly nameplates on), and their tooltip shows rank, item level and main/alt.
+
 ### Guild chat
 - A **Chat** tab with the guild chat, including recent messages from before you logged in: names in class color, "(alt of …)" for alts, clickable links to copy, item and quest tooltips on mouseover, and a click on a name to whisper or invite. Write to the guild from the tab (Shift+click items and quests to link them). Officers also get the officer channel.
 
 ### Settings
-- A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon, turn sharing your map position or showing members on the map on or off, and turn each guild window feature on or off.
+- A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon, turn sharing your map position or showing members on the map and minimap on or off, and turn each guild window feature on or off.
 
 ### New version warning
 - The addon tells you in chat, once per session, when a guild member has a newer version. No addon can check CurseForge from inside the game, so the warning shows up once someone in the guild has updated.
@@ -134,6 +139,18 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 
 **Discord:** https://discord.gg/uGyPjtEsBw
 
+```
+
+## Changelog da versão 0.7.0
+
+```markdown
+### New
+- **Guild members on the minimap.** Online members with the addon who are close to you now also show on the minimap, as a smaller square in their class color with the same tooltip as the world map. The squares follow the minimap zoom, indoor and outdoor ranges and the "Rotate Minimap" option. Members in your group are left out, since Blizzard already shows them. Positions arrive every few seconds, so the squares move in steps.
+- Settings > Map has a new **Show members on the minimap** option, on by default.
+- **Guild members nearby.** The guild logo shows above the nameplate of every guild member near you, even those without the addon (turn on friendly nameplates with Shift+V; the game does not allow it in dungeons and raids). Mousing over a guild member adds a line to the tooltip with their rank and, for members with the addon, item level and main/alt. Both can be turned off in Settings > Members nearby, where you can also make the logo bigger (up to three times the default size).
+
+### Changes
+- The Settings tab scrolls, so every option fits.
 ```
 
 ## Changelog da versão 0.6.0

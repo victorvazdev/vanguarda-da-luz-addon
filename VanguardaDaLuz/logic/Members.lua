@@ -157,5 +157,17 @@ function Members.Detail(who, record)
   return text
 end
 
+-- Linha do tooltip de um membro da guilda por perto: posto, item level e
+-- main/alt ("Lorde · Item level 231 · Alt de Victor Vaz"). `record` só existe
+-- para quem tem o addon. Retorna nil se não houver nada para mostrar.
+function Members.UnitLine(who, rank, record)
+  local parts = {}
+  if type(rank) == "string" and rank ~= "" then parts[#parts + 1] = rank end
+  local detail = Members.Detail(who, record)
+  if detail then parts[#parts + 1] = detail end
+  if #parts == 0 then return nil end
+  return table.concat(parts, " · ")
+end
+
 ns.Members = Members
 return Members

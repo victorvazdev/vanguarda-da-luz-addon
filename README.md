@@ -248,7 +248,8 @@ Os membros online que têm o addon aparecem no mapa-múndi (M) como um quadrado 
 - Em instâncias o jogo não dá a posição, e durante a restrição de mensagens (lutas com chefe, M+, JxJ) a posição não é enviada nem guardada para depois. Quem não envia há 75 s some do mapa, e só aparecem membros online no roster.
 - A posição é levada para o mapa aberto com `C_Map.GetMapRectOnMap`. Os quadrados são quadros do addon dentro da tela do mapa (`WorldMapFrame:GetCanvas()`), com a escala inversa do zoom para manter o tamanho; o addon não mexe nos quadros da Blizzard. Os quadrados só pegam o movimento do mouse; clicar e arrastar continuam com o mapa.
 - O mouse em cima de um quadrado mostra nome, nível, posto, item level e main/alt, zona, "Em voo" e há quanto tempo a posição chegou.
-- Em **Configurações › Mapa**: **Compartilhar minha posição com a guilda** e **Mostrar os membros no mapa** (os dois começam ligados, por conta). Sem compartilhar, o addon não envia nada, mas continua mostrando os outros.
+- **No minimapa** aparece um quadrado menor para cada membro dentro do alcance do minimapa. Quem está no seu grupo fica de fora, porque a Blizzard já mostra o ponto dele. A própria posição e a de cada membro são convertidas para jardas no mundo (`C_Map.GetWorldPosFromMapPos`); só aparece quem está no mesmo continente. O alcance vem de `C_Minimap.GetViewRadius()` (ou, se não existir, de uma tabela pelo zoom, como no HereBeDragons). Com **Girar minimapa** ligado (`rotateMinimap`), os pontos giram com a direção do personagem (`GetPlayerFacing`). Se outro addon deixar o minimapa quadrado (`GetMinimapShape`), o alcance segue o formato. Os pontos são recalculados 10 vezes por segundo, mas as posições dos outros só chegam a cada 5 s andando, então eles andam aos saltos.
+- Em **Configurações › Mapa**: **Compartilhar minha posição com a guilda**, **Mostrar os membros no mapa** e **Mostrar os membros no minimapa** (todos começam ligados, por conta). Sem compartilhar, o addon não envia nada, mas continua mostrando os outros.
 - Não é ligado a outros addons de mapa (como o MapUtils): só aparecem membros com este addon.
 
 ### Configurações
@@ -259,6 +260,18 @@ A aba **Configurações** da janela do addon reúne as opções, salvas por cont
 - **Mostrar o botão no minimapa:** o mesmo que `/vdl minimapa`.
 - **Atalho:** clique no botão e pressione a tecla (pode combinar com Shift, Ctrl ou Alt) para abrir e fechar a janela do addon, como `/vdl`. Esc cancela e **Limpar** remove o atalho. O atalho é do addon (`SetOverrideBindingClick`): não altera os atalhos da Blizzard e tem prioridade sobre eles; se a tecla já estiver em uso no jogo, a tela avisa qual ação ela substitui. Em combate o jogo não deixa trocar atalhos, então a troca é aplicada ao sair do combate.
 - **Janela da guilda:** liga e desliga, uma por uma, as abas Eventos, Profissões e Administração (esta opção só aparece para o Grão Lorde e os Lordes), o bate-papo do addon na aba Bate-papo, o Início do addon na aba Informações, a lista de membros do addon na aba Membros e o item level e main/alt na lista original de Membros. Os botões que continuam ligados se juntam, sem deixar espaço vazio.
+- **Mapa** e **Membros por perto:** ver as seções abaixo.
+
+As opções passam da altura da aba, então o conteúdo rola com a roda do mouse.
+
+### Membros por perto
+
+Os jogadores da guilda perto de você ganham o logo da guilda em cima da placa de nome e uma linha no tooltip. Quem é da guilda vem do próprio jogo (`UnitIsInMyGuild`), então funciona também para quem não tem o addon.
+
+- **Logo na placa de nome:** quando aparece a placa de um jogador da guilda (`NAME_PLATE_UNIT_ADDED`), o addon põe um quadro próprio com o logo acima do nome da placa. O nome que o jogo desenha em cima do personagem não pode ser mudado por addons, por isso o logo vai na placa: ele só aparece com as **placas de aliados** ligadas (Shift+V). Em masmorras e raides as placas de aliados são protegidas e o logo não aparece. O addon não mexe nos quadros nem nos textos da Blizzard.
+- **Tooltip:** ao passar o mouse num jogador da guilda, o tooltip ganha uma linha com o logo, o posto e, para quem tem o addon, o item level e main/alt ("Lorde · Item level 231 · Alt de Victor Vaz"). O membro é achado no roster pelo GUID (`TooltipDataProcessor`).
+- Na Midnight, em luta com chefe, o jogo pode esconder os dados da unidade (valores secretos): aí o logo e a linha não aparecem.
+- Em **Configurações › Membros por perto**: **Logo da guilda na placa de nome** e **Posto, item level e main/alt no tooltip** (os dois começam ligados, por conta), e **Tamanho do logo**: os botões − e + mudam de 25 em 25%, de 100% (o padrão) a 300%.
 
 ### Item level e main/alt
 
@@ -324,7 +337,7 @@ Nenhum addon consegue consultar a CurseForge de dentro do jogo. Por isso, cada a
 - o estado da sincronização;
 - se a comunicação está restrita e quantas mensagens esperam na fila;
 - quantos membros online mandaram alguma mensagem do addon nesta sessão (quem tem o addon e está ativo);
-- se o mapa está compartilhando e mostrando, e quantos membros aparecem nele.
+- se o mapa está compartilhando, mostrando e mostrando no minimapa, e quantos membros aparecem nele.
 
 ### Idiomas
 
@@ -365,7 +378,9 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
            EventDialog (formulário de evento), BackupDialog (gerar e restaurar backup),
            RecruitDialog (mensagem de recrutamento),
            ProfessionsFrame, GuildTabs (abas e Informações na janela da guilda),
-           GuildRoster (texto na lista de membros), MinimapButton
+           GuildRoster (texto na lista de membros), MinimapButton,
+           GuildMapPins e GuildMinimapPins (membros no mapa e no minimapa),
+           GuildNearby (logo na placa de nome e linha no tooltip)
   libs/    bibliotecas externas (ver libs/LIBRARIES.md)
   assets/  logo
   fonts/   Cinzel e Source Sans 3 (OFL)
@@ -395,7 +410,8 @@ scripts/   setup-dev.sh, check.sh, package.sh, install.sh
                mainAsked = { ["Nome Sobrenome"] = true }, mainPromptOff = true, -- popup do main
                keybind = "SHIFT-V",                                           -- atalho do addon
                guildWindow = { events|professions|admin|chat|info|members|roster = false }, -- desligadas
-               map = { share = false, show = false },                         -- mapa: desligados
+               map = { share = false, show = false, minimap = false },        -- mapa: desligados
+               nearby = { plates = false, tooltip = false, scale = 2 },       -- membros por perto: desligados, tamanho do logo
                recruitChannel = "Geral" },                                    -- canal do recrutamento
   recruit = { text, at = horário, by = "Nome Sobrenome" },                    -- mensagem de recrutamento
   reminded = { [id] = horárioDoEvento },                                      -- eventos já lembrados
@@ -585,6 +601,19 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 4. Passe o mouse no quadrado: aparecem nome, nível, posto, item level e main/alt, zona e há quanto tempo a posição chegou. Em voo, aparece "Em voo".
 5. Entre numa masmorra com o outro: em até 75 s o quadrado some. Saia: volta.
 6. Em Configurações › Mapa, desligue **Compartilhar minha posição** no outro: em até 75 s ele some do seu mapa. Desligue **Mostrar os membros no mapa** no seu: os quadrados somem na hora.
+7. **Minimapa** (fora de grupo com o outro): fique a umas 50 jardas dele. O quadrado aparece no minimapa na direção certa e acompanha (aos saltos) quando ele anda. Confirme que `C_Minimap.GetViewRadius` existe no WoW Forever: `/run print(C_Minimap and C_Minimap.GetViewRadius and C_Minimap.GetViewRadius())` deve mostrar um número.
+8. Mude o zoom do minimapa (+/−): o quadrado se aproxima ou afasta do centro e some quando o outro sai do alcance. Entre num prédio (minimapa de lugar fechado): continua no lugar certo.
+9. Ligue **Girar minimapa** (Interface › Minimapa) e gire o personagem: o quadrado gira junto e continua apontando para o outro.
+10. Convide o outro para o grupo: o quadrado do addon some e fica só o ponto da Blizzard. Desligue **Mostrar os membros no minimapa**: os quadrados somem.
+
+### Membros por perto
+
+1. Ligue as placas de aliados (Shift+V) e chegue perto de um membro da guilda: o logo da guilda aparece em cima do nome da placa dele. Um jogador de fora da guilda fica sem logo.
+2. Passe o mouse no membro: o tooltip mostra a linha com o logo, o posto e, se ele tem o addon, o item level e main/alt. Num jogador de fora da guilda, nada muda.
+3. Entre numa masmorra com o membro: o logo não aparece (placas protegidas) e não há erro de Lua.
+4. Em Configurações › Membros por perto, desligue **Logo da guilda na placa de nome**: o logo some na hora. Desligue **Posto, item level e main/alt no tooltip**: a linha some.
+5. Em **Tamanho do logo**, clique em + até 300%: o logo nas placas visíveis cresce na hora, até o triplo. O − volta até 100%.
+6. Na aba Configurações, a roda do mouse rola até o fim das opções.
 
 ### Item level e main/alt
 

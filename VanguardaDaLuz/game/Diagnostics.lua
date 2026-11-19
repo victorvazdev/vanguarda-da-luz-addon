@@ -50,8 +50,9 @@ function Diagnostics.Lines()
   end
   Add(string.format(L["Membros online com o addon (vistos nesta sessão): %d de %d"], withAddon, online))
 
-  Add(string.format(L["Mapa: compartilhando %s · mostrando %s · membros no mapa: %d"],
-    YesNo(ns.GuildMap.IsSharing()), YesNo(ns.GuildMap.IsShown()), #ns.GuildMap.Visible()))
+  Add(string.format(L["Mapa: compartilhando %s · mostrando %s · no minimapa %s · membros no mapa: %d"],
+    YesNo(ns.GuildMap.IsSharing()), YesNo(ns.GuildMap.IsShown()), YesNo(ns.GuildMap.IsOnMinimap()),
+    #ns.GuildMap.Visible()))
   return lines
 end
 

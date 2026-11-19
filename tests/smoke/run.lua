@@ -112,7 +112,8 @@ _G.UnitName = function() return "Tester" end
 _G.UnitGUID = function() return "Player-1" end
 _G.Ambiguate = function(n) return n end
 _G.GetCursorPosition = function() return 0, 0 end
-_G.Enum = { ClubMemberPresence = { Unknown = 0, Online = 1, OnlineMobile = 2, Offline = 3, Away = 4, Busy = 5 } }
+_G.Enum = { ClubMemberPresence = { Unknown = 0, Online = 1, OnlineMobile = 2, Offline = 3, Away = 4, Busy = 5 },
+  TooltipDataType = { Unit = 2 } }
 -- Lista da guilda (C_Club): nível da profissão sempre 1, como no WoW Forever.
 local club = {
   { name = "Tester Vaz", presence = 1, profession1Name = "Mineração", profession1Rank = 1,
@@ -231,7 +232,19 @@ _G.C_Map = {
   GetBestMapForUnit = function() return myMap.map end,
   GetPlayerMapPosition = function() return myMap.x and { GetXY = function() return myMap.x, myMap.y end } end,
   GetMapRectOnMap = function(a, b) if a == 10 and b == 1 then return 0.2, 0.6, 0.5, 0.7 end end,
+  -- O mapa 10 tem 1000 x 1000 jardas; o canto de cima à esquerda fica em
+  -- norte 5000, oeste 3000. O vetor traz o norte e depois o oeste.
+  GetWorldPosFromMapPos = function(map, v)
+    if map ~= 10 then return nil end
+    return 0, { GetXY = function() return 5000 - v.y * 1000, 3000 - v.x * 1000 end }
+  end,
 }
+_G.CreateVector2D = function(x, y) return { x = x, y = y } end
+-- Minimapa: raio de 500 jardas, sem girar (a não ser que o teste mude).
+local minimapRadius, cvars, facing = 500, { rotateMinimap = "0" }, 0
+_G.C_Minimap = { GetViewRadius = function() return minimapRadius end }
+_G.GetCVar = function(name) return cvars[name] end
+_G.GetPlayerFacing = function() return facing end
 _G.UnitOnTaxi = function() return false end
 local canInvite = true
 _G.CanGuildInvite = function() return canInvite end
@@ -269,6 +282,9 @@ end
 _G.GetAverageItemLevel = function() return 27.3, 27.3125, 27 end
 local tipLines = {}
 _G.GameTooltip.AddLine = function(_, text) tipLines[#tipLines + 1] = text end
+-- Tooltip de unidades: guarda a função do addon para o teste chamar.
+local unitTooltipCalls = {}
+_G.TooltipDataProcessor = { AddTooltipPostCall = function(kind, fn) unitTooltipCalls[kind] = fn end }
 -- Lista de membros da janela da guilda: as linhas copiam SetMember do mixin
 -- ao serem criadas, como no jogo.
 local selectedClub = "clube"
@@ -857,6 +873,71 @@ print("pontos no mapa:", ns.GuildMapPins.count, mapPin._shown, mapPin._x, mapPin
 for i = #tipLines, 1, -1 do tipLines[i] = nil end
 mapPin._scripts.OnEnter(mapPin)
 print("tooltip do mapa:", table.concat(tipLines, " / "))
+-- membros no minimapa: Maren 250 jardas ao sul e 250 a oeste
+ns.GuildMinimapPins.driver._scripts.OnUpdate(ns.GuildMinimapPins.driver, 1)
+local miniPin = ns.GuildMinimapPins.pins[1]
+print("ponto no minimapa:", ns.GuildMinimapPins.count, miniPin._shown, miniPin._x, miniPin._y, miniPin.item.name)
+cvars.rotateMinimap, facing = "1", math.pi
+ns.GuildMinimapPins.Draw()
+print("minimapa girado:", ns.GuildMinimapPins.count, miniPin._x, miniPin._y)
+cvars.rotateMinimap = "0"
+minimapRadius = 200
+ns.GuildMinimapPins.Draw()
+print("fora do minimapa:", ns.GuildMinimapPins.count, miniPin._shown)
+minimapRadius = 500
+inGroup["Maren-Forever"] = true
+ns.GuildMinimapPins.Draw()
+print("no grupo fora do minimapa:", ns.GuildMinimapPins.count, #ns.GuildMap.Visible())
+inGroup["Maren-Forever"] = nil
+ns.GuildMap.SetOnMinimap(false)
+ns.GuildMinimapPins.Draw()
+print("minimapa sem membros:", ns.GuildMinimapPins.count, #ns.GuildMap.Visible(), ns.db.settings.map.minimap)
+ns.GuildMap.SetOnMinimap(true)
+-- membros por perto: logo na placa de nome e linha no tooltip
+local plates = { nameplate1 = Mock("plate1"), nameplate2 = Mock("plate2") }
+plates.nameplate1.namePlateUnitToken, plates.nameplate2.namePlateUnitToken = "nameplate1", "nameplate2"
+plates.nameplate1.UnitFrame = { name = Mock("plateName") }
+plates.nameplate1.UnitFrame.name:Show()
+_G.C_NamePlate = {
+  GetNamePlateForUnit = function(unit) return plates[unit] end,
+  GetNamePlates = function() return { plates.nameplate1, plates.nameplate2 } end,
+}
+_G.UnitIsPlayer = function() return true end
+_G.UnitIsInMyGuild = function(unit) return unit == "nameplate1" end
+local oldGuid = _G.UnitGUID
+_G.UnitGUID = function(unit) return unit == "nameplate1" and "Player-2" or oldGuid(unit) end
+local GN = ns.GuildNearby
+GN.events._scripts.OnEvent(GN.events, "NAME_PLATE_UNIT_ADDED", "nameplate1")
+GN.events._scripts.OnEvent(GN.events, "NAME_PLATE_UNIT_ADDED", "nameplate2")
+local plateIcon = GN.icons[plates.nameplate1]
+print("logo na placa:", plateIcon._shown, plateIcon._rel == plates.nameplate1.UnitFrame.name,
+  GN.icons[plates.nameplate2] == nil)
+GN.SetPlates(false)
+print("placa sem logo:", plateIcon._shown, ns.db.settings.nearby.plates)
+GN.SetPlates(true)
+print("logo de volta:", plateIcon._shown)
+GN.events._scripts.OnEvent(GN.events, "NAME_PLATE_UNIT_REMOVED", "nameplate1")
+print("placa removida:", plateIcon._shown)
+-- Placas sem namePlateUnitToken (como no jogo): mudar o tamanho mantém o logo.
+plates.nameplate1.namePlateUnitToken, plates.nameplate2.namePlateUnitToken = nil, nil
+GN.events._scripts.OnEvent(GN.events, "NAME_PLATE_UNIT_ADDED", "nameplate1")
+GN.StepScale(1)
+print("logo depois de mudar o tamanho:", plateIcon._shown, ns.db.settings.nearby.scale)
+GN.StepScale(-1)
+local unitTip = unitTooltipCalls[_G.Enum.TooltipDataType.Unit]
+local tipUnit = "nameplate1"
+_G.GameTooltip.GetUnit = function() return "Maren", tipUnit end
+for i = #tipLines, 1, -1 do tipLines[i] = nil end
+unitTip(_G.GameTooltip)
+tipUnit = "nameplate2"
+unitTip(_G.GameTooltip)
+print("tooltip por perto:", #tipLines, tipLines[1])
+GN.SetTooltip(false)
+tipUnit = "nameplate1"
+unitTip(_G.GameTooltip)
+print("tooltip desligado:", #tipLines, ns.db.settings.nearby.tooltip)
+GN.SetTooltip(true)
+_G.UnitGUID = oldGuid
 shownMap = 1
 ns.GuildMapPins.Draw()
 print("ponto no continente:", ns.GuildMapPins.count, mapPin._x, mapPin._y)
@@ -933,6 +1014,17 @@ _G.VanguardaDaLuzMainFrame:Hide()
 ns.MainFrame.Open("settings")
 local sp = _G.VanguardaDaLuzMainFrame.panels.settings
 print("configurações:", sp.frame._shown, sp.main.value, sp.minimap.value, sp.features.events.value, sp.mainNote._text)
+-- tamanho do logo dos membros por perto: 100% a 300%, de 25 em 25
+print("logo 100%:", sp.scaleValue._text, sp.smaller._enabled, sp.bigger._enabled)
+sp.bigger._scripts.OnClick(sp.bigger)
+sp:Refresh()
+print("logo maior:", sp.scaleValue._text, ns.db.settings.nearby.scale, sp.smaller._enabled)
+for _ = 1, 10 do sp.bigger._scripts.OnClick(sp.bigger) end
+sp:Refresh()
+print("logo no máximo:", sp.scaleValue._text, sp.bigger._enabled)
+for _ = 1, 10 do sp.smaller._scripts.OnClick(sp.smaller) end
+sp:Refresh()
+print("logo de volta a 100%:", sp.scaleValue._text, ns.db.settings.nearby.scale, sp.smaller._enabled)
 Click("Aba Eventos")
 print("sem aba eventos:", gt.events._shown, gt.professions._shown, gt.professions._rel._name,
   ns.db.settings.guildWindow.events)

@@ -79,4 +79,12 @@ describe("Item level e main/alt", function()
     assert.are.equal("Item level 90", Members.Detail("Ana", { i = 90 }))
     assert.is_nil(Members.Detail("Ana", nil))
   end)
+
+  it("monta a linha do tooltip do membro por perto", function()
+    assert.are.equal("Lorde · Item level 231 · Alt de Victor Vaz",
+      Members.UnitLine("Vaz Alt", "Lorde", { i = 231, m = "Victor Vaz" }))
+    assert.are.equal("Escudeiro", Members.UnitLine("Ana", "Escudeiro", nil))
+    assert.are.equal("Item level 90", Members.UnitLine("Ana", "", { i = 90 }))
+    assert.is_nil(Members.UnitLine("Ana", nil, nil))
+  end)
 end)

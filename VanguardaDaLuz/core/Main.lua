@@ -59,6 +59,8 @@ local function Start()
   ns.GuildTabs.Init()
   ns.GuildRoster.Init()
   ns.GuildMapPins.Init()
+  ns.GuildMinimapPins.Init()
+  ns.GuildNearby.Init()
 
   Register("PLAYER_ENTERING_WORLD", OnLogin)
   Register("GUILD_ROSTER_UPDATE", function(...)

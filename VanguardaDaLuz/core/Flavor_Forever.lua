@@ -532,6 +532,115 @@ function Flavor.MapRect(a, b)
   return minX, maxX, minY, maxY
 end
 
+-- Posição no mundo, em jardas, de um ponto (x, y de 0 a 1) do mapa `mapID`:
+-- { instance, north, west }, ou nil. O vetor de
+-- C_Map.GetWorldPosFromMapPos traz primeiro o norte e depois o oeste (como
+-- usa o HereBeDragons).
+function Flavor.WorldPosition(mapID, x, y)
+  if not (C_Map and C_Map.GetWorldPosFromMapPos and CreateVector2D) then return nil end
+  local ok, instance, north, west = pcall(function()
+    local id, pos = C_Map.GetWorldPosFromMapPos(mapID, CreateVector2D(x, y))
+    if not pos or Flavor.AnySecret(id, pos) then return nil end
+    local n, w = pos:GetXY()
+    return id, n, w
+  end)
+  if not ok or Flavor.AnySecret(instance, north, west) then return nil end
+  if type(instance) ~= "number" or type(north) ~= "number" or type(west) ~= "number" then return nil end
+  return { instance = instance, north = north, west = west }
+end
+
+-- Minimapa da Blizzard (o addon desenha os membros por cima dele).
+function Flavor.Minimap()
+  return Minimap
+end
+
+-- Raio visível do minimapa em jardas (do centro à borda). Usa
+-- C_Minimap.GetViewRadius quando existe; senão, a tabela pelo zoom.
+function Flavor.MinimapRadius()
+  if C_Minimap and C_Minimap.GetViewRadius then
+    local ok, radius = pcall(C_Minimap.GetViewRadius)
+    if ok and not Flavor.IsSecret(radius) and type(radius) == "number" and radius > 0 then return radius end
+  end
+  local zoom = Minimap and Minimap.GetZoom and Minimap:GetZoom() or 0
+  if Flavor.IsSecret(zoom) or type(zoom) ~= "number" then zoom = 0 end
+  -- Em lugar fechado o zoom usado é o de minimapInsideZoom.
+  local indoor = GetCVar and tonumber(GetCVar("minimapInsideZoom")) == zoom
+    and tonumber(GetCVar("minimapZoom")) ~= zoom
+  return ns.MapPositions.MinimapRadius(zoom, indoor)
+end
+
+-- Direção do personagem quando o minimapa gira com ele (opção "Girar
+-- minimapa"): radianos, ou nil quando não gira. Retorna false quando gira mas
+-- o jogo não dá a direção (os pontos ficariam no lugar errado).
+function Flavor.MinimapFacing()
+  if not (GetCVar and GetCVar("rotateMinimap") == "1") then return nil end
+  local facing = GetPlayerFacing and GetPlayerFacing()
+  if Flavor.IsSecret(facing) or type(facing) ~= "number" then return false end
+  return facing
+end
+
+-- Minimapa quadrado? Outros addons mudam o formato e avisam por
+-- GetMinimapShape (o da Blizzard é redondo).
+function Flavor.MinimapSquare()
+  return GetMinimapShape ~= nil and GetMinimapShape() == "SQUARE"
+end
+
+-- A unidade é um jogador da guilda do jogador (UnitIsInMyGuild)? false
+-- quando o jogo esconde a resposta (valores secretos).
+function Flavor.UnitInMyGuild(unit)
+  if not (unit and UnitIsPlayer and UnitIsInMyGuild) then return false end
+  local ok, player, guild = pcall(function() return UnitIsPlayer(unit), UnitIsInMyGuild(unit) end)
+  if not ok or Flavor.AnySecret(player, guild) then return false end
+  return (player and guild) and true or false
+end
+
+-- GUID da unidade, ou nil se o jogo esconde.
+function Flavor.UnitGuid(unit)
+  local ok, guid = pcall(UnitGUID, unit)
+  if not ok or Flavor.IsSecret(guid) or type(guid) ~= "string" then return nil end
+  return guid
+end
+
+-- Placa de nome da unidade, ou nil quando não existe ou é protegida (placas
+-- de aliados em masmorras e raides).
+function Flavor.NamePlate(unit)
+  if not (C_NamePlate and C_NamePlate.GetNamePlateForUnit) then return nil end
+  local ok, plate = pcall(C_NamePlate.GetNamePlateForUnit, unit)
+  if not ok or not plate or Flavor.IsSecret(plate) then return nil end
+  if plate.IsForbidden and plate:IsForbidden() then return nil end
+  return plate
+end
+
+-- Unidades com placa de nome visível agora ("nameplate1", ...).
+function Flavor.NamePlateUnits()
+  local units = {}
+  if not (C_NamePlate and C_NamePlate.GetNamePlates) then return units end
+  local ok, plates = pcall(C_NamePlate.GetNamePlates)
+  if not ok or type(plates) ~= "table" or Flavor.IsSecret(plates) then return units end
+  for _, plate in ipairs(plates) do
+    local unit = plate.namePlateUnitToken
+    if type(unit) == "string" and not Flavor.IsSecret(unit) then units[#units + 1] = unit end
+  end
+  return units
+end
+
+-- Chama fn(tooltip, unit) depois que o jogo monta o tooltip de uma unidade no
+-- GameTooltip (TooltipDataProcessor; nas versões antigas, OnTooltipSetUnit).
+-- A unidade pode faltar ou vir secreta: aí fn não é chamada.
+function Flavor.HookUnitTooltip(fn)
+  local function Call(tooltip)
+    if tooltip ~= GameTooltip or not tooltip.GetUnit then return end
+    local ok, _, unit = pcall(tooltip.GetUnit, tooltip)
+    if not ok or not unit or Flavor.IsSecret(unit) then return end
+    fn(tooltip, unit)
+  end
+  if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, Call)
+  elseif GameTooltip and GameTooltip.HookScript then
+    GameTooltip:HookScript("OnTooltipSetUnit", Call)
+  end
+end
+
 -- Convida para o grupo.
 function Flavor.InviteToGroup(name)
   if C_PartyInfo and C_PartyInfo.InviteUnit then

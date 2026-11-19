@@ -209,8 +209,8 @@ EN["Sincronização: %s"] = "Sync: %s"
 EN["Comunicação restrita: %s · mensagens na fila: %d"] = "Communication restricted: %s · queued messages: %d"
 EN["Membros online com o addon (vistos nesta sessão): %d de %d"] =
   "Online members with the addon (seen this session): %d of %d"
-EN["Mapa: compartilhando %s · mostrando %s · membros no mapa: %d"] =
-  "Map: sharing %s · showing %s · members on the map: %d"
+EN["Mapa: compartilhando %s · mostrando %s · no minimapa %s · membros no mapa: %d"] =
+  "Map: sharing %s · showing %s · on the minimap %s · members on the map: %d"
 EN["Diagnóstico:"] = "Diagnostics:"
 EN["Lembrete: %s começa em %d min (%s de Brasília)."] = "Reminder: %s starts in %d min (%s Brasília time)."
 EN["Há uma versão nova do addon (%s); a sua é %s. Atualize pela CurseForge."] =
@@ -222,10 +222,17 @@ EN["Na janela da guilda, abra Membros e clique em Convidar para a guilda."] =
   "In the guild window, open Members and click Invite to guild."
 EN["Selecione a guilda na janela da guilda para convidar."] = "Select the guild in the guild window to invite."
 EN["Mapa"] = "Map"
-EN["Membros online com o addon aparecem no mapa-múndi como um quadrado na cor da classe. Em instâncias o jogo não dá a posição."] =
-  "Online members with the addon show on the world map as a square in their class color. The game gives no position inside instances."
+EN["Membros online com o addon aparecem no mapa-múndi e no minimapa como um quadrado na cor da classe. Em instâncias o jogo não dá a posição."] =
+  "Online members with the addon show on the world map and the minimap as a square in their class color. The game gives no position inside instances."
 EN["Compartilhar minha posição com a guilda"] = "Share my position with the guild"
 EN["Mostrar os membros no mapa"] = "Show members on the map"
+EN["Mostrar os membros no minimapa"] = "Show members on the minimap"
+EN["Membros por perto"] = "Members nearby"
+EN["O logo da guilda aparece em cima da placa de nome dos membros da guilda (ligue as placas de aliados com Shift+V). Em masmorras e raides o jogo não deixa."] =
+  "The guild logo shows above the nameplate of guild members (turn on friendly nameplates with Shift+V). The game does not allow it in dungeons and raids."
+EN["Logo da guilda na placa de nome"] = "Guild logo on the nameplate"
+EN["Posto, item level e main/alt no tooltip"] = "Rank, item level and main/alt in the tooltip"
+EN["Tamanho do logo"] = "Logo size"
 EN["Nível %d"] = "Level %d"
 EN["Em voo"] = "Flying"
 EN["Posição de %d s atrás"] = "Position from %d s ago"

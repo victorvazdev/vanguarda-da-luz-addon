@@ -1,6 +1,7 @@
 -- Painel Configurações da janela do addon: main da conta, botão do minimapa,
--- atalho de teclado, funcionalidades do addon na janela da guilda e membros no
--- mapa-múndi.
+-- atalho de teclado, funcionalidades do addon na janela da guilda, membros no
+-- mapa-múndi e no minimapa e membros por perto (logo na placa de nome e
+-- tooltip). As opções passam da altura da aba, então o conteúdo rola.
 local _, ns = ...
 
 local L = ns.L
@@ -11,6 +12,7 @@ local SettingsPanel = {}
 local GAP = 16
 local PAD = 16
 local ROW = 32
+local SCROLLBAR = 26 -- espaço da barra de rolagem à direita
 
 local Panel = {}
 Panel.__index = Panel
@@ -45,6 +47,13 @@ function Panel:Refresh()
   self.minimap:SetValue(ns.MinimapButton.IsShown())
   self.mapShare:SetValue(ns.GuildMap.IsSharing())
   self.mapShow:SetValue(ns.GuildMap.IsShown())
+  self.mapMinimap:SetValue(ns.GuildMap.IsOnMinimap())
+  self.plates:SetValue(ns.GuildNearby.ShowsPlates())
+  self.tooltip:SetValue(ns.GuildNearby.ShowsTooltip())
+  local scale = ns.GuildNearby.Scale()
+  self.scaleValue:SetText(string.format("%d%%", math.floor(scale * 100 + 0.5)))
+  self.smaller:SetEnabled(scale > ns.GuildNearby.SCALE_MIN)
+  self.bigger:SetEnabled(scale < ns.GuildNearby.SCALE_MAX)
   self:RefreshKey()
   -- Opções visíveis, uma abaixo da outra (Administração só para Grão Lorde e Lordes).
   local trusted = ns.Guild.IsPlayerTrusted()
@@ -61,6 +70,9 @@ function Panel:Refresh()
     end
   end
   self.guild:SetHeight(96 + count * ROW)
+  -- Altura do conteúdo que rola: a coluna mais alta.
+  local right = self.guild:GetHeight() + GAP + self.map:GetHeight()
+  self.content:SetHeight(math.max(self.leftHeight, right))
 end
 
 -- Botão do atalho e a nota abaixo dele.
@@ -97,11 +109,18 @@ function SettingsPanel.Create(parent, width, height)
   local frame = CreateFrame("Frame", nil, parent)
   frame:SetSize(width, height)
   self.frame = frame
-  local colW = math.floor((width - GAP) / 2)
+  local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+  scroll:SetPoint("TOPLEFT")
+  scroll:SetPoint("BOTTOMRIGHT", -SCROLLBAR, 0)
+  local content = CreateFrame("Frame", nil, scroll)
+  content:SetSize(width - SCROLLBAR, height)
+  scroll:SetScrollChild(content)
+  self.content = content
+  local colW = math.floor((width - SCROLLBAR - GAP) / 2)
   local toggleW = colW - 2 * PAD
 
   -- Personagem
-  local character = Card(frame, L["Personagem"],
+  local character = Card(content, L["Personagem"],
     L["O item level e o main/alt aparecem na lista de Membros da janela da guilda."])
   character:SetPoint("TOPLEFT")
   character:SetSize(colW, 150)
@@ -114,7 +133,7 @@ function SettingsPanel.Create(parent, width, height)
   self.mainNote:SetPoint("RIGHT", -PAD, 0)
 
   -- Minimapa
-  local minimap = Card(frame, L["Minimapa"], L["O compartimento de addons e /vdl continuam abrindo o addon."])
+  local minimap = Card(content, L["Minimapa"], L["O compartimento de addons e /vdl continuam abrindo o addon."])
   minimap:SetPoint("TOPLEFT", character, "BOTTOMLEFT", 0, -GAP)
   minimap:SetSize(colW, 110)
   self.minimap = Theme.Toggle(minimap, L["Mostrar o botão no minimapa"], toggleW, function(value)
@@ -123,7 +142,7 @@ function SettingsPanel.Create(parent, width, height)
   self.minimap:SetPoint("TOPLEFT", minimap.text, "BOTTOMLEFT", 0, -12)
 
   -- Atalho de teclado
-  local shortcut = Card(frame, L["Atalho"], L["Tecla para abrir e fechar a janela do addon. Fica salva na conta."])
+  local shortcut = Card(content, L["Atalho"], L["Tecla para abrir e fechar a janela do addon. Fica salva na conta."])
   shortcut:SetPoint("TOPLEFT", minimap, "BOTTOMLEFT", 0, -GAP)
   shortcut:SetSize(colW, 130)
   self.key = Theme.Button(shortcut, L["Nenhum"], "outline", 180)
@@ -154,11 +173,41 @@ function SettingsPanel.Create(parent, width, height)
   self.keyNote = Theme.Text(shortcut, "small", "textMuted")
   self.keyNote:SetPoint("TOPLEFT", self.key, "BOTTOMLEFT", 0, -8)
   self.keyNote:SetPoint("RIGHT", -PAD, 0)
+
+  -- Membros por perto
+  local nearby = Card(content, L["Membros por perto"], L["O logo da guilda aparece em cima da placa de nome dos "
+    .. "membros da guilda (ligue as placas de aliados com Shift+V). Em masmorras e raides o jogo não deixa."])
+  nearby:SetPoint("TOPLEFT", shortcut, "BOTTOMLEFT", 0, -GAP)
+  nearby:SetSize(colW, 108 + 2 * ROW + 40)
+  self.plates = Theme.Toggle(nearby, L["Logo da guilda na placa de nome"], toggleW, function(value)
+    ns.GuildNearby.SetPlates(value)
+  end)
+  self.plates:SetPoint("TOPLEFT", nearby.text, "BOTTOMLEFT", 0, -12)
+  self.tooltip = Theme.Toggle(nearby, L["Posto, item level e main/alt no tooltip"], toggleW, function(value)
+    ns.GuildNearby.SetTooltip(value)
+  end)
+  self.tooltip:SetPoint("TOPLEFT", self.plates, "BOTTOMLEFT", 0, -(ROW - 26))
+  -- Tamanho do logo: − 100% +
+  local scaleLabel = Theme.Text(nearby, "body", "text")
+  scaleLabel:SetPoint("TOPLEFT", self.tooltip, "BOTTOMLEFT", 0, -16)
+  scaleLabel:SetText(L["Tamanho do logo"])
+  self.smaller = Theme.Button(nearby, "−", "outline", 28)
+  self.smaller:SetPoint("LEFT", scaleLabel, "RIGHT", 12, 0)
+  self.smaller:SetScript("OnClick", function() ns.GuildNearby.StepScale(-1) end)
+  self.scaleValue = Theme.Text(nearby, "body", "gold")
+  self.scaleValue:SetPoint("LEFT", self.smaller, "RIGHT", 6, 0)
+  self.scaleValue:SetWidth(48)
+  self.scaleValue:SetJustifyH("CENTER")
+  self.bigger = Theme.Button(nearby, "+", "outline", 28)
+  self.bigger:SetPoint("LEFT", self.scaleValue, "RIGHT", 6, 0)
+  self.bigger:SetScript("OnClick", function() ns.GuildNearby.StepScale(1) end)
+  self.leftHeight = character:GetHeight() + minimap:GetHeight() + shortcut:GetHeight() + nearby:GetHeight()
+    + 3 * GAP
   -- Sair da tela cancela a captura.
   frame:SetScript("OnHide", function() if self.capturing then self:Capture(false) end end)
 
   -- Janela da guilda
-  local guild = Card(frame, L["Janela da guilda"],
+  local guild = Card(content, L["Janela da guilda"],
     L["O que o addon acrescenta à janela Guilda e comunidades (J). Desligado, a janela fica como a da Blizzard."])
   guild:SetPoint("TOPRIGHT")
   guild:SetSize(colW, 96 + #ns.Store.GUILD_FEATURES * ROW)
@@ -171,10 +220,11 @@ function SettingsPanel.Create(parent, width, height)
   end
 
   -- Mapa-múndi
-  local map = Card(frame, L["Mapa"], L["Membros online com o addon aparecem no mapa-múndi como um quadrado na cor "
-    .. "da classe. Em instâncias o jogo não dá a posição."])
+  local map = Card(content, L["Mapa"], L["Membros online com o addon aparecem no mapa-múndi e no minimapa como um "
+    .. "quadrado na cor da classe. Em instâncias o jogo não dá a posição."])
   map:SetPoint("TOPLEFT", guild, "BOTTOMLEFT", 0, -GAP)
-  map:SetSize(colW, 96 + 2 * ROW)
+  map:SetSize(colW, 96 + 3 * ROW)
+  self.map = map
   self.mapShare = Theme.Toggle(map, L["Compartilhar minha posição com a guilda"], toggleW, function(value)
     ns.GuildMap.SetSharing(value)
   end)
@@ -183,6 +233,10 @@ function SettingsPanel.Create(parent, width, height)
     ns.GuildMap.SetShown(value)
   end)
   self.mapShow:SetPoint("TOPLEFT", self.mapShare, "BOTTOMLEFT", 0, -(ROW - 26))
+  self.mapMinimap = Theme.Toggle(map, L["Mostrar os membros no minimapa"], toggleW, function(value)
+    ns.GuildMap.SetOnMinimap(value)
+  end)
+  self.mapMinimap:SetPoint("TOPLEFT", self.mapShow, "BOTTOMLEFT", 0, -(ROW - 26))
 
   return self
 end

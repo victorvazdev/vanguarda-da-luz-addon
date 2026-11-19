@@ -77,6 +77,16 @@ function Guild.PlayerName()
   return name
 end
 
+-- Linha do roster ({ name, rank, classFile, ... }) do membro com esse GUID,
+-- ou nil.
+function Guild.MemberByGuid(guid)
+  if not guid then return nil end
+  for _, entry in ipairs(ns.Flavor.GuildRoster()) do
+    if entry.guid == guid then return entry end
+  end
+  return nil
+end
+
 -- `sender` é o próprio jogador?
 function Guild.IsPlayer(sender)
   return ns.Trust.SameName(sender, UnitName("player")) or ns.Trust.SameName(sender, Guild.PlayerName())

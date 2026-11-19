@@ -47,9 +47,10 @@ local function ShowTooltip(pin)
   GameTooltip:Show()
 end
 
-local function CreatePin(i)
-  local size = ns.Config.MAP_PIN_SIZE
-  local pin = CreateFrame("Frame", nil, canvas)
+-- Quadrado na cor da classe com borda preta, filho de `parent`. Também usado
+-- no minimapa (ui/GuildMinimapPins.lua).
+function GuildMapPins.NewPin(parent, size)
+  local pin = CreateFrame("Frame", nil, parent)
   pin:SetSize(size + 2, size + 2)
   -- Quadrado (não redondo) para não confundir com os pontos de grupo e raide.
   local border = pin:CreateTexture(nil, "BACKGROUND")
@@ -68,8 +69,19 @@ local function CreatePin(i)
   end
   pin:SetScript("OnEnter", ShowTooltip)
   pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
-  pins[i] = pin
   return pin
+end
+
+-- Pinta o quadrado com a cor da classe do membro e guarda o item do tooltip.
+function GuildMapPins.Paint(pin, item)
+  local color = ClassColor(item.entry.classFile)
+  pin.dot:SetColorTexture(color.r, color.g, color.b, 1)
+  pin.item = item
+end
+
+local function CreatePin(i)
+  pins[i] = GuildMapPins.NewPin(canvas, ns.Config.MAP_PIN_SIZE)
+  return pins[i]
 end
 
 local function HideFrom(first)
@@ -100,9 +112,7 @@ function GuildMapPins.Draw()
       pin:ClearAllPoints()
       pin:SetPoint("CENTER", canvas, "TOPLEFT", x * width / scale, -y * height / scale)
       pin:SetFrameLevel(level)
-      local color = ClassColor(item.entry.classFile)
-      pin.dot:SetColorTexture(color.r, color.g, color.b, 1)
-      pin.item = item
+      GuildMapPins.Paint(pin, item)
       pin:Show()
     end
   end

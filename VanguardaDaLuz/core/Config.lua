@@ -59,6 +59,8 @@ ns.Config = {
   MAP_HEARTBEAT = 30,
   MAP_EXPIRE = 75,
   MAP_PIN_SIZE = 12,
+  MINIMAP_PIN_SIZE = 8, -- quadrado no minimapa
+  NAMEPLATE_ICON_SIZE = 20, -- logo na placa de nome dos membros por perto
 
   -- Alerta de raide.
   ALERT_MAX_CHARS = 200,          -- tamanho máximo do texto, em caracteres

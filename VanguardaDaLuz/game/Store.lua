@@ -16,7 +16,8 @@
 --                mainPromptOff = true,                 -- "Não perguntar mais"
 --                keybind = "SHIFT-V",                  -- atalho para abrir o addon
 --                guildWindow = { [funcionalidade] = false },  -- desligadas
---                map = { share = false, show = false },        -- mapa: desligados
+--                map = { share = false, show = false, minimap = false }, -- mapa: desligados
+--                nearby = { plates = false, tooltip = false, scale = 2 }, -- logo na placa e tooltip; tamanho do logo
 --                recruitChannel = "Geral" },                   -- canal da mensagem de recrutamento
 --   recruit = { text, at, by },  -- mensagem de recrutamento: logic/Recruit.lua
 --   reminded = { [id] = startsAt },  -- eventos já lembrados: logic/Reminders.lua

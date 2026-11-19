@@ -1,7 +1,7 @@
--- Membros no mapa-múndi: a cada poucos segundos envia a posição do próprio
--- personagem para a guilda (se andou, ou de tempos em tempos parado) e guarda
--- na memória a dos outros. Regras em logic/MapPositions.lua; o desenho no
--- mapa em ui/GuildMapPins.lua.
+-- Membros no mapa-múndi e no minimapa: a cada poucos segundos envia a posição
+-- do próprio personagem para a guilda (se andou, ou de tempos em tempos
+-- parado) e guarda na memória a dos outros. Regras em logic/MapPositions.lua;
+-- o desenho em ui/GuildMapPins.lua e ui/GuildMinimapPins.lua.
 --
 -- Em instâncias o jogo não dá a posição, e durante a restrição de mensagens
 -- (lutas com chefe, M+, JxJ) nada é enviado: quem não envia some do mapa
@@ -30,6 +30,16 @@ end
 
 function GuildMap.IsShown()
   return Settings().show ~= false
+end
+
+-- Mostrar no minimapa: começa ligado.
+function GuildMap.IsOnMinimap()
+  return Settings().minimap ~= false
+end
+
+function GuildMap.SetOnMinimap(on)
+  if on then Settings().minimap = nil else Settings().minimap = false end
+  ns.Fire("SETTINGS_UPDATED")
 end
 
 function GuildMap.SetSharing(on)
@@ -70,17 +80,22 @@ end
 
 -- Membros para desenhar: online no roster, com posição recente, sem o próprio
 -- jogador. Cada item: { name, position, entry } (entry = linha do roster).
-function GuildMap.Visible()
+-- `minimap` = true para o minimapa: segue a opção dele e deixa de fora quem
+-- está no grupo, que a Blizzard já mostra.
+function GuildMap.Visible(minimap)
   if MapPositions.Prune(positions, GetTime(), ns.Config.MAP_EXPIRE) > 0 then
     GuildMap.version = GuildMap.version + 1
   end
   local list = {}
-  if not (ns.Guild.IsMember() and GuildMap.IsShown()) then return list end
+  local shown
+  if minimap then shown = GuildMap.IsOnMinimap() else shown = GuildMap.IsShown() end
+  if not (ns.Guild.IsMember() and shown) then return list end
   local byName = {}
   for _, entry in ipairs(ns.Flavor.GuildRoster()) do byName[entry.name] = entry end
   for name, position in pairs(positions) do
     local entry = byName[name]
-    if entry and entry.online and not ns.Guild.IsPlayer(name) then
+    if entry and entry.online and not ns.Guild.IsPlayer(name)
+      and not (minimap and ns.Flavor.InGroupWith(name)) then
       list[#list + 1] = { name = name, position = position, entry = entry }
     end
   end

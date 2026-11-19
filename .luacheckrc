@@ -31,7 +31,8 @@ read_globals = {
   "ChatFrameUtil", "ChatFrame_SendTell", "hooksecurefunc",
   "GetGuildRosterMOTD", "GetGuildInfoText",
   "SetOverrideBindingClick", "ClearOverrideBindings", "GetBindingText", "GetBindingAction",
-  "issecretvalue", "issecrettable", "canaccesstable", "SetItemRef", "ChatEdit_InsertLink", "date", "time", "CanEditMOTD", "CanEditGuildInfo", "CanGuildInvite", "C_Map", "UnitOnTaxi", "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsMetaKeyDown",
+  "issecretvalue", "issecrettable", "canaccesstable", "SetItemRef", "ChatEdit_InsertLink", "date", "time", "CanEditMOTD", "CanEditGuildInfo", "CanGuildInvite", "C_Map", "UnitOnTaxi", "CreateVector2D", "C_Minimap", "GetCVar", "GetPlayerFacing",
+  "GetMinimapShape", "UnitIsPlayer", "UnitIsInMyGuild", "C_NamePlate", "TooltipDataProcessor", "IsAltKeyDown", "IsControlKeyDown", "IsShiftKeyDown", "IsMetaKeyDown",
 }
 
 files["tests/"] = { std = "+busted" }

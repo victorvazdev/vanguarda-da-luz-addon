@@ -88,5 +88,43 @@ function MapPositions.ToMap(position, target, rectOf)
   return x, y
 end
 
+-- Raio do minimapa (jardas do centro à borda) pelo nível de zoom, quando o
+-- jogo não dá o raio (C_Minimap.GetViewRadius). Mesmos valores do
+-- HereBeDragons: diâmetros por zoom, ao ar livre e em lugares fechados.
+local MINIMAP_DIAMETER = {
+  outdoor = { [0] = 466 + 2 / 3, 400, 333 + 1 / 3, 266 + 2 / 3, 200, 133 + 1 / 3 },
+  indoor = { [0] = 300, 240, 180, 120, 80, 50 },
+}
+
+function MapPositions.MinimapRadius(zoom, indoor)
+  local sizes = indoor and MINIMAP_DIAMETER.indoor or MINIMAP_DIAMETER.outdoor
+  local diameter = sizes[zoom] or sizes[0]
+  return diameter / 2
+end
+
+-- Ponto de um membro no minimapa. `me` e `other` = { instance, north, west }:
+-- posição no mundo em jardas (C_Map.GetWorldPosFromMapPos). `radius` =
+-- jardas do centro à borda. `facing` = direção do personagem em radianos
+-- (0 = norte, no sentido anti-horário) quando o minimapa gira com ele, ou
+-- nil. `square` = minimapa quadrado (outro addon mudou o formato).
+-- Retorna x, y de -1 a 1 a partir do centro (direita e cima positivos), ou
+-- nil quando o membro está em outro continente ou fora do minimapa.
+function MapPositions.MinimapPoint(me, other, radius, facing, square)
+  if not (me and other and radius and radius > 0) or me.instance ~= other.instance then return nil end
+  local east, north = me.west - other.west, other.north - me.north
+  if facing then
+    -- Gira para a frente do personagem ficar para cima.
+    local c, s = math.cos(facing), math.sin(facing)
+    east, north = east * c + north * s, north * c - east * s
+  end
+  local x, y = east / radius, north / radius
+  if square then
+    if math.abs(x) > 1 or math.abs(y) > 1 then return nil end
+  elseif x * x + y * y > 1 then
+    return nil
+  end
+  return x, y
+end
+
 ns.MapPositions = MapPositions
 return MapPositions

@@ -76,4 +76,39 @@ describe("Posições no mapa", function()
     assert.is_nil(MapPositions.ToMap({ map = 10, x = 0.75, y = 0.25 }, 20, rectOf)) -- fora do bairro
     assert.is_nil(MapPositions.ToMap(pos, 99, rectOf)) -- outro continente
   end)
+  it("calcula o ponto do membro no minimapa", function()
+    local me = { instance = 0, north = 1000, west = 500 }
+    -- 50 jardas ao norte e 50 a leste, raio de 100 jardas.
+    local other = { instance = 0, north = 1050, west = 450 }
+    local x, y = MapPositions.MinimapPoint(me, other, 100)
+    assert.are.near(0.5, x, 1e-9)
+    assert.are.near(0.5, y, 1e-9)
+    -- Virado para o leste (90° no sentido horário = -pi/2): o ponto a nordeste
+    -- fica à frente e à esquerda.
+    x, y = MapPositions.MinimapPoint(me, other, 100, -math.pi / 2)
+    assert.are.near(-0.5, x, 1e-9)
+    assert.are.near(0.5, y, 1e-9)
+    -- Virado para o oeste: o ponto a leste fica atrás.
+    x, y = MapPositions.MinimapPoint(me, { instance = 0, north = 1000, west = 440 }, 100, math.pi / 2)
+    assert.are.near(0, x, 1e-9)
+    assert.are.near(-0.6, y, 1e-9)
+  end)
+
+  it("esconde o membro fora do minimapa ou em outro continente", function()
+    local me = { instance = 0, north = 0, west = 0 }
+    local corner = { instance = 0, north = 80, west = -80 } -- 113 jardas na diagonal
+    assert.is_nil(MapPositions.MinimapPoint(me, corner, 100))
+    assert.are.same({ 0.8, 0.8 }, { MapPositions.MinimapPoint(me, corner, 100, nil, true) })
+    assert.is_nil(MapPositions.MinimapPoint(me, { instance = 0, north = 0, west = -120 }, 100, nil, true))
+    assert.is_nil(MapPositions.MinimapPoint(me, { instance = 1, north = 0, west = 0 }, 100))
+    assert.is_nil(MapPositions.MinimapPoint(nil, me, 100))
+    assert.is_nil(MapPositions.MinimapPoint(me, me, 0))
+  end)
+
+  it("dá o raio do minimapa pelo zoom", function()
+    assert.are.near(233.33, MapPositions.MinimapRadius(0), 0.01)
+    assert.are.equal(100, MapPositions.MinimapRadius(4))
+    assert.are.equal(25, MapPositions.MinimapRadius(5, true))
+    assert.are.near(233.33, MapPositions.MinimapRadius(9), 0.01)
+  end)
 end)
