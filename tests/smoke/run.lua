@@ -125,7 +125,16 @@ _G.UnitGUID = function() return "Player-1" end
 _G.Ambiguate = function(n) return n end
 _G.GetCursorPosition = function() return 0, 0 end
 _G.Enum = { ClubMemberPresence = { Unknown = 0, Online = 1, OnlineMobile = 2, Offline = 3, Away = 4, Busy = 5 },
-  TooltipDataType = { Unit = 2 } }
+  TooltipDataType = { Unit = 2 }, PlayerInteractionType = { GuildBanker = 10, Banker = 8 } }
+-- Banco da guilda: registro de dinheiro e pedidos ao servidor.
+local moneyLog, moneyLogQueries = {}, 0
+_G.MAX_GUILDBANK_TABS = 8
+_G.QueryGuildBankLog = function(tab) if tab == 9 then moneyLogQueries = moneyLogQueries + 1 end end
+_G.GetNumGuildBankMoneyTransactions = function() return #moneyLog end
+_G.GetGuildBankMoneyTransaction = function(i) return unpack(moneyLog[i]) end
+_G.GetCoinTextureString = function(copper) return "[" .. copper .. "]" end
+_G.UpdateAddOnMemoryUsage = function() end
+_G.GetAddOnMemoryUsage = function(name) return name == "VanguardaDaLuz" and 1234.4 or 0 end
 -- Lista da guilda (C_Club): nível da profissão sempre 1, como no WoW Forever.
 local club = {
   { name = "Tester Vaz", presence = 1, profession1Name = "Mineração", profession1Rank = 1,
@@ -264,6 +273,8 @@ local function UnitPositionMock(unit)
   return 5000 - myMap.y * 1000, 3000 - myMap.x * 1000, 0, 0
 end
 _G.UnitPosition = UnitPositionMock
+local honorKills = 165 -- abates honrosos do jogador (GetPVPLifetimeStats)
+_G.GetPVPLifetimeStats = function() return honorKills, 0, 0 end
 -- Minimapa: raio de 500 jardas, sem girar (a não ser que o teste mude).
 local minimapRadius, cvars, facing = 500, { rotateMinimap = "0" }, 0
 _G.C_Minimap = { GetViewRadius = function() return minimapRadius end }
@@ -610,6 +621,11 @@ RunTimers()
 local infoPanel = GT.panels.info
 print("informações:", GT.overlay._shown, infoPanel and infoPanel.frame._shown, cf.GuildInfoTab._checked)
 print("dica informações:", infoPanel.hint._text)
+-- na janela da guilda as informações seguem no espaço grande e o cartão
+-- Guilda só tem o ranking de tempo
+local coverHome = infoPanel.inner
+print("início na guilda:", coverHome.info._y, coverHome.guild._y < -150, #coverHome.guild.rankLines,
+  next(coverHome.guild.rankButtons) == nil)
 -- a Blizzard mostra um quadro mais alto depois de o painel abrir: o painel
 -- sobe de novo (fora de combate)
 local lateFrame = Mock("lateFrame")
@@ -776,8 +792,90 @@ comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Together(ns.Together.Enc
 print("tempo recebido:", ns.db.together["Ana Clara"], ns.db.together["Maren-Forever"])
 ns.MainFrame.Open("home")
 local hp = _G.VanguardaDaLuzMainFrame.panels.home
-print("ranking:", #hp.guild.rankLines, hp.guild.rankLines[1].name._text, hp.guild.rankLines[1].time._text,
+print("ranking:", #hp.guild.rankLines, hp.guild.rankLines[1].name._text, hp.guild.rankLines[1].value._text,
   hp.guild.rankLines[2].name._text)
+-- abates honrosos: lê os próprios, anuncia só quando mudam e repassa
+local commsBeforeKills = #comms
+local killsAtLogin = false -- anunciados no login, com os outros dados
+for _, c in ipairs(comms) do if c == "VanguardaDaLuz GUILD NORMAL h|3:165" then killsAtLogin = true end end
+print("abates no login:", killsAtLogin, ns.db.kills["Tester Vaz"])
+ns.GuildKills.Announce()
+print("abates sem mudança:", #comms - commsBeforeKills)
+honorKills = 170
+ev._scripts.OnEvent(ev, "PLAYER_PVP_KILLS_CHANGED")
+ev._scripts.OnEvent(ev, "PLAYER_PVP_KILLS_CHANGED")
+print("abate lido na hora:", ns.db.kills["Tester Vaz"], "anúncios antes da espera:", #comms - commsBeforeKills)
+RunTimers()
+print("abates depois da espera:", comms[#comms], #comms - commsBeforeKills)
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Kills(ns.Kills.EncodeOwn(400)), "GUILD", "Maren-Forever")
+comm.OnCommReceived(comm, "VanguardaDaLuz",
+  ns.Protocol.KillsList(ns.Kills.EncodeStore({ ["Ana Clara"] = 90, ["Maren-Forever"] = 10, Fulano = 999 })),
+  "GUILD", "Dorvan")
+print("abates recebidos:", ns.db.kills["Maren-Forever"], ns.db.kills["Ana Clara"])
+ns.MainFrame.Open("home")
+print("início no addon: guilda à esquerda", hp.guild._x, hp.guild._y, "informações à direita", hp.info._x,
+  hp.info._y)
+local function RankingText(label)
+  local rl = hp.guild.rankLines
+  print(label, #rl, hp.guild.rankTitle._text, rl[1].name._text, rl[1].value._text, "|", rl[2].name._text,
+    rl[2].value._text, "|", rl[3].name._text, "|", rl[4].name._text)
+end
+hp.guild.rankButtons.kills._scripts.OnClick(hp.guild.rankButtons.kills)
+RankingText("ranking abates:")
+print("botões do ranking:", hp.guild.rankButtons.kills.kind, hp.guild.rankButtons.together.kind,
+  ns.db.settings.homeRanking)
+-- pedido de abates: alguém responde com a lista
+commsBeforeKills = #comms
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.KillsRequest(), "GUILD", "Dorvan")
+RunTimers()
+print("abates repassados:", comms[#comms] and comms[#comms]:match("BULK k|") ~= nil, #comms - commsBeforeKills)
+-- ouro doado ao banco: o addon pede o registro ao abrir o banco e lê quando chega
+local donationsBefore = #comms
+ev._scripts.OnEvent(ev, "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", 8) -- banco comum: nada
+ev._scripts.OnEvent(ev, "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", 10)
+RunTimers()
+print("registro pedido ao abrir o banco:", moneyLogQueries)
+moneyLog = {
+  { "deposit", "Ana Clara", 50000, 0, 0, 2, 0 },
+  { "withdraw", "Ana Clara", 900, 0, 0, 1, 0 },
+  { "deposit", "Maren-Forever", 1234567, 0, 0, 0, 3 },
+  { "depositSummary", "", 777, 0, 0, 0, 1 },
+}
+ev._scripts.OnEvent(ev, "GUILDBANKLOG_UPDATE")
+print("depósitos lidos:", #ns.db.donations, comms[#comms]:match("BULK g|") ~= nil, #comms - donationsBefore)
+ev._scripts.OnEvent(ev, "GUILDBANKLOG_UPDATE")
+print("depósitos repetidos:", #ns.db.donations, #comms - donationsBefore)
+ev._scripts.OnEvent(ev, "GUILDBANK_UPDATE_MONEY")
+ev._scripts.OnEvent(ev, "GUILDBANK_UPDATE_MONEY")
+RunTimers()
+print("registro pedido depois do depósito:", moneyLogQueries)
+ev._scripts.OnEvent(ev, "PLAYER_INTERACTION_MANAGER_FRAME_HIDE", 10)
+ev._scripts.OnEvent(ev, "GUILDBANK_UPDATE_MONEY")
+RunTimers()
+print("banco fechado sem pedido:", moneyLogQueries)
+-- lista de outro membro: o depósito de Ana Clara já conhecido (horário uma
+-- hora diferente) e um novo de Aelin
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.DonationsList(ns.Donations.Encode({
+  { w = "Ana Clara", a = 50000, t = now - 2 * 86400 + 3600 },
+  { w = "Aelin Ashryvrr", a = 10000, t = now - 86400 },
+})), "GUILD", "Dorvan")
+print("depósitos recebidos:", #ns.db.donations)
+hp.guild.rankButtons.gold._scripts.OnClick(hp.guild.rankButtons.gold)
+RankingText("ranking ouro:")
+hp.guild.rankButtons.together._scripts.OnClick(hp.guild.rankButtons.together)
+print("ranking de volta ao tempo:", hp.guild.rankTitle._text, ns.db.settings.homeRanking)
+donationsBefore = #comms
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.DonationsRequest(3), "GUILD", "Dorvan")
+RunTimers()
+print("pedido de quem já tem tudo:", #comms - donationsBefore)
+comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.DonationsRequest(), "GUILD", "Dorvan")
+RunTimers()
+print("depósitos repassados:", comms[#comms]:match("BULK l|") ~= nil, #comms - donationsBefore)
+-- quem saiu da guilda sai dos rankings guardados quando o roster muda
+ns.db.together.Fulano, ns.db.donations[#ns.db.donations + 1] = 60, { w = "Fulano", a = 5, t = now }
+ev._scripts.OnEvent(ev, "GUILD_ROSTER_UPDATE")
+RunTimers()
+print("quem saiu apagado:", ns.db.kills.Fulano, ns.db.together.Fulano, #ns.db.donations, ns.db.kills["Ana Clara"])
 -- aba Membros da janela do addon
 ns.MainFrame.Open("members")
 local mp = _G.VanguardaDaLuzMainFrame.panels.members
@@ -1261,7 +1359,7 @@ print("versão responde ao antigo:", comms[#comms])
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.0.8"), "GUILD", "Dorvan")
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.1.0"), "GUILD", "Ana Clara")
 RunTimers()
-print("versão resposta cancelada:", comms[#comms] == comms[versionBefore + 8], #comms - versionBefore)
+print("versão resposta cancelada:", comms[#comms] == comms[versionBefore + 10], #comms - versionBefore)
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.2.0"), "GUILD", "Maren-Forever")
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("0.10.0"), "GUILD", "Ana Clara")
 comm.OnCommReceived(comm, "VanguardaDaLuz", ns.Protocol.Version("lixo"), "GUILD", "Ana Clara")

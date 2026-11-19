@@ -101,6 +101,35 @@ describe("Teste de fumaça do addon", function()
     assert.is_truthy(text:find("tempo anunciado: VanguardaDaLuz GUILD NORMAL T|2:60", 1, true))
     assert.is_truthy(text:find("tempo recebido: 3600 100", 1, true))
     assert.is_truthy(text:find("ranking: 10 1.  Ana Clara |cfff2c94c1h 00min|r ", 1, true))
+    -- abates honrosos
+    assert.is_truthy(text:find("abates no login: true 165", 1, true))
+    assert.is_truthy(text:find("abates sem mudança: 0", 1, true))
+    assert.is_truthy(text:find("abate lido na hora: 170 anúncios antes da espera: 0", 1, true))
+    assert.is_truthy(text:find("abates depois da espera: VanguardaDaLuz GUILD NORMAL h|3:170 1", 1, true))
+    assert.is_truthy(text:find("abates recebidos: 400 90", 1, true))
+    -- Tester Vaz e Maren-Forever são alts de Aelin (170 + 400); Fulano não é da guilda
+    assert.is_truthy(text:find("ranking abates: 10 MAIS ABATES HONROSOS 1.  |cffffe08aAelin Ashryvrr|r "
+      .. "|cfff2c94c570|r | 2.  Ana Clara |cfff2c94c90|r |  | ", 1, true))
+    assert.is_truthy(text:find("botões do ranking: primary outline kills", 1, true))
+    assert.is_truthy(text:find("abates repassados: true 1", 1, true))
+    -- Início: no addon, Guilda embaixo da mensagem do dia (esquerda) e informações embaixo do próximo
+    -- evento (direita); na janela da guilda, como antes
+    assert.is_truthy(text:find("início no addon: guilda à esquerda 0 -156 informações à direita 0 -186", 1, true))
+    assert.is_truthy(text:find("início na guilda: -156 true 0 true", 1, true))
+    -- ouro doado ao banco
+    assert.is_truthy(text:find("registro pedido ao abrir o banco: 1", 1, true))
+    assert.is_truthy(text:find("depósitos lidos: 2 true 1", 1, true))
+    assert.is_truthy(text:find("depósitos repetidos: 2 1", 1, true))
+    assert.is_truthy(text:find("registro pedido depois do depósito: 2", 1, true))
+    assert.is_truthy(text:find("banco fechado sem pedido: 2", 1, true))
+    assert.is_truthy(text:find("depósitos recebidos: 3", 1, true))
+    -- Aelin: 1.234.567 de Maren (alt) + 10.000 próprios, com ouro, prata e cobre
+    assert.is_truthy(text:find("ranking ouro: 10 MAIS OURO DOADO AO BANCO 1.  |cffffe08aAelin Ashryvrr|r "
+      .. "|cfff2c94c[1244567]|r | 2.  Ana Clara |cfff2c94c[50000]|r |  | ", 1, true))
+    assert.is_truthy(text:find("ranking de volta ao tempo: MAIS TEMPO JOGANDO COM A GUILDA nil", 1, true))
+    assert.is_truthy(text:find("pedido de quem já tem tudo: 0", 1, true))
+    assert.is_truthy(text:find("depósitos repassados: true 1", 1, true))
+    assert.is_truthy(text:find("quem saiu apagado: nil nil 3 90", 1, true))
     -- aba Membros
     assert.is_truthy(text:find(
       "membros 2: |cfffff468Maren-Forever|r | 30 | 231 | Alt de Aelin Ashryvrr | Pantanal | Lorde", 1, true))
@@ -118,7 +147,7 @@ describe("Teste de fumaça do addon", function()
     -- versão nova
     assert.is_truthy(text:find("versão no pedido: VanguardaDaLuz GUILD NORMAL I|0.1.0", 1, true))
     assert.is_truthy(text:find("versão responde ao antigo: VanguardaDaLuz GUILD NORMAL I|0.1.0", 1, true))
-    assert.is_truthy(text:find("versão resposta cancelada: true 9", 1, true))
+    assert.is_truthy(text:find("versão resposta cancelada: true 11", 1, true))
     local _, warnings = text:gsub("Há uma versão nova do addon", "")
     assert.equals(1, warnings)
     assert.is_truthy(text:find("Há uma versão nova do addon (0.2.0); a sua é 0.1.0. Atualize pela CurseForge.",
@@ -128,6 +157,7 @@ describe("Teste de fumaça do addon", function()
     assert.is_truthy(text:find(
       "lembretes: 1 Lembrete: Raide || teste começa em 10 min %(%d+:%d+ de Brasília%). true 1"))
     assert.is_truthy(text:find("Diagnóstico:", 1, true))
+    assert.is_truthy(text:find("  Memória do addon: 1234 KB · depósitos no banco guardados: ", 1, true))
     assert.is_truthy(text:find("  Versão: 0.1.0 (mais nova vista na guilda: 0.10.0)", 1, true))
     assert.is_truthy(text:find("  Personagem: Tester Vaz · posto: Lorde · Grão Lorde ou Lorde: sim", 1, true))
     assert.is_truthy(text:find("  Comunicação restrita: não · mensagens na fila: 0", 1, true))

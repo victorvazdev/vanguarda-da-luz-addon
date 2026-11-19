@@ -230,25 +230,39 @@ local STRATA = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5,
 -- eles ficavam por cima do painel. No Bate-papo isso não acontecia porque os
 -- quadros dele já são os mais altos ao abrir. Em combate não mexe: o painel
 -- tem botões seguros, e o pai deles fica travado.
-local function Raise()
-  if InCombatLockdown() then return end
-  local strata, level = host:GetFrameStrata() or "MEDIUM", host:GetFrameLevel() or 0
-  local function Visit(frame)
-    for _, child in ipairs({ frame:GetChildren() }) do
-      if child ~= overlay and child:IsShown() then
-        local s, l = child:GetFrameStrata(), child:GetFrameLevel() or 0
-        if s and (STRATA[s] or 0) > (STRATA[strata] or 0) then
-          strata, level = s, l
-        elseif s == strata and l > level then
-          level = l
-        end
-        Visit(child)
+-- Camada mais alta entre os quadros visíveis da janela da guilda. Roda a
+-- cada RAISE_INTERVAL com o painel aberto e percorre centenas de quadros:
+-- os filhos são lidos direto dos valores devolvidos (select), sem montar uma
+-- tabela por quadro, e as funções e o resultado ficam fora de Raise, para
+-- não criar lixo de memória.
+local topStrata, topLevel = "MEDIUM", 0
+local Visit
+
+local function VisitChildren(...)
+  for i = 1, select("#", ...) do
+    local child = select(i, ...)
+    if child and child ~= overlay and child:IsShown() then
+      local s, l = child:GetFrameStrata(), child:GetFrameLevel() or 0
+      if s and (STRATA[s] or 0) > (STRATA[topStrata] or 0) then
+        topStrata, topLevel = s, l
+      elseif s == topStrata and l > topLevel then
+        topLevel = l
       end
+      Visit(child)
     end
   end
+end
+
+function Visit(frame)
+  VisitChildren(frame:GetChildren())
+end
+
+local function Raise()
+  if InCombatLockdown() then return end
+  topStrata, topLevel = host:GetFrameStrata() or "MEDIUM", host:GetFrameLevel() or 0
   Visit(host)
-  overlay:SetFrameStrata(strata)
-  overlay:SetFrameLevel(math.min(level + 10, 9000))
+  overlay:SetFrameStrata(topStrata)
+  overlay:SetFrameLevel(math.min(topLevel + 10, 9000))
 end
 
 -- Abre o painel do addon no lugar de uma aba da Blizzard (o botão dela

@@ -1,5 +1,13 @@
--- Painel Início da janela do addon: mensagem do dia e informações da guilda
--- (com os links clicáveis para copiar), próximo evento e membros online.
+-- Painel Início: mensagem do dia e informações da guilda (com os links
+-- clicáveis para copiar), próximo evento e o cartão Guilda (membros online e
+-- rankings).
+--
+-- Na janela do addon, o cartão Guilda fica no espaço grande da esquerda e as
+-- informações da guilda à direita. Na janela da guilda (`compact`, cobrindo a
+-- aba Informações da Blizzard) as informações ficam no espaço grande e o
+-- cartão Guilda à direita, sem espaço para o ranking. O cartão Guilda mostra um ranking por vez (tempo
+-- com a guilda, abates honrosos ou ouro doado ao banco), escolhido nos botões
+-- em cima dele; a escolha fica em db.settings.homeRanking.
 local _, ns = ...
 
 local L = ns.L
@@ -13,7 +21,11 @@ local NEXT_H = 200         -- cartão "Próximo evento" na janela da guilda
 local NEXT_H_WIDE = 170    -- na janela do addon: sobra altura para o ranking
 local RANK_MAX = 10        -- linhas do ranking "Mais tempo jogando com a guilda"
 local RANK_LINE_H = 19     -- altura de cada linha do ranking
-local RANK_HEADER_H = 132  -- título, contagem, "Jogando com" e título do ranking
+local RANK_HEADER_H = 164  -- título, contagem, "Jogando com", botões e título do ranking
+local RANK_BUTTON_H = 22   -- botões que trocam o ranking
+local RANK_BUTTON_MAX_W = 110
+local RANK_VALUE_W = 170   -- coluna do valor (tempo, abates ou ouro com prata e cobre) no ranking
+local MOTD_H = 140
 local GAP = 16
 local PAD = 16
 local SCROLLBAR_W = 24 -- barra de rolagem do UIPanelScrollFrameTemplate, à direita
@@ -64,6 +76,26 @@ local function SetLinkedText(holder, raw)
   return Text.FindLinks(text)
 end
 
+-- Preenche as linhas de um ranking. `value(item)` dá o texto da coluna da
+-- direita; `mine` é a pessoa do jogador (em destaque).
+local function FillRanking(lines, ranking, mine, value)
+  for i, line in ipairs(lines) do
+    local item = ranking[i]
+    if item then
+      local name = Text.Escape(item.name)
+      if item.name == mine then name = Theme.Code("goldLight") .. name .. "|r" end
+      line.name:SetText(i .. ".  " .. name)
+      line.value:SetText(Theme.Code("gold") .. value(item) .. "|r")
+    elseif i == 1 then
+      line.name:SetText(Theme.Code("textMuted") .. L["Ninguém ainda."] .. "|r")
+      line.value:SetText("")
+    else
+      line.name:SetText("")
+      line.value:SetText("")
+    end
+  end
+end
+
 function Panel:Refresh()
   SetLinkedText(self.motd.holder, ns.Guild.Motd())
   local links = SetLinkedText(self.info.holder, ns.Guild.InfoText())
@@ -107,33 +139,57 @@ function Panel:Refresh()
   self.guild.player:SetText(Theme.Code("textMuted") .. L["Jogando com"] .. "|r "
     .. Text.Escape(ns.Guild.PlayerName() or "?"))
 
-  -- Quem mais joga com a guilda (só quem ainda está na guilda)
-  local lines = self.guild.rankLines
-  if #lines > 0 then
-    local inGuild = {}
-    for _, entry in ipairs(ns.Flavor.GuildRoster()) do inGuild[entry.name] = true end
-    local totals = {}
-    for person, seconds in pairs(ns.GuildTogether.Totals()) do
-      if inGuild[person] then totals[person] = seconds end
-    end
-    local ranking = ns.Together.Ranking(totals, #lines)
-    local _, mine = ns.GuildTogether.PersonTotal(ns.Guild.PlayerName() or "")
-    for i, line in ipairs(lines) do
-      local item = ranking[i]
-      if item then
-        local name = Text.Escape(item.name)
-        if item.name == mine then name = Theme.Code("goldLight") .. name .. "|r" end
-        line.name:SetText(i .. ".  " .. name)
-        line.time:SetText(Theme.Code("gold") .. ns.Together.Format(item.seconds) .. "|r")
-      elseif i == 1 then
-        line.name:SetText(Theme.Code("textMuted") .. L["Ninguém ainda."] .. "|r")
-        line.time:SetText("")
-      else
-        line.name:SetText("")
-        line.time:SetText("")
-      end
-    end
+  self:RefreshRanking()
+end
+
+-- Rankings do cartão Guilda: botão, título, total por pessoa, lista e valor.
+local RANKINGS = {
+  { key = "together", label = L["Tempo"], title = L["MAIS TEMPO JOGANDO COM A GUILDA"],
+    totals = function() return ns.GuildTogether.Totals() end,
+    list = function(totals, limit) return ns.Together.Ranking(totals, limit) end,
+    value = function(item) return ns.Together.Format(item.seconds) end },
+  { key = "kills", label = L["Abates"], title = L["MAIS ABATES HONROSOS"],
+    totals = function() return ns.GuildKills.Totals() end,
+    list = function(totals, limit) return ns.Kills.Ranking(totals, limit) end,
+    value = function(item) return tostring(item.kills) end },
+  { key = "gold", label = L["Ouro"], title = L["MAIS OURO DOADO AO BANCO"],
+    totals = function() return ns.GuildDonations.Totals() end,
+    list = function(totals, limit) return ns.Donations.Ranking(totals, limit) end,
+    value = function(item) return ns.Flavor.MoneyText(item.amount) end },
+}
+
+-- Ranking escolhido (o primeiro se não houver escolha).
+local function SelectedRanking()
+  local key = ns.db.settings.homeRanking
+  for _, ranking in ipairs(RANKINGS) do
+    if ranking.key == key then return ranking end
   end
+  return RANKINGS[1]
+end
+
+function HomePanel.SelectRanking(key)
+  ns.db.settings.homeRanking = key ~= RANKINGS[1].key and key or nil
+  ns.Fire("SETTINGS_UPDATED")
+end
+
+-- Ranking escolhido: só quem ainda está na guilda; a pessoa do jogador em
+-- destaque.
+function Panel:RefreshRanking()
+  local guild = self.guild
+  local selected = SelectedRanking()
+  for key, button in pairs(guild.rankButtons) do
+    -- Os não escolhidos com borda, para parecerem botões (o "ghost" não tem).
+    button:SetKind(key == selected.key and "primary" or "outline")
+  end
+  if #guild.rankLines == 0 then return end
+  guild.rankTitle:SetText(selected.title)
+  local inGuild = ns.Flavor.GuildRosterIndex().byName
+  local totals = {}
+  for person, value in pairs(selected.totals()) do
+    if inGuild[person] then totals[person] = value end
+  end
+  local _, mine = ns.GuildTogether.PersonTotal(ns.Guild.PlayerName() or "")
+  FillRanking(guild.rankLines, selected.list(totals, #guild.rankLines), mine, selected.value)
 end
 
 -- Texto com rolagem quando não cabe no cartão. Retorna o quadro que recebe os
@@ -159,6 +215,50 @@ local function LinkedText(parent)
   return holder
 end
 
+-- Botões dos rankings, título e linhas no cartão Guilda, com `width` de
+-- largura. Preenche guild.rankButtons, guild.rankTitle e guild.rankLines.
+-- Sem espaço para linhas (`count` = 0), nada aparece.
+local function BuildRanking(panel, guild, width, count)
+  guild.rankButtons, guild.rankLines = {}, {}
+  if count == 0 then return end
+  local buttonW = math.min(RANK_BUTTON_MAX_W, math.floor((width - 2 * 6) / #RANKINGS))
+  local previous
+  for _, ranking in ipairs(RANKINGS) do
+    local button = Theme.Button(guild, ranking.label, "outline", buttonW)
+    button:SetHeight(RANK_BUTTON_H)
+    if previous then
+      button:SetPoint("LEFT", previous, "RIGHT", 6, 0)
+    else
+      button:SetPoint("TOPLEFT", guild.player, "BOTTOMLEFT", 0, -12)
+    end
+    button:SetScript("OnClick", function()
+      HomePanel.SelectRanking(ranking.key)
+      panel:RefreshRanking()
+    end)
+    guild.rankButtons[ranking.key] = button
+    previous = button
+  end
+  local title = Theme.Text(guild, "smallStrong", "goldDeep")
+  title:SetPoint("TOPLEFT", guild.player, "BOTTOMLEFT", 0, -12 - RANK_BUTTON_H - 10)
+  title:SetWidth(width)
+  title:SetWordWrap(false)
+  guild.rankTitle = title
+  local above = title
+  for i = 1, count do
+    local name = Theme.Text(guild, "body")
+    name:SetPoint("TOPLEFT", above, "BOTTOMLEFT", 0, i == 1 and -6 or -2)
+    name:SetWidth(width - RANK_VALUE_W)
+    name:SetWordWrap(false)
+    local value = Theme.Text(guild, "body")
+    value:SetPoint("TOP", name, "TOP")
+    value:SetPoint("LEFT", name, "RIGHT")
+    value:SetWidth(RANK_VALUE_W)
+    value:SetJustifyH("RIGHT")
+    guild.rankLines[i] = { name = name, value = value }
+    above = name
+  end
+end
+
 -- Cria o painel dentro de `parent`, com `width` x `height`. `onOpenEvent(event)`
 -- é chamado pelo botão L["Ver no calendário"]. `compact` (janela da guilda) esconde
 -- a dica de copiar, que não cabe ao lado do título.
@@ -173,7 +273,7 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
   local motd = Card(frame, L["Mensagem do dia"])
   -- Cartões em pixels inteiros: a borda de cima não some (ver Theme.PixelSize).
   Theme.PixelPoint(motd, "TOPLEFT", frame, "TOPLEFT")
-  Theme.PixelSize(motd, leftW, 140)
+  Theme.PixelSize(motd, leftW, MOTD_H)
   motd.hint = Theme.Text(motd, "small", "textMuted")
   motd.hint:SetPoint("TOPRIGHT", -PAD, -18)
   motd.hint:SetText(L["Clique no texto para editar na janela da guilda"])
@@ -183,15 +283,36 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
   motd.holder.scroll:SetPoint("BOTTOMRIGHT", -PAD - SCROLLBAR_W, PAD)
   self.motd = motd
 
+  -- Espaços embaixo: o grande da esquerda e o da direita, embaixo do
+  -- próximo evento.
+  local nextH = compact and NEXT_H or NEXT_H_WIDE
+  local function BigSlot(card)
+    Theme.PixelPoint(card, "TOPLEFT", frame, "TOPLEFT", 0, -(MOTD_H + GAP))
+    Theme.PixelSize(card, leftW, height - MOTD_H - GAP)
+    return leftW, height - MOTD_H - GAP
+  end
+  local function RightSlot(card)
+    Theme.PixelPoint(card, "TOPRIGHT", frame, "TOPRIGHT", 0, -(nextH + GAP))
+    Theme.PixelSize(card, RIGHT_W, height - nextH - GAP)
+    return RIGHT_W, height - nextH - GAP
+  end
+
   -- Informações da guilda
   local info = Card(frame, L["Informações da guilda"])
-  Theme.PixelPoint(info, "TOPLEFT", motd, "BOTTOMLEFT", 0, -GAP)
-  Theme.PixelSize(info, leftW, height - 140 - GAP)
   info.hint = Theme.Text(info, "small", "textMuted")
-  info.hint:SetPoint("TOPRIGHT", -PAD, -18)
   info.hint:SetText(L["Clique num link para copiar"])
   info.holder = LinkedText(info)
-  info.holder.scroll:SetPoint("TOPLEFT", info.title, "BOTTOMLEFT", 0, -10 + TEXT_TOP)
+  if compact then
+    BigSlot(info)
+    info.hint:SetPoint("TOPRIGHT", -PAD, -18)
+    info.holder.scroll:SetPoint("TOPLEFT", info.title, "BOTTOMLEFT", 0, -10 + TEXT_TOP)
+  else
+    -- Cartão estreito: a dica fica embaixo do título.
+    RightSlot(info)
+    info.hint:SetPoint("TOPLEFT", info.title, "BOTTOMLEFT", 0, -4)
+    info.hint:SetPoint("RIGHT", -PAD, 0)
+    info.holder.scroll:SetPoint("TOPLEFT", info.hint, "BOTTOMLEFT", 0, -8 + TEXT_TOP)
+  end
   info.holder.scroll:SetPoint("BOTTOMRIGHT", -PAD - SCROLLBAR_W, PAD)
   self.info = info
 
@@ -269,7 +390,6 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
   -- Próximo evento
   local nextEvent = Card(frame, L["Próximo evento"])
   Theme.PixelPoint(nextEvent, "TOPRIGHT", frame, "TOPRIGHT")
-  local nextH = compact and NEXT_H or NEXT_H_WIDE
   Theme.PixelSize(nextEvent, RIGHT_W, nextH)
   nextEvent.name = Theme.Text(nextEvent, "bodyStrong", "heading")
   nextEvent.name:SetPoint("TOPLEFT", nextEvent.title, "BOTTOMLEFT", 0, -10)
@@ -289,36 +409,18 @@ function HomePanel.Create(parent, width, height, onOpenEvent, compact)
 
   -- Guilda
   local guild = Card(frame, L["Guilda"])
-  Theme.PixelPoint(guild, "TOPRIGHT", nextEvent, "BOTTOMRIGHT", 0, -GAP)
-  Theme.PixelSize(guild, RIGHT_W, height - nextH - GAP)
+  local guildW, guildH
+  if compact then guildW, guildH = RightSlot(guild) else guildW, guildH = BigSlot(guild) end
   guild.counts = Theme.Text(guild, "body")
   guild.counts:SetPoint("TOPLEFT", guild.title, "BOTTOMLEFT", 0, -10)
   guild.player = Theme.Text(guild, "body")
   guild.player:SetPoint("TOPLEFT", guild.counts, "BOTTOMLEFT", 0, -6)
   guild.player:SetPoint("RIGHT", -PAD, 0)
 
-  -- Ranking do tempo com a guilda: quantas linhas couberem no cartão (até 10).
-  guild.rankLines = {}
-  local rankCount = math.max(0, math.min(RANK_MAX, math.floor((height - nextH - GAP - RANK_HEADER_H) / RANK_LINE_H)))
-  if rankCount > 0 then
-    local rankTitle = Theme.Text(guild, "smallStrong", "goldDeep")
-    rankTitle:SetPoint("TOPLEFT", guild.player, "BOTTOMLEFT", 0, -14)
-    rankTitle:SetText(L["MAIS TEMPO JOGANDO COM A GUILDA"])
-    local previous = rankTitle
-    for i = 1, rankCount do
-      local name = Theme.Text(guild, "body")
-      name:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, i == 1 and -6 or -2)
-      name:SetPoint("RIGHT", -PAD - 90, 0)
-      name:SetWordWrap(false)
-      local time = Theme.Text(guild, "body")
-      time:SetPoint("TOP", name, "TOP")
-      time:SetPoint("RIGHT", -PAD, 0)
-      time:SetJustifyH("RIGHT")
-      guild.rankLines[i] = { name = name, time = time }
-      previous = name
-    end
-  end
+  -- Ranking: quantas linhas couberem no cartão (até 10).
+  local rankCount = math.max(0, math.min(RANK_MAX, math.floor((guildH - RANK_HEADER_H) / RANK_LINE_H)))
   self.guild = guild
+  BuildRanking(self, guild, guildW - 2 * PAD, rankCount)
 
   return self
 end

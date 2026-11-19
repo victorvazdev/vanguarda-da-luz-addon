@@ -101,6 +101,8 @@ function Comm.RequestLatest()
   Send("professionsRequest", ns.Protocol.ProfessionIdsRequest(), "NORMAL")
   Send("membersRequest", ns.Protocol.MembersRequest(), "NORMAL")
   Send("togetherRequest", ns.Protocol.TogetherRequest(), "NORMAL")
+  Send("killsRequest", ns.Protocol.KillsRequest(), "NORMAL")
+  Send("donationsRequest", ns.Protocol.DonationsRequest(ns.GuildDonations.Count()), "NORMAL")
   Send("gameEventsRequest", ns.Protocol.GameEventsRequest(), "NORMAL")
   Send("recruitRequest", ns.Protocol.RecruitRequest(), "NORMAL")
   Comm.SendVersion(ns.VersionCheck.Message())
@@ -142,6 +144,24 @@ end
 
 function Comm.SendTogetherList(message)
   Send("togetherList", message, "BULK")
+end
+
+-- Abates honrosos do próprio jogador e totais conhecidos repassados.
+function Comm.SendKills(message)
+  Send("kills", message, "NORMAL")
+end
+
+function Comm.SendKillsList(message)
+  Send("killsList", message, "BULK")
+end
+
+-- Depósitos no banco achados pelo próprio jogador e conhecidos repassados.
+function Comm.SendDonations(message)
+  Send("donations", message, "BULK")
+end
+
+function Comm.SendDonationsList(message)
+  Send("donationsList", message, "BULK")
 end
 
 -- Evento criado ou alterado no jogo pelo próprio jogador (só a última
@@ -269,6 +289,18 @@ function Comm.OnCommReceived(_, prefix, text, distribution, sender)
     ns.GuildTogether.OnRequest()
   elseif message.kind == "togetherList" then
     ns.GuildTogether.OnList(message)
+  elseif message.kind == "kills" then
+    ns.GuildKills.OnOwn(message, sender)
+  elseif message.kind == "killsRequest" then
+    ns.GuildKills.OnRequest()
+  elseif message.kind == "killsList" then
+    ns.GuildKills.OnList(message)
+  elseif message.kind == "donations" then
+    ns.GuildDonations.OnFound(message)
+  elseif message.kind == "donationsRequest" then
+    ns.GuildDonations.OnRequest(message)
+  elseif message.kind == "donationsList" then
+    ns.GuildDonations.OnList(message)
   elseif message.kind == "gameEvents" then
     ns.GuildEvents.OnReceived(message, sender)
   elseif message.kind == "gameEventsRequest" then

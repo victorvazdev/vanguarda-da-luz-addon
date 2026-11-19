@@ -30,6 +30,11 @@ function GuildTogether.PersonTotal(name)
   return totals[person], person
 end
 
+-- Apaga quem saiu da guilda. `members` = { [nome] = linha }.
+function GuildTogether.Prune(members)
+  Together.Prune(Store(), members)
+end
+
 function GuildTogether.Totals()
   return Together.Totals(Store(), ns.db.members)
 end

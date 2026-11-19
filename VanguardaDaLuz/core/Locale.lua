@@ -120,6 +120,11 @@ EN["%d membro(s)"] = "%d member(s)"
 EN["%d online"] = "%d online"
 EN["Jogando com"] = "Playing as"
 EN["MAIS TEMPO JOGANDO COM A GUILDA"] = "MOST TIME PLAYING WITH THE GUILD"
+EN["MAIS ABATES HONROSOS"] = "MOST HONORABLE KILLS"
+EN["MAIS OURO DOADO AO BANCO"] = "MOST GOLD DONATED TO THE BANK"
+EN["Tempo"] = "Time"
+EN["Abates"] = "Kills"
+EN["Ouro"] = "Gold"
 EN["Ninguém ainda."] = "Nobody yet."
 
 -- Calendário
@@ -211,6 +216,7 @@ EN["Membros online com o addon (vistos nesta sessão): %d de %d"] =
   "Online members with the addon (seen this session): %d of %d"
 EN["Mapa: compartilhando %s · mostrando %s · no minimapa %s · membros no mapa: %d"] =
   "Map: sharing %s · showing %s · on the minimap %s · members on the map: %d"
+EN["Memória do addon: %s · depósitos no banco guardados: %d"] = "Addon memory: %s · guild bank deposits stored: %d"
 EN["Diagnóstico:"] = "Diagnostics:"
 EN["Lembrete: %s começa em %d min (%s de Brasília)."] = "Reminder: %s starts in %d min (%s Brasília time)."
 EN["Há uma versão nova do addon (%s); a sua é %s. Atualize pela CurseForge."] =

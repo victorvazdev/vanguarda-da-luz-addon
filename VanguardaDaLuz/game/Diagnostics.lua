@@ -1,5 +1,6 @@
 -- Diagnóstico (/vdl status): versão, personagem e posto, calendário,
--- sincronização, restrição da comunicação, membros online com o addon e mapa.
+-- sincronização, restrição da comunicação, membros online com o addon, mapa e
+-- memória.
 -- Ajuda quando alguém diz que algo não chegou.
 local _, ns = ...
 
@@ -53,6 +54,10 @@ function Diagnostics.Lines()
   Add(string.format(L["Mapa: compartilhando %s · mostrando %s · no minimapa %s · membros no mapa: %d"],
     YesNo(ns.GuildMap.IsSharing()), YesNo(ns.GuildMap.IsShown()), YesNo(ns.GuildMap.IsOnMinimap()),
     #ns.GuildMap.Visible()))
+
+  local memory = ns.Flavor.AddonMemory()
+  Add(string.format(L["Memória do addon: %s · depósitos no banco guardados: %d"],
+    memory and string.format("%.0f KB", memory) or "?", ns.GuildDonations.Count()))
   return lines
 end
 

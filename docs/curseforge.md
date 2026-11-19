@@ -36,6 +36,7 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - Shows the guild's **Message of the Day** and **Guild Information**.
 - Links in those texts are clickable: clicking one puts it in a selected box, ready to copy with Ctrl+C.
 - Shows the **next event** (with how many members confirmed) and how many members are online.
+- Guild rankings (top 10, alts counted with their main), switched with buttons: **most time playing with the guild**, **most honorable kills** and **most gold donated to the guild bank**.
 
 ### Event calendar
 - Monthly calendar with the guild's events, the day's events and full event details.
@@ -139,6 +140,23 @@ Found a bug or have a suggestion? Talk to an officer in game or on the guild's D
 
 **Discord:** https://discord.gg/uGyPjtEsBw
 
+```
+
+## Changelog da versão 0.8.0
+
+```markdown
+### New
+- **Honorable kills ranking.** The Home tab shows the 10 guild members with the most honorable kills, with alts counted together with their main. Each member's addon shares its own lifetime total (the game only tells each player their own), so members without the addon are not listed. It updates a few seconds after a kill.
+- **Gold donated to the guild bank ranking.** Whenever someone with the addon opens the guild bank, the addon reads the bank's money log and keeps every deposit in its own record, shared with the whole guild, so deposits from members without the addon count too. The game only keeps the latest transactions, so the history starts with what the bank log still shows.
+
+### Changes
+- In the addon window's Home tab, the **Guild** card moved to the large space on the left and **Guild Information** moved to the right, under the next event. The guild window keeps the previous layout.
+- The Guild card shows one ranking at a time, chosen with the **Time**, **Kills** and **Gold** buttons.
+- `/vdl status` also shows how much memory the addon uses.
+
+### Fixes
+- Less memory use while the guild window is open: the check that keeps the addon's panel above Blizzard's frames no longer creates garbage every half second.
+- Time with the guild of members who left the guild is no longer kept and shared.
 ```
 
 ## Changelog da versão 0.7.1

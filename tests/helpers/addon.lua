@@ -23,6 +23,8 @@ local FILES = {
   "logic/Members.lua",
   "logic/Roster.lua",
   "logic/Together.lua",
+  "logic/Kills.lua",
+  "logic/Donations.lua",
   "logic/Keys.lua",
   "logic/Chat.lua",
   "logic/GameEvents.lua",

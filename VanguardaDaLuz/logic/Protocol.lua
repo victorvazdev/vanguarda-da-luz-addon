@@ -31,6 +31,16 @@
 --   I|<versão>  Versão do addon do remetente (enviada com Q; quem tem uma
 --               mais nova responde com a sua; logic/Version.lua)
 --
+-- As letras maiúsculas acabaram; as mensagens novas usam minúsculas:
+--   h|<total>   Abates honrosos do próprio remetente (logic/Kills.lua)
+--   i           Pedido: "alguém me manda os abates honrosos que conhece?"
+--   k|<lista>   Abates honrosos conhecidos (logic/Kills.lua)
+--   g|<lista>   Depósitos de ouro no banco da guilda achados no registro do
+--               banco por quem o abriu (logic/Donations.lua)
+--   j|<n>       Pedido: "alguém conhece mais que os <n> depósitos no banco que
+--               eu tenho?" (só responde quem tem mais)
+--   l|<lista>   Depósitos no banco conhecidos (logic/Donations.lua)
+--
 -- A AceComm divide e junta as mensagens grandes.
 local _, ns = ...
 
@@ -112,6 +122,30 @@ function Protocol.TogetherList(payload)
   return "V|" .. payload
 end
 
+function Protocol.Kills(payload)
+  return "h|" .. payload
+end
+
+function Protocol.KillsRequest()
+  return "i"
+end
+
+function Protocol.KillsList(payload)
+  return "k|" .. payload
+end
+
+function Protocol.Donations(payload)
+  return "g|" .. payload
+end
+
+function Protocol.DonationsRequest(count)
+  return "j|" .. (count or 0)
+end
+
+function Protocol.DonationsList(payload)
+  return "l|" .. payload
+end
+
 function Protocol.GameEvents(encoded)
   return "E|" .. encoded
 end
@@ -148,6 +182,8 @@ end
 -- { kind = "member", at, payload }, { kind = "membersRequest" },
 -- { kind = "membersList", payload }, { kind = "together", payload },
 -- { kind = "togetherRequest" }, { kind = "togetherList", payload },
+-- { kind = "kills", payload }, { kind = "killsRequest" }, { kind = "killsList", payload },
+-- { kind = "donations", payload }, { kind = "donationsRequest", count }, { kind = "donationsList", payload },
 -- { kind = "gameEvents", encoded, list }, { kind = "gameEventsRequest" },
 -- { kind = "position", payload }, { kind = "recruit", payload },
 -- { kind = "recruitRequest" }, { kind = "version", version } ou nil
@@ -173,6 +209,17 @@ function Protocol.Parse(message)
   local gameKind, gameEvents = string.match(message, "^([EC])|(VDLB.+)$")
   if gameKind then return { kind = "gameEvents", encoded = gameEvents, list = gameKind == "C" } end
   if message == "U" then return { kind = "togetherRequest" } end
+  if message == "i" then return { kind = "killsRequest" } end
+  local donationsCount = string.match(message, "^j|(%d+)$")
+  if donationsCount then return { kind = "donationsRequest", count = tonumber(donationsCount) } end
+  local donations = string.match(message, "^g|(%d.*)$")
+  if donations then return { kind = "donations", payload = donations } end
+  local donationsList = string.match(message, "^l|(%d.*)$")
+  if donationsList then return { kind = "donationsList", payload = donationsList } end
+  local kills = string.match(message, "^h|(%d.*)$")
+  if kills then return { kind = "kills", payload = kills } end
+  local killsList = string.match(message, "^k|(%d.*)$")
+  if killsList then return { kind = "killsList", payload = killsList } end
   local together = string.match(message, "^T|(%d.*)$")
   if together then return { kind = "together", payload = together } end
   local togetherList = string.match(message, "^V|(%d.*)$")

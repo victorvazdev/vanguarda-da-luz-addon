@@ -130,6 +130,8 @@ local function Build()
   ns.On("SETTINGS_UPDATED", MainFrame.Refresh)
   ns.On("MEMBERS_UPDATED", MainFrame.Refresh)
   ns.On("TOGETHER_UPDATED", MainFrame.Refresh)
+  ns.On("KILLS_UPDATED", MainFrame.Refresh)
+  ns.On("DONATIONS_UPDATED", MainFrame.Refresh)
   ns.On("CHAT_UPDATED", MainFrame.Refresh)
   ns.On("RECRUIT_UPDATED", MainFrame.Refresh)
 end

@@ -17,6 +17,7 @@ local function RequestWhenMember()
     ns.GuildProfessions.Announce()
     ns.GuildMembers.Announce()
     ns.GuildTogether.Announce()
+    ns.GuildKills.Announce()
     -- Conta sem main: pergunta depois de a tela do jogo assentar.
     C_Timer.After(ns.Config.MAIN_PROMPT_DELAY, ns.MainPrompt.ShowIfNeeded)
   end
@@ -33,6 +34,14 @@ local function RosterChanged()
     rosterPending = false
     -- O main pode ter entrado ou saído da guilda.
     if requested then ns.GuildMembers.Announce() end
+    -- Quem saiu da guilda sai dos rankings guardados (só com o roster da
+    -- guilda do addon carregado).
+    local index = ns.Flavor.GuildRosterIndex()
+    if ns.Guild.IsMember() and #index.roster > 0 then
+      ns.GuildTogether.Prune(index.byName)
+      ns.GuildKills.Prune(index.byName)
+      ns.GuildDonations.Prune(index.byName)
+    end
     ns.Fire("PROFESSIONS_UPDATED")
     ns.Fire("GUILD_UPDATED")
   end)
@@ -55,6 +64,7 @@ local function OnLogin()
     RequestWhenMember()
   end)
   ns.GuildTogether.Start()
+  ns.GuildKills.Start()
   ns.GuildMap.Start()
   ns.EventReminder.Start()
   -- Reenvia mensagens adiadas se o aviso de fim da restrição não chegar.
@@ -68,6 +78,8 @@ local function Start()
   ns.GuildProfessions.Init()
   ns.GuildMembers.Init()
   ns.GuildTogether.Init()
+  ns.GuildKills.Init()
+  ns.GuildDonations.Init()
   ns.GuildMap.Init()
   ns.GuildChat.Init()
   ns.MinimapButton.Init()
@@ -95,6 +107,14 @@ local function Start()
   end)
   Register("ADDON_RESTRICTION_STATE_CHANGED", ns.Comm.OnRestrictionChanged)
   Register("GROUP_ROSTER_UPDATE", ns.GuildMap.OnGroupChanged)
+  Register("PLAYER_PVP_KILLS_CHANGED", ns.GuildKills.OnKillsChanged)
+  -- Banco da guilda: abrir e fechar (o evento novo e o antigo), registro e dinheiro.
+  Register("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", ns.GuildDonations.OnInteractionShow)
+  Register("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", ns.GuildDonations.OnInteractionHide)
+  Register("GUILDBANKFRAME_OPENED", ns.GuildDonations.OnBankOpened)
+  Register("GUILDBANKFRAME_CLOSED", ns.GuildDonations.OnBankClosed)
+  Register("GUILDBANKLOG_UPDATE", ns.GuildDonations.ReadLog)
+  Register("GUILDBANK_UPDATE_MONEY", ns.GuildDonations.Query)
 end
 
 events:SetScript("OnEvent", function(_, event, ...)

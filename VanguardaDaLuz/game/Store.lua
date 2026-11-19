@@ -11,6 +11,8 @@
 --   professions = { [personagem] = { t, p = { { n, l, m } } } }, -- logic/Professions.lua
 --   members = { [personagem] = { t, i, m } },                   -- logic/Members.lua
 --   together = { [personagem] = segundos },                       -- logic/Together.lua
+--   kills = { [personagem] = abates honrosos },                   -- logic/Kills.lua
+--   donations = { { w = quem, a = cobre, t = horário aproximado } }, -- logic/Donations.lua
 --   settings = { minimap = { angle, hide }, main = personagem,
 --                mainAsked = { [personagem] = true },  -- responderam "Não" ao popup do main
 --                mainPromptOff = true,                 -- "Não perguntar mais"

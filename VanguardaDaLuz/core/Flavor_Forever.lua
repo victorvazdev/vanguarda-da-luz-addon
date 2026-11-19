@@ -445,6 +445,74 @@ function Flavor.ClassColorCode(classFile)
   return nil
 end
 
+-- Abates honrosos do próprio personagem (GetPVPLifetimeStats), ou nil.
+function Flavor.HonorableKills()
+  if not GetPVPLifetimeStats then return nil end
+  local ok, kills = pcall(GetPVPLifetimeStats)
+  if not ok or Flavor.IsSecret(kills) or type(kills) ~= "number" or kills < 0 then return nil end
+  return math.floor(kills)
+end
+
+-- Banco da guilda: a interação com o banqueiro (PLAYER_INTERACTION_MANAGER_*)
+-- é a do banco da guilda?
+function Flavor.IsGuildBankInteraction(kind)
+  local types = Enum and Enum.PlayerInteractionType
+  return types ~= nil and types.GuildBanker ~= nil and kind == types.GuildBanker
+end
+
+-- Pede ao servidor o registro de dinheiro do banco da guilda (a resposta
+-- chega em GUILDBANKLOG_UPDATE). Só funciona com o banco aberto.
+function Flavor.QueryMoneyLog()
+  if QueryGuildBankLog and MAX_GUILDBANK_TABS then pcall(QueryGuildBankLog, MAX_GUILDBANK_TABS + 1) end
+end
+
+local function MoneyTransaction(i)
+  local kind, who, amount, years, months, days, hours = GetGuildBankMoneyTransaction(i)
+  if Flavor.AnySecret(kind, who, amount, years, months, days, hours) then return nil end
+  return { kind = kind, who = who, amount = amount, years = years, months = months, days = days, hours = hours }
+end
+
+-- Registro de dinheiro carregado: { { kind, who, amount, years, months,
+-- days, hours }, ... }, vazio se ainda não chegou.
+function Flavor.MoneyLog()
+  local log = {}
+  if not (GetNumGuildBankMoneyTransactions and GetGuildBankMoneyTransaction) then return log end
+  local ok, count = pcall(GetNumGuildBankMoneyTransactions)
+  if not ok or Flavor.IsSecret(count) or type(count) ~= "number" then return log end
+  for i = 1, count do
+    local read, item = pcall(MoneyTransaction, i)
+    if read and item then log[#log + 1] = item end
+  end
+  return log
+end
+
+-- Valor em cobre com os ícones de ouro, prata e cobre do jogo.
+function Flavor.MoneyText(copper)
+  local format = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
+  if format then
+    local ok, text = pcall(format, copper)
+    if ok and type(text) == "string" then return text end
+  end
+  local gold, silver, rest = math.floor(copper / 10000), math.floor(copper / 100) % 100, copper % 100
+  if gold > 0 then return gold .. "g " .. silver .. "s" end
+  if silver > 0 then return silver .. "s " .. rest .. "c" end
+  return rest .. "c"
+end
+
+-- Memória usada pelo addon, em KB, ou nil. UpdateAddOnMemoryUsage percorre
+-- todos os addons: só para o diagnóstico, nunca num laço.
+function Flavor.AddonMemory()
+  local update = UpdateAddOnMemoryUsage or (C_AddOns and C_AddOns.UpdateAddOnMemoryUsage)
+  local get = GetAddOnMemoryUsage or (C_AddOns and C_AddOns.GetAddOnMemoryUsage)
+  if not (update and get) then return nil end
+  local ok, kb = pcall(function()
+    update()
+    return get(ns.name)
+  end)
+  if not ok or Flavor.IsSecret(kb) or type(kb) ~= "number" then return nil end
+  return kb
+end
+
 -- Estado do grupo para o tempo com a guilda: o jogador ({ afk, zone }) e
 -- quem está no grupo ({ guild, connected, afk, zone }). Os membros são
 -- achados no roster pelo GUID, porque UnitName("party1") traz só o primeiro

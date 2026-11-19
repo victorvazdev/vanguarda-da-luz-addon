@@ -125,6 +125,12 @@ As mensagens usam o canal `GUILD` com o prefixo `VanguardaDaLuz`. A AceComm divi
 | `S\|<horário>\|<quem salvou>\|<texto>` | Mensagem de recrutamento salva por último (cargo aceito; ver abaixo) |
 | `Z` | Pedido da mensagem de recrutamento, enviado junto com o `Q` (só cargos aceitos respondem) |
 | `I\|<versão>` | Versão do addon do remetente, enviada junto com o `Q`; quem tem uma mais nova responde com a sua (ver abaixo) |
+| `h\|<total>` | Abates honrosos do próprio remetente (as letras maiúsculas acabaram; as mensagens novas usam minúsculas) |
+| `i` | Pedido dos abates honrosos conhecidos, enviado junto com o `Q` |
+| `k\|<lista>` | Abates honrosos conhecidos de todos os membros |
+| `g\|<lista>` | Depósitos de ouro achados no registro do banco da guilda por quem o abriu |
+| `j\|<n>` | Pedido dos depósitos no banco conhecidos, enviado junto com o `Q`, com quantos o remetente já tem; só responde quem tem mais |
+| `l\|<lista>` | Depósitos no banco conhecidos |
 
 - Só responde quem tem cargo aceito e dados mais novos. A resposta sai depois de uma espera aleatória de 1 a 6 s e é cancelada se outro remetente avisar (`H`) ou enviar (`D`) a mesma exportação ou uma mais nova.
 - Ao confirmar uma importação, um Grão Lorde ou Lorde envia a exportação à guilda na hora.
@@ -139,7 +145,31 @@ A janela do addon abre sempre no Início, com:
 - **Mensagem do dia** (`GetGuildRosterMOTD`) e **Informações da guilda** (`GetGuildInfoText`), atualizadas quando a guilda muda (`GUILD_MOTD` e `GUILD_ROSTER_UPDATE`);
 - os links desses textos (`http://`, `https://` e `www.`) em azul. O jogo não deixa um addon copiar para a área de transferência, então o clique no link abre uma caixa por cima do texto, com o link já selecionado, para o Ctrl+C. Clicar fora da caixa, Esc ou Enter a fecham. Os links são hyperlinks do próprio addon (`|Hvdlurl:…|h`); se o jogo não aceitar hyperlinks no quadro, a caixa já mostra o primeiro link das informações;
 - **Próximo evento** ativo, com o horário de Brasília, quantos confirmaram no jogo e o botão **Ver no calendário**, que abre a aba Eventos nesse dia;
-- **Guilda**: total de membros, quantos estão online e o personagem com que você está jogando.
+- **Guilda**: total de membros, quantos estão online, o personagem com que você está jogando e um ranking de 10 pessoas, escolhido nos botões **Tempo** ("Mais tempo jogando com a guilda"), **Abates** ("Mais abates honrosos") e **Ouro** ("Mais ouro doado ao banco"). A escolha fica salva por conta (`settings.homeRanking`). Em todos, os alts somam no main, só entra quem ainda está na guilda e você aparece em destaque.
+
+O cartão **Guilda** fica no espaço grande da esquerda, embaixo da mensagem do dia, e as **Informações da guilda** à direita, embaixo do próximo evento, com a dica "Clique num link para copiar" embaixo do título. Na janela da guilda (aba Informações coberta pelo addon) a ordem é a de antes: as informações no espaço grande e o cartão Guilda à direita, sem espaço para o ranking.
+
+### Abates honrosos
+
+O ranking "Mais abates honrosos" do Início mostra quem matou mais jogadores da facção inimiga com honra.
+
+- O jogo só informa os abates honrosos do próprio personagem (`GetPVPLifetimeStats()`, o total desde sempre), então cada addon anuncia os seus. Quem não tem o addon não aparece.
+- Não há um número confiável de "todos os abates de jogadores": a estatística "Total de golpes fatais" (1487) do WoW Forever também conta criaturas (confirmado no jogo).
+- O addon lê os abates ao entrar no jogo, a cada abate (`PLAYER_PVP_KILLS_CHANGED`) e a cada 5 min. Anuncia (`h`) só quando o número mudou, 15 s depois de um abate (vários abates seguidos viram um anúncio). Ao entrar ou em **Sincronizar**, pede os totais (`i`), e qualquer membro responde com os que conhece (`k`). Como o total só cresce, vale sempre o maior valor recebido.
+- O total é por pessoa: os alts somam no main. Só entra quem ainda está na guilda, e você aparece em destaque.
+- Os abates não entram no backup `VDLB1`: o jogo guarda o número, e cada membro anuncia de novo.
+
+### Ouro doado ao banco
+
+O ranking "Mais ouro doado ao banco" do Início soma os depósitos de ouro no banco da guilda.
+
+- O jogo não guarda um total por membro. O banco tem um registro de dinheiro com as últimas transações (`GetGuildBankMoneyTransaction`: tipo, quem, valor e há quanto tempo, em anos, meses, dias e horas), que só chega com o banco aberto num banqueiro (confirmado no WoW Forever).
+- O addon guarda o próprio registro de depósitos (`db.donations`). Ao abrir o banco (`PLAYER_INTERACTION_MANAGER_FRAME_SHOW` com `GuildBanker`, ou `GUILDBANKFRAME_OPENED`), ele pede o registro ao servidor (`QueryGuildBankLog(MAX_GUILDBANK_TABS + 1)`), sem precisar abrir a aba de registro; pede de novo 1 s depois de o dinheiro do banco mudar (`GUILDBANK_UPDATE_MONEY`, o próprio depósito). A leitura acontece em `GUILDBANKLOG_UPDATE`, também quando a aba da Blizzard pede.
+- Só entram os depósitos (`deposit`); saques e a renda automática da guilda (`depositSummary`) ficam de fora. Cada depósito ganha um horário aproximado (agora menos o tempo decorrido). Um depósito não é contado de novo se já houver um da mesma pessoa, com o mesmo valor e horário a até 2 h. Duas doações iguais na mesma hora aparecem duas vezes no registro e contam duas vezes.
+- Os depósitos novos vão para a guilda (`g`). Ao entrar ou em **Sincronizar**, o addon pede os conhecidos (`j`, com quantos já tem), e responde quem tem mais (`l`). A lista recebida passa pela mesma regra, então todos ficam com o mesmo registro. Os depósitos de quem saiu da guilda são apagados quando o roster muda.
+- Entra também quem doa sem o addon, desde que alguém com o addon abra o banco antes de o registro do banco descartar a transação. O histórico começa nas transações que o registro ainda guarda quando alguém usa a versão com o ranking.
+- O valor aparece completo, em ouro, prata e cobre, com os ícones do jogo (`GetCoinTextureString`).
+- Os depósitos não entram no backup `VDLB1`.
 
 ### Lista de presença
 
@@ -238,7 +268,7 @@ O addon soma quanto tempo cada pessoa joga junto com a guilda.
 - Cada addon conta só o próprio tempo. Quem não tem o addon não acumula tempo. O tempo de antes da instalação não entra, e o total acumula para sempre.
 - O total é por pessoa: os alts somam no main (main/alt das Configurações).
 - O addon anuncia o próprio total (`T`) ao entrar no jogo e a cada 10 min enquanto ele cresce. Ao entrar ou em **Sincronizar**, pede os totais (`U`), e qualquer membro responde com os que conhece (`V`). Como o total só cresce, vale sempre o maior valor recebido.
-- Aparece na coluna **TEMPO** da aba Membros da janela do addon (ordenável; na janela da guilda a coluna não aparece) e no ranking "Mais tempo jogando com a guilda" do Início da janela do addon (as 10 pessoas com mais tempo que ainda estão na guilda). No Início da janela da guilda o espaço é pequeno, e o ranking não aparece.
+- Aparece na coluna **TEMPO** da aba Membros da janela do addon (ordenável; na janela da guilda a coluna não aparece) e no ranking "Mais tempo jogando com a guilda" do Início da janela do addon (as 10 pessoas com mais tempo que ainda estão na guilda).
 
 ### Membros no mapa
 
@@ -337,7 +367,8 @@ Nenhum addon consegue consultar a CurseForge de dentro do jogo. Por isso, cada a
 - o estado da sincronização;
 - se a comunicação está restrita e quantas mensagens esperam na fila;
 - quantos membros online mandaram alguma mensagem do addon nesta sessão (quem tem o addon e está ativo);
-- se o mapa está compartilhando, mostrando e mostrando no minimapa, e quantos membros aparecem nele.
+- se o mapa está compartilhando, mostrando e mostrando no minimapa, e quantos membros aparecem nele;
+- a memória usada pelo addon (`GetAddOnMemoryUsage`, em KB) e quantos depósitos no banco estão guardados.
 
 ### Idiomas
 
@@ -358,7 +389,10 @@ Os horários do addon estão em **Brasília** (UTC−3). Quando o horário do se
 - Quando o jogo avisa várias vezes seguidas que o roster mudou (alguém entrou ou saiu, o pedido de atualização a cada minuto), o reanúncio do main/alt e a atualização das janelas rodam uma vez, 1 s depois do primeiro aviso, e o main/alt é conferido pelo roster guardado, sem ler a lista da comunidade membro por membro.
 - O minimapa confere os pontos 10 vezes por segundo sem criar tabelas: a própria posição vem de `UnitPosition("player")` (só números; cada vetor de `C_Map` leva uma cópia de todos os métodos, ~1 KB), a lista de membros fica guardada em `GuildMap.Visible` até chegar uma posição, mudar o roster, o grupo (`GROUP_ROSTER_UPDATE`) ou uma opção (ou 1 s, para as posições vencidas), e os pontos só se redesenham quando muda a posição, a direção, o zoom ou a lista. Antes eram ~5 KB de lixo a cada conferência (~50 KB/s). Sem `UnitPosition`, vale o caminho pelo mapa (`GetPlayerMapPosition` + `GetWorldPosFromMapPos`, com um vetor de entrada só).
 - O mapa-múndi aberto compara mapa, zoom e tamanho campo a campo, sem montar uma chave em texto.
-- O teste de fumaça falha se mensagens recebidas ou o minimapa voltarem a ler o roster, ou se o minimapa parado criar lixo ou vetores.
+- Com a janela da guilda aberta, o painel do addon confere a cada 0,5 s a camada dos quadros da Blizzard. A conferência percorre centenas de quadros lendo os filhos direto dos valores devolvidos (`select`), sem montar uma tabela por quadro.
+- Dados que crescem com o tempo: presenças, profissões, item level e main/alt, tempo com a guilda, abates honrosos e depósitos no banco de quem saiu da guilda são apagados (os últimos três quando o roster muda, só com o roster da guilda do addon carregado).
+- O registro de depósitos no banco é o único que cresce com o tempo. A comparação de um depósito novo só olha os guardados da mesma pessoa com o mesmo valor (5.000 depósitos recebidos de novo levam milissegundos), e o pedido do login leva quantos depósitos a pessoa já tem (`j|<n>`): só responde quem tem mais, então a lista inteira não é reenviada a cada login.
+- O teste de fumaça falha se mensagens recebidas ou o minimapa voltarem a ler o roster, ou se o minimapa parado criar lixo ou vetores. O teste das doações falha se a comparação de um registro grande ficar lenta.
 
 ## Estrutura
 
@@ -372,12 +406,14 @@ VanguardaDaLuz/                  addon (vai para a pasta AddOns)
            Time (fusos), Protocol (mensagens), Trust (cargos), Text (UTF-8 e links), Alert (alerta de raide),
            Attendance e PresenceCodec (lista de presença e string VDLP1), Professions,
            Members (item level e main/alt), Roster (lista de membros), Together (tempo com a guilda),
+           Kills (abates honrosos), Donations (ouro doado ao banco),
            Keys (combinação do atalho de teclado), Chat (linhas e canais do bate-papo),
            GameEvents (eventos criados no jogo), BackupCodec (string VDLB1), Recruit (mensagem de recrutamento),
            Version (comparação de versões), Reminders (lembrete antes do evento)
   game/    Store (SavedVariables), Guild, Comm (AceComm), Warning (alerta de raide),
            Presence (lista de presença), GuildProfessions (profissões), GuildMembers (item level e main/alt),
-           GuildTogether (tempo com a guilda), Keybind (atalho para abrir o addon), GuildChat (bate-papo),
+           GuildTogether (tempo com a guilda), GuildKills (abates honrosos),
+           GuildDonations (ouro doado ao banco), Keybind (atalho para abrir o addon), GuildChat (bate-papo),
            GuildEvents (eventos criados no jogo), Backup (backup e restauração),
            GuildRecruit (mensagem de recrutamento), VersionCheck (aviso de versão nova),
            EventReminder (lembrete antes do evento), Diagnostics (/vdl status)
@@ -414,13 +450,16 @@ scripts/   setup-dev.sh, check.sh, package.sh, install.sh
   professions = { ["Nome Sobrenome"] = { t = horário, p = { { n, l, m } } } },
   members = { ["Nome Sobrenome"] = { t = horário, i = itemLevel, m = main } },
   together = { ["Nome Sobrenome"] = segundos },
+  kills = { ["Nome Sobrenome"] = abatesHonrosos },
+  donations = { { w = "Nome Sobrenome", a = cobre, t = horárioAproximado } },  -- depósitos no banco
   settings = { minimap = { angle, hide }, main = "Nome Sobrenome",
                mainAsked = { ["Nome Sobrenome"] = true }, mainPromptOff = true, -- popup do main
                keybind = "SHIFT-V",                                           -- atalho do addon
                guildWindow = { events|professions|admin|chat|info|members|roster = false }, -- desligadas
                map = { share = false, show = false, minimap = false },        -- mapa: desligados
                nearby = { plates = false, tooltip = false, scale = 2 },       -- membros por perto: desligados, tamanho do logo
-               recruitChannel = "Geral" },                                    -- canal do recrutamento
+               recruitChannel = "Geral",                                      -- canal do recrutamento
+               homeRanking = "kills"|"gold" },                                -- ranking do Início (nil = tempo)                                    -- canal do recrutamento
   recruit = { text, at = horário, by = "Nome Sobrenome" },                    -- mensagem de recrutamento
   reminded = { [id] = horárioDoEvento },                                      -- eventos já lembrados
 }
@@ -509,6 +548,21 @@ Estes pontos vieram da documentação ou da comunidade e ainda precisam ser conf
 3. **Próximo evento** mostra o evento futuro mais próximo. **Ver no calendário** abre a aba Eventos com o dia e o evento selecionados.
 4. Mude a mensagem do dia na janela da guilda: o Início atualiza.
 5. Feche e abra a janela em outra aba: ela volta ao Início.
+6. O cartão **Guilda** fica embaixo da mensagem do dia e as **Informações da guilda** à direita, embaixo do próximo evento, com a rolagem e os links funcionando. Na janela da guilda (J › Informações), a ordem é a de antes.
+7. Os botões **Tempo**, **Abates** e **Ouro** trocam o ranking e o título. Feche e abra a janela: continua no último escolhido.
+
+### Abates honrosos
+
+1. No Início, "Mais abates honrosos" mostra você com o mesmo número de `/run print(GetPVPLifetimeStats())` (somado aos seus alts que já entraram com o addon).
+2. Mate um jogador da Horda que dê honra: o seu número no ranking sobe na hora (confirma que `PLAYER_PVP_KILLS_CHANGED` dispara no WoW Forever). Se não subir, sobe em até 5 min.
+3. Em até 15 s depois do abate, outro membro online vê o número novo no Início dele. Faça `/reload` e **Sincronizar**: os números continuam.
+
+### Ouro doado ao banco
+
+1. Abra o banco da guilda num banqueiro, sem abrir a aba de registro. No Início › **Ouro**, aparecem os depósitos do registro do banco (compare com a aba de registro de dinheiro).
+2. Feche e abra o banco de novo: os valores não dobram.
+3. Deposite 1 ouro: o seu valor sobe em 1 ouro em poucos segundos. Outro membro online vê o mesmo valor no Início dele.
+4. Um membro que não abriu o banco faz `/reload` e **Sincronizar**: recebe os depósitos.
 
 ### Menu do minimapa
 

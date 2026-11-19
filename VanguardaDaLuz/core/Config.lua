@@ -52,6 +52,13 @@ ns.Config = {
   -- Tempo com a guilda: intervalo da contagem e de anúncio do total, em segundos.
   TOGETHER_TICK = 60,
   TOGETHER_ANNOUNCE_INTERVAL = 600,
+  -- Abates honrosos: anuncia KILLS_ANNOUNCE_DELAY segundos depois de um abate
+  -- (junta vários seguidos num anúncio) e confere a cada KILLS_CHECK segundos.
+  KILLS_ANNOUNCE_DELAY = 15,
+  KILLS_CHECK = 300,
+  -- Banco da guilda: espera antes de pedir o registro de dinheiro (ao abrir o
+  -- banco e depois de o dinheiro mudar; junta vários pedidos seguidos).
+  DONATIONS_QUERY_DELAY = 1,
 
   -- Membros no mapa-múndi: envio da própria posição a cada MAP_SEND_INTERVAL
   -- segundos se andou mais que MAP_MOVE_EPSILON (fração do mapa) ou mudou de
