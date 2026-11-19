@@ -20,13 +20,13 @@ Vanguarda da Luz Guild Hub
 ## Resumo
 
 ```
-Event calendar, attendance, professions and raid alerts for members of the Vanguarda da Luz guild.
+Event calendar, attendance, professions, guild rankings and raid alerts for members of the Vanguarda da Luz guild.
 ```
 
 ## Descrição
 
 ```markdown
-**Vanguarda da Luz Guild Hub** is the companion addon of the **Vanguarda da Luz** guild on WoW Forever. It brings the guild's event calendar into the game, lets members confirm attendance, shows everyone's professions and lets officers send raid alerts.
+**Vanguarda da Luz Guild Hub** is the companion addon of the **Vanguarda da Luz** guild on WoW Forever. It brings the guild's event calendar into the game, lets members confirm attendance, shows everyone's professions, item levels and positions on the map, ranks members by time together, honorable kills and gold donated to the guild bank, and lets officers send raid alerts.
 
 > **Guild members only.** Every feature requires being in the guild named *Vanguarda da Luz*. Players outside the guild only see a welcome window with the guild's Discord invite. The interface is in **English** or **Brazilian Portuguese**, following the game language.
 
@@ -84,24 +84,27 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 - They also show on the minimap when they are close, following the minimap zoom and rotation. Members in your group are left out, since Blizzard already shows them.
 - Sharing your position, showing members on the map and showing them on the minimap can each be turned off in Settings.
 
-### Time with the guild
-- Counts how long each member plays grouped with guildmates (same zone, nobody away). Alts add up to the main.
-- Shown in the Members list and as a "most time playing with the guild" ranking on the Home tab.
+### Guild rankings
+- The Home tab shows a top 10 of guild members, switched with the **Time**, **Kills** and **Gold** buttons. Alts add up to their main, and only current guild members are listed.
+- **Time with the guild:** counts how long each member plays grouped with guildmates (same zone, nobody away). Also shown in the Members list.
+- **Honorable kills:** each member's lifetime honorable kills, shared by their addon (the game only tells each player their own), updated a few seconds after a kill.
+- **Gold donated to the guild bank:** whenever someone with the addon opens the guild bank, the addon reads the bank's money log and keeps every deposit in a record shared with the whole guild, so deposits from members without the addon count too. Amounts show in gold, silver and copper. The game only keeps the latest transactions, so the history starts with what the bank log still shows.
 
 ### Members nearby
 - The guild logo shows above the nameplate of guild members near you (with friendly nameplates on), and their tooltip shows rank, item level and main/alt.
+- The logo size can be raised up to three times the default in Settings.
 
 ### Guild chat
 - A **Chat** tab with the guild chat, including recent messages from before you logged in: names in class color, "(alt of …)" for alts, clickable links to copy, item and quest tooltips on mouseover, and a click on a name to whisper or invite. Write to the guild from the tab (Shift+click items and quests to link them). Officers also get the officer channel.
 
 ### Settings
-- A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon, turn sharing your map position or showing members on the map and minimap on or off, and turn each guild window feature on or off.
+- A **Settings** tab to set your main, show or hide the minimap button, choose a **key binding** to open the addon, turn sharing your map position or showing members on the map and minimap on or off, set the members nearby logo and tooltip line (and the logo size), and turn each guild window feature on or off.
 
 ### New version warning
 - The addon tells you in chat, once per session, when a guild member has a newer version. No addon can check CurseForge from inside the game, so the warning shows up once someone in the guild has updated.
 
 ### Diagnostics
-- `/vdl status` shows the addon version, your rank, calendar and sync state, whether addon communication is restricted, how many online members have the addon and the map state. Useful when something did not arrive.
+- `/vdl status` shows the addon version, your rank, calendar and sync state, whether addon communication is restricted, how many online members have the addon, the map state and how much memory the addon uses. Useful when something did not arrive.
 
 ### Guild window integration
 - Adds **Events**, **Professions** and **Administration** tabs to the *Guild & Communities* window (J), below Blizzard's own tabs.
@@ -109,7 +112,7 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 
 ## Permissions
 - **Guild Master** and the **"Lorde"** rank: import events, create, edit and cancel events in game, export attendance, create and restore backups, write and send the recruitment message and send raid alerts. Other members only accept data and alerts from these ranks, verified against the guild roster.
-- **All members**: calendar, attendance, reminders, professions, members, map, chat and whispers.
+- **All members**: calendar, attendance, reminders, professions, members, rankings, map, chat and whispers.
 
 ## Commands
 | Command | What it does |
@@ -127,10 +130,11 @@ Event calendar, attendance, professions and raid alerts for members of the Vangu
 
 Commands also accept English names in any language: `/vdl import`, `/vdl sync`, `/vdl attendance`, `/vdl professions`, `/vdl members`, `/vdl alert`, `/vdl minimap`.
 
-The minimap button and the addon compartment open the addon window. Right-click opens a shortcut menu: Home, Events, Professions, Sync, Administration (officers only) and hide the minimap button.
+The minimap button and the addon compartment open the addon window. Right-click opens a shortcut menu: Home, Events, Professions, Members, Sync, Administration (officers only), Settings and hide the minimap button.
 
 ## Privacy and network
 - The addon never accesses the internet. Data only travels through the guild's addon channel inside the game.
+- The guild bank money log is only read while the guild bank is open, like Blizzard's own log tab.
 - Everything is saved per account in the addon's SavedVariables.
 
 ## Feedback
